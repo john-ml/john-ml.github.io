@@ -27,14 +27,14 @@ layout: post
 | `f{C[⍺⍺,⍵⍵,⍵]}g x`                                        | `C[f,g,x]`                            |
 | `x f{C[⍺⍺,⍵⍵,⍺,⍵]}g y`                                    | `C[f,g,x,y]`                          |
 | `{x←M ⋄ N}`                                               | `\ .. -> let x = M in N`              |
-| `{M:N ⋄ .. ⋄ P}`                                          | `\ .. -> if M then N else .. else -> P` |
+| `{M:N ⋄ .. ⋄ P}`                                          | `\ .. -> if M then N else .. else P`  |
 | `{C[∇]}`                                                  | `fix \ go .. -> C[go]`                |
 | `f∘g` where `f`, `g` monadic                              | `f . g`                               |
 | `f∘g` where `f` monadic and `g` dyadic                    | `\ x y -> f (g x y)` aka `(f .) . g`  |
 | `f∘g` where `f` dyadic and `g` monadic                    | `\ x y -> f x (g y)` aka `(. g) . f`  |
 | `x∘f` where `f` dyadic and `x` value                      | ``(x `f`)``                           |
 | `f∘x` where `f` dyadic and `x` value                      | ``(`f` x)``                           |
-| `f⍨ x`                                                    | `\ x -> f x x` aka `join f x`         |
+| `f⍨ x`                                                    | `f x x` aka `join f x`                |
 | `x f⍨ y`                                                  | `f y x`                               |
 | `(f⍣n) x` where `f` monadic and `n` is a natural number   | `iterate f x !! n`                    |
 | `(f⍣¯n) x` where `f` monadic with inverse `g`[^2] and `n` is a natural number | `iterate g x !! n` |
