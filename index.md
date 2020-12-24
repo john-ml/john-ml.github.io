@@ -1,13 +1,15 @@
-# Test
+---
+header-includes: |
+  <link rel="stylesheet" type="text/css" href="main.css" />
+  <script type="text/javascript" async
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+  </script>
+---
 
-a
+# John Li
 
-```hs
-f x = let y = x + x in do y
-```
+I'm a masters student interested in interactive theorem proving, program synthesis, and compilers.
 
-*a* _*_ **a**
+## Posts
 
-a `bc` d
-
-[test link](link.html)
+[Forcing erasure in Coq](erasure.v.html)

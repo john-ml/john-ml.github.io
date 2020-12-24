@@ -1,0 +1,10 @@
+body { 
+  font-family: monospace;
+  font-size: large; 
+  margin: 0px auto;
+  padding: 0px;
+  max-width: 700px;
+  line-height: 1.6;
+  color: #333;
+}
+div.sourceCode { margin-left: 25px; }
