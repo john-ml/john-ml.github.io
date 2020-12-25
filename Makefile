@@ -14,7 +14,7 @@ index.html: index.md.html
 %.v.html: content/%.v
 	cp content/$*.v $*.v
 	coqc $*.v
-	coqdoc --short --no-index -o $@ $*.v
+	coqdoc --light --utf8 --short --no-index -o $@ $*.v
 	cp css/_coqdoc.css coqdoc.css
 
 coqdoc.css: css/_coqdoc.css

@@ -12,4 +12,4 @@ I'm a masters student interested in interactive theorem proving, program synthes
 
 ## Posts
 
-[Forcing erasure in Coq](erasure.v.html)
+2020 Dec 24 [When are Coq types provably unequal?](types_not_equal.v.html)
