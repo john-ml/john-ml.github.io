@@ -77,90 +77,98 @@ Definition success (H : bool <> nat) (x : T nat) : unit :=
     Define isomorphisms and some lemmas about them:
 *)
 
-Definition function_on {A B} (P : A -> Prop) (R : A -> B -> Prop) := forall x, P x -> exists! y, R x y.
-Definition function {A B} (R : A -> B -> Prop) := function_on (fun _ => True) R.
-Definition injective_on {A B} (P : A -> Prop) (R : A -> B -> Prop) :=
-  function_on P R /\ forall x y z, R x z -> R y z -> x = y.
-Definition injective {A B} (R : A -> B -> Prop) := injective_on (fun _ => True) R.
+Definition surjective {A B} (f : A -> B) := forall y, exists x, f x = y.
+Definition injective {A B} (f : A -> B) := forall x y, f x = f y -> x = y.
+Definition iso A B := exists (f : A -> B) (g : B -> A), injective f /\ injective g.
 
-Definition iso A B := exists (R : A -> B -> Prop) (S : B -> A -> Prop), injective R /\ injective S.
 Infix "≅" := iso (at level 70, no associativity).
 Notation "a '≇' b" := (~ (a ≅ b)) (at level 70, no associativity).
 
-Lemma iso_refl {A} : A ≅ A.
+Require Coq.Logic.ChoiceFacts Coq.Logic.ClassicalFacts.
+Axiom FChoice : Coq.Logic.ChoiceFacts.FunctionalChoice.
+Axiom LEM : Coq.Logic.ClassicalFacts.excluded_middle.
+Require Import Coq.Logic.FunctionalExtensionality.
+
+Definition sur_inj {A B} (f : A -> B) :
+  surjective f ->
+  exists g : B -> A, injective g /\ forall x, f (g x) = x.
 Proof.
-  unfold iso.
-  exists eq, eq; enough (H : injective (@eq A)) by auto.
-  split; [intros x []; exists x; split; auto|congruence].
+  intros Hsur.
+  destruct (FChoice B A _ Hsur) as [g Hg]; exists g; split; auto.
+  intros x y Heq.
+  rewrite <- (Hg x), <- (Hg y).
+  now f_equal.
 Qed.
+
+Definition inhabited A := exists x : A, True.
+
+Definition inj_sur {A B} (f : A -> B) :
+  injective f -> inhabited A ->
+  exists g : B -> A, surjective g.
+Proof.
+  intros Hinj [arbitrary_A _].
+  enough (exists g, forall x, g (f x) = x) by firstorder.
+  enough (exists g, forall y, forall x, y = f x -> g y = x) by firstorder.
+  apply (FChoice B A (fun y gy => forall x : A, y = f x -> gy = x)).
+  intros y.
+  destruct (LEM (exists x, f x = y)) as [[x Hxy]|Hnx].
+  2:{ exists arbitrary_A; assert (forall x, f x <> y) by firstorder. congruence. }
+  exists x; intros x' Hx'y; apply Hinj; congruence.
+Qed.
+
+Lemma iso_refl {A} : A ≅ A.
+Proof. unfold iso; exists (fun x => x), (fun x => x); firstorder. Qed.
 
 Lemma iso_sym {A B} : A ≅ B -> B ≅ A.
-Proof. intros [R [S [HR HS]]]; exists S, R; auto. Qed.
+Proof. intros; firstorder. Qed.
 
-Definition comp {A B C} (R : A -> B -> Prop) (S : B -> C -> Prop) :=
-  fun x z => exists y, R x y /\ S y z.
+Definition comp {A B C} (f : B -> C) (g : A -> B) := fun x => f (g x).
 
-Lemma fun_comp {A B C} (R : A -> B -> Prop) (S : B -> C -> Prop) :
-  function R -> function S -> function (comp R S).
-Proof.
-  intros HR HS x.
-  destruct (HR x I) as [y [Hxy Hy_uniq]].
-  destruct (HS y I) as [z [Hyz Hz_uniq]].
-  intros []; exists z; split; [exists y; auto|].
-  intros z' [y' [Hxy' Hy'z']].
-  apply Hz_uniq.
-  apply Hy_uniq in Hxy'; congruence.
-Qed.
-
-Lemma inj_comp {A B C} (R : A -> B -> Prop) (S : B -> C -> Prop) :
-  injective R -> injective S -> injective (comp R S).
-Proof.
-  intros [HfunR HR] [HfunS HS]; split; [now apply fun_comp|].
-  intros x x' z [y' [Hxy' Hy'z]] [y'' [Hx'y'' Hy''z]].
-  assert (y' = y'') by (eapply HS; eauto); subst y''.
-  eapply HR; eauto.
-Qed.
+Lemma inj_comp {A B C} (f : B -> C) (g : A -> B) :
+  injective f -> injective g -> injective (comp f g).
+Proof. firstorder. Qed.
 
 Lemma iso_trans {A B C} : A ≅ B -> B ≅ C -> A ≅ C.
 Proof.
-  intros [R1 [S1 [HR1 HS1]]] [R2 [S2 [HR2 HS2]]].
-  exists (comp R1 R2), (comp S2 S1).
-  split; apply inj_comp; auto.
+  intros [f1 [g1 [Hf Hg]]] [f2 [g2 [Hf2 Hg2]]].
+  exists (comp f2 f1), (comp g1 g2); firstorder.
 Qed.
 
-Definition surjective {A B} (R : A -> B -> Prop) :=
-  exists P, function_on P R /\ forall y, exists x, P x /\ R x y.
-Lemma inj_sur {A B} (R : A -> B -> Prop) :
-  injective R -> exists S : B -> A -> Prop, surjective S.
+Lemma sur_ump {A B C} (f : A -> B) :
+  surjective f ->
+  forall g h : B -> C, comp g f = comp h f -> g = h.
 Proof.
-  intros Hfun.
-  exists (fun y x => R x y).
-  exists (fun y => exists x, R x y).
-  split; [|firstorder].
-  unfold function_on, unique.
-  intros y [x Hxy].
-  exists x; split; auto.
-  destruct Hfun as [Hfun Hinj]; firstorder.
+  intros Hsur g h Heq.
+  apply functional_extensionality; intros x.
+  destruct (Hsur x) as [y Hxy]; subst x.
+  change (?f (?g y)) with (comp f g y); congruence.
 Qed.
 
-Lemma iso_fn1 {A B C} : A ≅ B -> (A -> C) ≅ (B -> C).
+Lemma iso_fn1 {A B C} : inhabited A -> A ≅ B -> (A -> C) ≅ (B -> C).
 Proof.
-  intros [R [S [HR HS]]].
-  destruct (inj_sur R HR) as [R' HR'].
-  exists (fun fAC fBC => forall y, exists x, fBC y = fAC x /\ R' y x).
-  destruct (inj_sur S HS) as [S' HS'].
-  exists (fun fBC fAC => forall x, exists y, fAC x = fBC y /\ S' x y).
-  split.
-  - split; [intros fBC []|].
-  intros [ab [ba [Hab Hba]]]; do 2 (unshelve eexists; auto).
-  unfold inj in *; split; intros.
-  now rewrite ?Hab, ?Hba.
+  intros HA [f [g [Hf Hg]]].
+  assert (HB : inhabited B) by (destruct HA as [arbA _]; now exists (f arbA)).
+  destruct (inj_sur f Hf HA) as [f' Hf'].
+  destruct (inj_sur g Hg HB) as [g' Hg'].
+  exists (fun h => comp h f'), (fun h => comp h g').
+  split; intros h1 h2 Heq; eapply sur_ump; eauto.
+Qed.
+
+Lemma inj_ump {A B C} (f : B -> C) :
+  injective f ->
+  forall g h : A -> B, comp f g = comp f h -> g = h.
+Proof.
+  intros Hinj g h Heq.
+  apply functional_extensionality; intros x.
+  assert (Hcomp : comp f g x = comp f h x) by congruence.
+  now apply Hinj.
 Qed.
 
 Lemma iso_fn2 {A B C} : B ≅ C -> (A -> B) ≅ (A -> C).
 Proof.
-  intros [bc [cb [Hbc Hcb]]]; do 2 (unshelve eexists; auto).
-  split; intros; apply functional_extensionality; intros; now rewrite ?Hab, ?Hba.
+  intros [f [g [Hf Hg]]].
+  exists (comp f), (comp g).
+  split; intros h1 h2 Heq; eapply inj_ump; eauto.
 Qed.
 
 (* begin show *)
@@ -179,16 +187,16 @@ Proof.
   (** #<pre>
   f : nat -> bool
   g : bool -> nat
-  Hfg : forall x : bool, f (g x) = x
-  Hgf : forall x : nat, g (f x) = x
+  Hfg : injective f
+  Hgf : injective g
   ============================
   False</pre># 
 
   Since [f] returns [bool], [[f 0, f 1, f 2]] must contain a duplicate. *)
-  assert (H0 : g (f 0) = 0) by auto.
-  assert (H1 : g (f 1) = 1) by auto.
-  assert (H2 : g (f 2) = 2) by auto.
-  destruct (f 0), (f 1), (f 2); congruence.
+  pose proof Hfg 0 1 as H0.
+  pose proof Hfg 1 2 as H1.
+  pose proof Hfg 0 2 as H2.
+  destruct (f 0), (f 1), (f 2); firstorder congruence.
 Qed.
 (* end show *)
 
