@@ -8,7 +8,7 @@ header-includes: |
 
 # John Li
 
-I'm a masters student interested in interactive theorem proving, program synthesis, and compilers.
+I'm a master's student interested in interactive theorem proving, program synthesis, and compilers.
 
 ## Posts
 

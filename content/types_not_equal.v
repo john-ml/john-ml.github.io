@@ -1,14 +1,16 @@
 (** printing forall %\forall% #∀# *)
 (** printing exists %\exists% #∃# *)
 (** printing fun %\lambda% #λ# *)
+(** printing True %\top% #⊤# *)
+(** printing False %\bot% #⊥# *)
 
 (** * When are Coq types provably unequal? *)
 
-(** Given that Coq is dependently typed, one might expect it
-    to be capable of doing everything that
-    languages with "dependent types at home" (e.g. GADTs, type families, ..) 
-    can do. But it's actually pretty difficult to naively translate code using things
-    like GADTs into Coq, and it seems to be because languages with features like GADTs
+(** When I first started learning Coq, I expected it
+    to be strictly more expressive than
+    languages with "dependent types at home" (e.g. GADTs, type families, ..). 
+    But it's actually pretty difficult to translate code using things
+    like GADTs into Coq, and it seems to be because other languages
     bake a number of extra rules about type inequality into the type checker.
 
     For example, OCaml accepts the following code without complaining about non-exhaustive 
@@ -47,7 +49,7 @@ Fail Definition failure (x : T nat) : unit :=
   The command has indeed failed with message: 
   Non exhaustive pattern-matching: no clause found for pattern C2</pre># 
 
-  If we could prove [bool <>  nat], some fancier Gallina can prove that [C2] is impossible:
+  If we could prove [bool <>  nat], some dependent pattern matching can prove that [C2] is impossible:
 *)
 
 Definition success (H : bool <> nat) (x : T nat) : unit :=
@@ -58,14 +60,13 @@ Definition success (H : bool <> nat) (x : T nat) : unit :=
 
 (** But how to prove two types unequal?
     The usual tactics for proving things unequal
-    ([discriminate], [inversion], etc.) don't work here because
+    ([discriminate], [inversion], etc.) don't work because
     [nat] and [bool] aren't constructors.
 
-    First, some metatheoretical handwaving already suggests that
-    proving two types unequal will be impossible most of the time
-    in practice.
+    Some metatheory handwaving suggests that proving two types unequal will be
+    impossible for most practical situations.
     If we could prove [A <> B] for isomorphic [A] and [B],
-    then univalence wouldn't be safe to add as an axiom.
+    then univalence wouldn't be independent of CiC.
     So we should expect to be able to prove [A <> B]
     only when [A] and [B] aren't isomorphic.
     This is pretty bad: most data types in functional
@@ -74,20 +75,67 @@ Definition success (H : bool <> nat) (x : T nat) : unit :=
     inhabitants).
 
     But, let's try to prove whatever we can anyway.
-    Define isomorphisms and some lemmas about them:
-*)
+    We'll say a type [A] is less than or equal to [B] if
+    there exists an injection [f : A -> B]: *)
 
-Definition surjective {A B} (f : A -> B) := forall y, exists x, f x = y.
 Definition injective {A B} (f : A -> B) := forall x y, f x = f y -> x = y.
-Definition iso A B := exists (f : A -> B) (g : B -> A), injective f /\ injective g.
 
+Definition leq A B := exists f : A -> B, injective f.
+Infix "⊑" := leq (at level 70, no associativity).
+
+Lemma leq_refl {A} : A ⊑ A. Proof. exists (fun x =>  x); firstorder. Qed.
+
+(** Two types are isomorphic if they're less than or equal to each other: *)
+
+Definition iso A B := A ⊑ B /\ B ⊑ A.
 Infix "≅" := iso (at level 70, no associativity).
 Notation "a '≇' b" := (~ (a ≅ b)) (at level 70, no associativity).
+
+Lemma iso_refl {A} : A ≅ A. Proof. split; apply leq_refl. Qed.
+
+(* begin show *)
+Polymorphic Lemma iso_ne {A B} : A ≇ B -> A <> B.
+(* end show *)
+Proof. intros Hnot Heq; subst; apply Hnot, iso_refl. Qed.
+
+(* begin show *)
+(** This is already enough to prove [nat <> bool]:
+    [nat] and [bool] can't be isomorphic because [bool] has two inhabitants
+    while [nat] has countably many. *)
+
+Lemma nat_ne_bool : nat <> bool.
+Proof.
+  apply iso_ne; intros [[f Hfg] [g Hgf]].
+  (** #<pre>
+  f : nat -> bool
+  Hfg : injective f
+  g : bool -> nat
+  Hgf : injective g
+  ============================
+  False</pre># 
+
+  Since [f] returns [bool], [[f 0, f 1, f 2]] must contain a duplicate. *)
+  pose proof Hfg 0 1 as H0.
+  pose proof Hfg 1 2 as H1.
+  pose proof Hfg 0 2 as H2.
+  destruct (f 0), (f 1), (f 2); firstorder congruence.
+Qed.
+(* end show *)
+
+(** It'd be nice to automate this kind of reasoning for more complicated types.
+    First, some lemmas to make [(⊑)] and [(≅)] easier to work with: *)
 
 Require Coq.Logic.ChoiceFacts Coq.Logic.ClassicalFacts.
 Axiom FChoice : Coq.Logic.ChoiceFacts.FunctionalChoice.
 Axiom LEM : Coq.Logic.ClassicalFacts.excluded_middle.
 Require Import Coq.Logic.FunctionalExtensionality.
+
+Definition surjective {A B} (f : A -> B) := forall y, exists x, f x = y.
+
+Definition inhabited A := exists x : A, True.
+
+Definition comp {A B C} (f : B -> C) (g : A -> B) := fun x => f (g x).
+(* begin hide *)
 
 Definition sur_inj {A B} (f : A -> B) :
   surjective f ->
@@ -99,8 +147,6 @@ Proof.
   rewrite <- (Hg x), <- (Hg y).
   now f_equal.
 Qed.
-
-Definition inhabited A := exists x : A, True.
 
 Definition inj_sur {A B} (f : A -> B) :
   injective f -> inhabited A ->
@@ -116,23 +162,9 @@ Proof.
   exists x; intros x' Hx'y; apply Hinj; congruence.
 Qed.
 
-Lemma iso_refl {A} : A ≅ A.
-Proof. unfold iso; exists (fun x => x), (fun x => x); firstorder. Qed.
-
-Lemma iso_sym {A B} : A ≅ B -> B ≅ A.
-Proof. intros; firstorder. Qed.
-
-Definition comp {A B C} (f : B -> C) (g : A -> B) := fun x => f (g x).
-
 Lemma inj_comp {A B C} (f : B -> C) (g : A -> B) :
   injective f -> injective g -> injective (comp f g).
 Proof. firstorder. Qed.
-
-Lemma iso_trans {A B C} : A ≅ B -> B ≅ C -> A ≅ C.
-Proof.
-  intros [f1 [g1 [Hf Hg]]] [f2 [g2 [Hf2 Hg2]]].
-  exists (comp f2 f1), (comp g1 g2); firstorder.
-Qed.
 
 Lemma sur_ump {A B C} (f : A -> B) :
   surjective f ->
@@ -142,16 +174,6 @@ Proof.
   apply functional_extensionality; intros x.
   destruct (Hsur x) as [y Hxy]; subst x.
   change (?f (?g y)) with (comp f g y); congruence.
-Qed.
-
-Lemma iso_fn1 {A B C} : inhabited A -> A ≅ B -> (A -> C) ≅ (B -> C).
-Proof.
-  intros HA [f [g [Hf Hg]]].
-  assert (HB : inhabited B) by (destruct HA as [arbA _]; now exists (f arbA)).
-  destruct (inj_sur f Hf HA) as [f' Hf'].
-  destruct (inj_sur g Hg HB) as [g' Hg'].
-  exists (fun h => comp h f'), (fun h => comp h g').
-  split; intros h1 h2 Heq; eapply sur_ump; eauto.
 Qed.
 
 Lemma inj_ump {A B C} (f : B -> C) :
@@ -164,46 +186,401 @@ Proof.
   now apply Hinj.
 Qed.
 
-Lemma iso_fn2 {A B C} : B ≅ C -> (A -> B) ≅ (A -> C).
+(* end hide *)
+Require Import Morphisms Setoid.
+
+Lemma leq_asym {A B} : A ⊑ B -> B ⊑ A -> A ≅ B. Proof. firstorder. Qed.
+Lemma leq_trans {A B C} : A ⊑ B -> B ⊑ C -> A ⊑ C.
+Proof. intros [f Hf] [g Hg]; exists (comp g f); now apply inj_comp. Qed.
+Lemma leq_False {A} : False ⊑ A. Proof. unshelve eexists; [intros []|]; intros []. Qed.
+Lemma leq_sum1 {A B C} : A ⊑ B -> A + C ⊑ B + C.
 Proof.
-  intros [f [g [Hf Hg]]].
-  exists (comp f), (comp g).
-  split; intros h1 h2 Heq; eapply inj_ump; eauto.
+  intros [f Hf]; exists (fun xy => match xy with inl x => inl (f x) | inr y => inr y end).
+  intros [x|y] [x'|y']; try congruence.
+  intros; assert (Hfx_eq : f x = f x') by congruence.
+  apply Hf in Hfx_eq; congruence.
+Qed.
+Lemma leq_sum2 {A B C} : B ⊑ C -> A + B ⊑ A + C.
+Proof.
+  intros [f Hf]; exists (fun xy => match xy with inl x => inl x | inr y => inr (f y) end).
+  intros [x|y] [x'|y']; try congruence.
+  intros; assert (Hfx_eq : f y = f y') by congruence.
+  apply Hf in Hfx_eq; congruence.
+Qed.
+Lemma leq_prod1 {A B C} : A ⊑ B -> A * C ⊑ B * C.
+Proof.
+  intros [f Hf]; exists (fun '(x, y) => (f x, y)).
+  intros [x y] [x' y']; try congruence.
+  intros; assert (Hfx_eq : f x = f x') by congruence.
+  apply Hf in Hfx_eq; congruence.
+Qed.
+Lemma leq_prod2 {A B C} : B ⊑ C -> A * B ⊑ A * C.
+Proof.
+  intros [f Hf]; exists (fun '(x, y) => (x, f y)).
+  intros [x y] [x' y']; try congruence.
+  intros; assert (Hfx_eq : f y = f y') by congruence.
+  apply Hf in Hfx_eq; congruence.
+Qed.
+Lemma leq_fn1 {A B C} : inhabited A -> A ⊑ B -> (A -> C) ⊑ (B -> C).
+Proof.
+  intros HA [f Hf].
+  destruct (inj_sur f Hf HA) as [f' Hf'].
+  exists (fun h => comp h f').
+  intros h1 h2 Heq; eapply sur_ump; eauto.
+Qed.
+Lemma leq_fn2 {A B C} : B ⊑ C -> (A -> B) ⊑ (A -> C).
+Proof. intros [f Hf]; exists (comp f); intros h1 h2 Heq; eapply inj_ump; eauto. Qed.
+
+Lemma iso_sym {A B} : A ≅ B -> B ≅ A. Proof. firstorder. Qed.
+Lemma iso_trans {A B C} : A ≅ B -> B ≅ C -> A ≅ C.
+Proof.
+  intros [[f1 Hf1] [g1 Hg1]] [[f2 Hf2] [g2 Hg2]].
+  split; [exists (comp f2 f1)|exists (comp g1 g2)]; firstorder.
 Qed.
 
-(* begin show *)
-Polymorphic Lemma iso_ne {A B} : A ≇ B -> A <> B.
-(* end show *)
-Proof. intros Hnot Heq; subst; apply Hnot, iso_refl. Qed.
+Add Parametric Relation : Type iso
+  reflexivity proved by @iso_refl
+  symmetry proved by @iso_sym
+  transitivity proved by @iso_trans
+  as iso_rel.
 
-(* begin show *)
-(** This is already enough to prove [nat <> bool]:
-    [nat] and [bool] can't be isomorphic because [bool] has two inhabitants
-    while [nat] has countably many. *)
-
-Lemma nat_ne_bool : nat <> bool.
+Lemma iso_fn1 {A B C} : inhabited A -> A ≅ B -> (A -> C) ≅ (B -> C).
 Proof.
-  apply iso_ne; intros [f [g [Hfg Hgf]]].
-  (** #<pre>
-  f : nat -> bool
-  g : bool -> nat
-  Hfg : injective f
-  Hgf : injective g
-  ============================
-  False</pre># 
-
-  Since [f] returns [bool], [[f 0, f 1, f 2]] must contain a duplicate. *)
-  pose proof Hfg 0 1 as H0.
-  pose proof Hfg 1 2 as H1.
-  pose proof Hfg 0 2 as H2.
-  destruct (f 0), (f 1), (f 2); firstorder congruence.
+  intros HA [[f Hf] [g Hg]].
+  assert (HB : inhabited B) by (destruct HA as [arbA _]; now exists (f arbA)).
+  destruct (inj_sur f Hf HA) as [f' Hf'].
+  destruct (inj_sur g Hg HB) as [g' Hg'].
+  split; [exists (fun h => comp h f')|exists (fun h => comp h g')];
+  intros h1 h2 Heq; eapply sur_ump; eauto.
 Qed.
-(* end show *)
 
-(** It'd be nice to automate this kind of reasoning as much as possible. 
-    To do so, we'll need some more lemmas. *)
+Add Parametric Morphism : (fun A B => A -> B) with
+  signature eq ==> iso ==> iso as iso_fn2.
+Proof.
+  intros x y y' [[f Hf] [g Hg]].
+  split; [exists (comp f)|exists (comp g)]; intros h1 h2 Heq; eapply inj_ump; eauto.
+Qed.
 
+Add Parametric Morphism : @sum with
+  signature iso ==> iso ==> iso as iso_sum.
+Proof.
+  intros A A' [[fA HfA] [gA HgA]] B B' [[fB HfB] [gB HgB]].
+  split;
+    [exists (fun x => match x with inl x => inl (fA x) | inr y => inr (fB y) end)
+    |exists (fun x => match x with inl x => inl (gA x) | inr y => inr (gB y) end)];
+  intros [x1|y1] [x2|y2] Heq; inversion Heq; subst; f_equal;
+  try now (apply HfA + apply HfB + apply HgA + apply HgB).
+Qed.
 
+Add Parametric Morphism : @prod with
+  signature iso ==> iso ==> iso as iso_prod.
+Proof.
+  intros A A' [[fA HfA] [gA HgA]] B B' [[fB HfB] [gB HgB]].
+  split; [exists (fun '(x, y) => (fA x, fB y))|exists (fun '(x, y) => (gA x, gB y))];
+  intros [x1 y1] [x2 y2] Heq; inversion Heq; subst; f_equal;
+  try now (apply HfA + apply HfB + apply HgA + apply HgB).
+Qed.
+
+(** Next, a bunch of standard isomorphisms: *)
+
+Lemma unit_True : unit ≅ True.
+Proof. split; [exists (fun _ => I)|exists (fun _ => tt)]; now intros [] []. Qed.
+Lemma sum_False {A} : False + A ≅ A.
+Proof.
+  split; [unshelve eexists; [intros [[]|x]; exact x|]|exists inr].
+  - intros [[]|x] [[]|y]; congruence.
+  - congruence.
+Qed.
+Lemma sum_comm {A B} : A + B ≅ B + A.
+Proof.
+  split;
+    [exists (fun x => match x with inl x => inr x | inr x => inl x end)
+    |exists (fun x => match x with inl x => inr x | inr x => inl x end)];
+  intros [x|y] [z|w]; congruence.
+Qed.
+Lemma sum_assoc {A B C} : (A + B) + C ≅ A + (B + C).
+Proof.
+  split;
+    [exists (fun x =>
+       match x with
+       | inl (inl x) => inl x
+       | inl (inr x) => inr (inl x)
+       | inr x => inr (inr x)
+       end)
+    |exists (fun x =>
+          match x with
+          | inl x => inl (inl x)
+          | inr (inl x) => inl (inr x)
+          | inr (inr x) => inr x
+          end)];
+  [intros [[?|?]|?] [[?|?]|?]|intros [?|[?|?]] [?|[?|?]]]; congruence.
+Qed.
+Lemma prod_False {A} : False * A ≅ False.
+Proof.
+  split; [unshelve eexists; [intros [[] _]|]|unshelve eexists; [intros []|]];
+  [intros [[] _]|intros []].
+Qed.
+Lemma prod_True {A} : True * A ≅ A.
+Proof.
+  split; [exists snd|exists (fun x => (I, x))]; [intros [[] x] [[] y]|]; cbn; congruence.
+Qed.
+Lemma prod_comm {A B} : A * B ≅ B * A.
+Proof.
+  split; [exists (fun '(x, y) => (y, x))|exists (fun '(x, y) => (y, x))]; intros [x y] [z w]; congruence.
+Qed.
+Lemma prod_assoc {A B C} : (A * B) * C ≅ A * (B * C).
+Proof.
+  split;
+    [exists (fun '((x, y), z) => (x, (y, z)))
+    |exists (fun '(x, (y, z)) => ((x, y), z))];
+  [intros [[??]?] [[??]?]|intros [?[??]] [?[??]]]; congruence.
+Qed.
+Lemma prod_sum_distr {A B C} : A * (B + C) ≅ A * B + A * C.
+Proof.
+  split;
+    [exists (fun '(x, yz) => match yz with inl y => inl (x, y) | inr z => inr (x, z) end)
+    |exists (fun xyxz => match xyxz with inl (x, y) => (x, inl y) | inr (x, z) => (x, inr z) end)];
+  [intros [?[?|?]] [?[?|?]]|intros [[??]|[??]] [[??]|[??]]]; congruence.
+Qed.
+Lemma fun_False {A} : (False -> A) ≅ True.
+Proof.
+  split; [exists (fun _ => I)|exists (fun _ HF => False_rect _ HF)]; [intros f g _|intros [] []; auto].
+  apply functional_extensionality; intros [].
+Qed.
+Lemma fun_True {A} : (True -> A) ≅ A.
+Proof.
+  split; [exists (fun f => f I)|exists (fun x _ => x)]; [intros f g Heq|intros x y Heq].
+  - apply functional_extensionality; now intros [].
+  - change (x = y) with ((fun _ => x) I = (fun _ => y) I); now rewrite Heq.
+Qed.
+Lemma fun_uncurry {A B C} : (A -> B -> C) ≅ (A * B -> C).
+Proof.
+  split; [exists (fun f '(x, y) => f x y)|exists (fun f x y => f (x, y))];
+  intros f g Heq; apply functional_extensionality.
+  - intros x; apply functional_extensionality; intros y.
+    change (?f x y) with ((fun '(x, y) => f x y) (x, y)).
+    now rewrite Heq.
+  - intros [x y]; change (?f (x, y)) with ((fun x y => f (x, y)) x y).
+    now rewrite Heq.
+Qed.
+Lemma fun_sum_distr {A B C} : (A + B -> C) ≅ (A -> C) * (B -> C).
+Proof.
+  split;
+    [exists (fun f => (comp f inl, comp f inr))
+    |exists (fun '(f, g) => fun xy => match xy with inl x => f x | inr y => g y end)].
+  - intros f g Heq; inversion Heq.
+    apply functional_extensionality; intros [x|y];
+    change (?f (?g ?x) = ?h (?k ?y)) with (comp f g x = comp h k y); congruence.
+  - intros [f1 g1] [f2 g2] Heq; f_equal; apply functional_extensionality; intros x.
+    + match type of Heq with
+      | ?f = ?g =>
+        change (f1 x) with (f (inl x));
+        change (f2 x) with (g (inl x))
+      end; now rewrite Heq.
+    + match type of Heq with
+      | ?f = ?g =>
+        change (g1 x) with (f (inr x));
+        change (g2 x) with (g (inr x))
+      end; now rewrite Heq.
+Qed.
+
+(** A type is finite if it has exactly [n] inhabitants for some [n : nat]: *)
+
+Fixpoint fin n : Type :=
+  match n with
+  | 0 => False
+  | S n => True + fin n
+  end.
+
+Definition finite A := exists n, A ≅ fin n.
+
+(** Simple types like [bool] are finite, and combinations of finite types
+    remain finite: *)
+
+Lemma fin_False : False ≅ fin 0. Proof. apply iso_refl. Qed.
+Lemma fin_True : True ≅ fin 1. Proof. cbn; now rewrite sum_comm, sum_False. Qed.
+Lemma fin_bool : bool ≅ fin 2.
+Proof.
+  split;
+    [exists (fun b : bool => if b then inl I else inr (inl I))
+    |exists (fun x =>
+          match x with
+          | inl _ => true
+          | inr (inl _) => false
+          | inr (inr x) => False_rect _ x
+          end)].
+  - intros [] []; congruence.
+  - intros [[]|[[]|[]]] [[]|[[]|[]]]; congruence.
+Qed.
+Lemma fin_sum {m n} : fin m + fin n ≅ fin (m + n).
+Proof.
+  induction m as [|m IHm]; cbn; [now rewrite sum_False|].
+  rewrite sum_assoc; apply iso_sum; now auto.
+Qed.
+Lemma fin_prod {m n} : fin m * fin n ≅ fin (m * n).
+Proof.
+  induction m as [|m IHm]; cbn; [apply prod_False|].
+  rewrite prod_comm, prod_sum_distr.
+  eapply iso_trans; [|apply fin_sum].
+  apply iso_sum; [|rewrite prod_comm; auto].
+  now rewrite prod_comm, prod_True.
+Qed.
+Lemma fin_fun {m n} : (fin m -> fin n) ≅ fin (Nat.pow n m).
+Proof.
+  induction m as [|m IHm]; cbn.
+  - rewrite sum_comm, sum_False; apply fun_False.
+  - rewrite fun_sum_distr, <- fin_prod.
+    apply iso_prod; [|easy].
+    apply fun_True.
+Qed.
+
+(** [nat] "absorbs" finite types: *)
+
+Require Import Lia.
+Lemma nat_fin_sum {n} : fin n + nat ≅ nat.
+Proof.
+  induction n; cbn; [now rewrite sum_False|].
+  rewrite sum_assoc.
+  eapply iso_trans; [apply iso_sum; [reflexivity|apply IHn]|]; clear.
+  split; [exists (fun xn => match xn with inl _ => 0 | inr n => S n end)|exists inr];
+  [intros [[]|m] [[]|n]|intros m n]; congruence.
+Qed.
+(* begin hide *)
+Fixpoint halve n :=
+  match n with
+  | 0 | 1 => 0
+  | S (S n) => S (halve n)
+  end.
+Lemma halve_spec : 
+  forall m, if Nat.even m then exists n, m = 2*halve n else exists n, m = 2*halve n+1.
+Proof.
+  fix go 1; intros [|[|m]]; [exists 0; auto..|].
+  specialize (go m); cbn; destruct (Nat.even m);
+  destruct go as [n Hn]; exists (S (S n)); cbn; lia.
+Qed.
+Lemma halve_cancel n : halve (2*n) = n.
+Proof.
+  induction n; [easy|].
+  replace (2 * S n) with (S (S (2 * n))) by lia.
+  cbn; replace (n + (n + 0)) with (2 * n) by lia.
+  lia.
+Qed.
+Lemma halve_cancel1 n : halve (2*n + 1) = n.
+Proof.
+  induction n; [easy|].
+  replace (2 * S n) with (S (S (2 * n))) by lia.
+  cbn; replace (n + (n + 0)) with (2 * n) by lia.
+  lia.
+Qed.
+(* end hide *)
+Lemma nat_fin_prod {n} : fin (S n) * nat ≅ nat.
+Proof.
+  Fail induction n; cbn; [rewrite sum_comm|]. (* TODO: why setoid failures? *)
+  induction n; cbn.
+  - eapply iso_trans; [apply iso_prod; [rewrite sum_comm, sum_False|]; apply iso_refl|].
+    now rewrite prod_True.
+  - change (True + fin n)%type with (fin (S n)).
+    rewrite prod_comm, prod_sum_distr.
+    eapply iso_trans; [apply iso_sum; [rewrite prod_comm, prod_True; apply iso_refl|apply prod_comm]|].
+    eapply iso_trans; [apply iso_sum; [apply iso_refl|apply IHn]|].
+    clear.
+    split;
+      [exists (fun mn => match mn with inl m => 2*m | inr m => 2*m + 1 end)
+      |exists (fun m => if Nat.even m then inl (halve m) else inr (halve m))];
+      [intros [?|?] [?|?] Heq; try congruence; try lia; f_equal; lia|].
+    intros m n.
+    pose proof halve_spec m as Hevenbm.
+    pose proof halve_spec n as Hevenbn.
+    destruct (Nat.even m); destruct Hevenbm as [km Hkm];
+    destruct (Nat.even n); destruct Hevenbn as [kn Hkn]; try congruence.
+    + subst; rewrite !halve_cancel; congruence.
+    + subst; rewrite !halve_cancel1; congruence.
+Qed.
+(* begin hide *)
+Lemma pow3div2 n : ~ PeanoNat.Nat.divide 2 (Nat.pow 3 n).
+Proof.
+  induction n.
+  - cbn; intros [k Hk]; lia.
+  - replace (Nat.pow 3 (S n)) with (3 * Nat.pow 3 n) by (cbn; lia).
+    intros Hdiv; apply PeanoNat.Nat.gauss in Hdiv; auto.
+Qed.
+Lemma halving_iter m n p :
+  m <= n -> Nat.iter m halve (Nat.pow 2 n * p) = Nat.pow 2 (n - m) * p.
+Proof.
+  induction m as [|m IHm]; intros Hle.
+  - replace (n - 0) with n by lia. auto.
+  - simpl; rewrite IHm by lia.
+    destruct n as [|n]; [lia|].
+    replace (S n - m) with (S (n - m)) by lia.
+    replace (Nat.pow 2 (S (n - m))) with (2 * Nat.pow 2 (n - m)) by (cbn; lia).
+    now rewrite <- PeanoNat.Nat.mul_assoc, halve_cancel.
+Qed.
+Lemma halving_unequal_lt m n p q :
+  m < n ->
+  Nat.iter m halve (Nat.pow 2 m * Nat.pow 3 p) <> Nat.iter m halve (Nat.pow 2 n * Nat.pow 3 q).
+Proof.
+  intros Hlt Heq.
+  rewrite !halving_iter in Heq by lia.
+  replace (m - m) with 0 in Heq by lia.
+  apply (pow3div2 p).
+  replace (Nat.pow 3 p) with (Nat.pow 2 (n - m) * Nat.pow 3 q) by (cbn in *; lia).
+  assert (n - m > 0) by lia.
+  destruct (n - m) as [|k]; [lia|].
+  replace (Nat.pow 2 (S k)) with (2 * Nat.pow 2 k) by (cbn; lia).
+  apply PeanoNat.Nat.divide_mul_l, PeanoNat.Nat.divide_factor_l.
+Qed.
+Lemma halving_eq1 m n p q :
+  Nat.iter (min m n) halve (Nat.pow 2 m * Nat.pow 3 p)
+  = Nat.iter (min m n) halve (Nat.pow 2 n * Nat.pow 3 q) ->
+  m = n.
+Proof.
+  intros Heq; destruct (PeanoNat.Nat.eq_dec m n) as [Hmn_eq|Hmn_ne]; auto.
+  assert (Hlt : m < n \/ n < m) by lia.
+  destruct Hlt as [Hlt|Hlt].
+  - exfalso. apply (halving_unequal_lt m n p q); eauto.
+    now replace (Nat.min m n) with m in * by lia.
+  - exfalso. symmetry in Heq. apply (halving_unequal_lt n m q p); eauto.
+    now replace (Nat.min m n) with n in * by lia.
+Qed.
+Lemma halving_eq2 m n : Nat.pow 3 m = Nat.pow 3 n -> m = n.
+Proof.
+  revert n; induction m; destruct n; auto; try solve [simpl in *; lia].
+  intros Heq; f_equal; apply (IHm n).
+  replace (Nat.pow 3 (S m)) with (3 * Nat.pow 3 m) in Heq by (cbn; lia).
+  replace (Nat.pow 3 (S n)) with (3 * Nat.pow 3 n) in Heq by (cbn; lia).
+  rewrite !(PeanoNat.Nat.mul_comm 3) in Heq.
+  apply f_equal with (f := fun n => Nat.div n 3) in Heq.
+  now rewrite !PeanoNat.Nat.div_mul in * by auto.
+Qed.
+(* end hide *)
+Lemma nat_fin_fun {n} : (fin (S n) -> nat) ≅ nat.
+Proof.
+  induction n; cbn.
+  - eapply iso_trans; [eapply iso_fn1; [now exists (inl I)|rewrite sum_comm; apply sum_False]|].
+    now rewrite fun_True.
+  - change (True + fin n)%type with (fin (S n)).
+    rewrite fun_sum_distr.
+    eapply iso_trans; [apply iso_prod; [apply fun_True|apply IHn]|].
+    clear.
+    split; [exists (fun '(m, n) => Nat.pow 2 m * Nat.pow 3 n)|exists (fun n => (n, 0))];
+    [|intros m n Heq; congruence].
+    intros [m1 n1] [m2 n2] Heq.
+    assert (Hmeq : m1 = m2).
+    { apply f_equal with (f := Nat.iter (min m1 m2) halve) in Heq.
+      eapply halving_eq1; eauto. }
+    assert (Hneq : n1 = n2).
+    { subst m2; apply f_equal with (f := Nat.iter m1 halve) in Heq.
+      rewrite !halving_iter in Heq by lia.
+      replace (m1 - m1) with 0 in Heq by lia.
+      cbn in Heq.
+      replace (Nat.pow 3 n1 + 0) with (Nat.pow 3 n1) in Heq by lia.
+      replace (Nat.pow 3 n2 + 0) with (Nat.pow 3 n2) in Heq by lia.
+      now apply halving_eq2. }
+    congruence.
+Qed.
+
+(* Lemma nat_fun_fin {n} : (nat -> fin (S (S n))) ≅ (nat -> fin (S (S (S n)))). *)
+(* Proof. *)
 
 Inductive card :=
 | A0
@@ -231,29 +608,29 @@ Fixpoint cardD c : Type :=
 (** We can also write a function [simpl : card -> card] to simplify
     a cardinality expression: *)
 
-Fixpoint simpl c :=
-  match c with
-  | A0 | Zero | One => c
-  | Zero |+| c | c |+| Zero => c
-  | c1 |+| c2 =>
-    match simpl c1, simpl c2 with
-    | Zero, c | c, Zero => c
-    | c1, c2 => c1 |+| c2
-    end
-  | Zero |*| _ | _ |*| Zero => Zero
-  | One |*| c | c |*| One => c
-  | c1 |*| c2 =>
-    match simpl c1, simpl c2 with
-    | Zero, _ | _, Zero => Zero
-    | One, c | c, One => c
-    | c1, c2 => c1 |*| c2
-    end
-  | Zero |^| Zero => One
-  | Zero |^| _ => Zero
-  | One |^| _ => One
-  | _ |^| Zero => c
-  | c |^| One => c
-  | c1 |^| c2 =>
+(* Fixpoint simpl c := *)
+(*   match c with *)
+(*   | A0 | Zero | One => c *)
+(*   | Zero |+| c | c |+| Zero => c *)
+(*   | c1 |+| c2 => *)
+(*     match simpl c1, simpl c2 with *)
+(*     | Zero, c | c, Zero => c *)
+(*     | c1, c2 => c1 |+| c2 *)
+(*     end *)
+(*   | Zero |*| _ | _ |*| Zero => Zero *)
+(*   | One |*| c | c |*| One => c *)
+(*   | c1 |*| c2 => *)
+(*     match simpl c1, simpl c2 with *)
+(*     | Zero, _ | _, Zero => Zero *)
+(*     | One, c | c, One => c *)
+(*     | c1, c2 => c1 |*| c2 *)
+(*     end *)
+(*   | Zero |^| Zero => One *)
+(*   | Zero |^| _ => Zero *)
+(*   | One |^| _ => One *)
+(*   | _ |^| Zero => c *)
+(*   | c |^| One => c *)
+(*   | c1 |^| c2 => *)
 
 (** In general [A <> B] can be proved this way if [A] and [B] are both finite with differing numbers
     of inhabitants, or if one of types is finite and the other not. 
@@ -262,6 +639,7 @@ Fixpoint simpl c :=
     isomorphic.
 *)
 
+(*
 Definition disambiguable A := exists f : A -> A, forall x, f x <> x.
 
 (* If B is disambiguable, [f : A -> A -> B] can never be surjective *)
@@ -929,4 +1307,5 @@ Recursive Extraction expD.
 
 
 
+*)
 *)
