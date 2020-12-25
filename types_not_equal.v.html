@@ -26,14 +26,15 @@
 
 <div class="paragraph"> </div>
 
- Have you ever tried to prove <span class="inlinecode"><span class="id" title="var">bool</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">nat</span></span> in Coq?
-    It's not pleasant. Since <span class="inlinecode"><span class="id" title="var">bool</span></span> and <span class="inlinecode"><span class="id" title="var">nat</span></span> are types and not
-    constructors, the usual tactics like <span class="inlinecode"><span class="id" title="tactic">discriminate</span></span>, <span class="inlinecode"><span class="id" title="tactic">injection</span></span>, etc. don't work.
+ Given that Coq is dependently typed, one might expect it
+    to be capable of doing everything that
+    languages with "dependent types at home" (e.g. GADTs, type families, ..) 
+    can do. But it's actually pretty difficult to naively translate code using things
+    like GADTs into Coq, and it seems to be because languages with features like GADTs
+    bake a number of extra rules about type inequality into the type checker.
 
 <div class="paragraph"> </div>
 
-    What's interesting is that these disequalities seem baked into
-    non-dependently-typed languages, like OCaml.
     For example, OCaml accepts the following code without complaining about non-exhaustive 
     pattern matching:
 
@@ -101,11 +102,27 @@
 
 <div class="doc">
 But how to prove two types unequal?
-    Idea: if <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">=</span> <span class="inlinecode"><span class="id" title="var">B</span></span> then <span class="inlinecode"><span class="id" title="var">A</span></span> and <span class="inlinecode"><span class="id" title="var">B</span></span> are isomorphic. 
-    So <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span> if <span class="inlinecode"><span class="id" title="var">A</span></span> is not isomorphic to <span class="inlinecode"><span class="id" title="var">B</span></span>.
+    The usual tactics for proving things unequal
+    (<span class="inlinecode"><span class="id" title="tactic">discriminate</span></span>, <span class="inlinecode"><span class="id" title="tactic">inversion</span></span>, etc.) don't work here because
+    <span class="inlinecode"><span class="id" title="var">nat</span></span> and <span class="inlinecode"><span class="id" title="var">bool</span></span> aren't constructors.
 
 <div class="paragraph"> </div>
 
+    First, some metatheoretical handwaving already suggests that
+    proving two types unequal will be impossible most of the time
+    in practice.
+    If we could prove <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span> for isomorphic <span class="inlinecode"><span class="id" title="var">A</span></span> and <span class="inlinecode"><span class="id" title="var">B</span></span>,
+    then univalence wouldn't be safe to add as an axiom.
+    So we should expect to be able to prove <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span>
+    only when <span class="inlinecode"><span class="id" title="var">A</span></span> and <span class="inlinecode"><span class="id" title="var">B</span></span> aren't isomorphic.
+    This is pretty bad: most data types in functional
+    programming are trees of some kind or other, which are all
+    isomorphic to each other (they all have a countable number of
+    inhabitants).
+
+<div class="paragraph"> </div>
+
+    But, let's try to prove whatever we can anyway.
     Define isomorphisms and some lemmas about them:
 
 </div>
@@ -141,8 +158,9 @@ But how to prove two types unequal?
 </div>
 
 <div class="doc">
-Now, since <span class="inlinecode"><span class="id" title="var">bool</span></span> has two inhabitants and <span class="inlinecode"><span class="id" title="var">nat</span></span> has countably many,
-    the two types can't be isomorphic. Therefore, they can't be equal: 
+This is already enough to prove <span class="inlinecode"><span class="id" title="var">nat</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">bool</span></span>:
+    <span class="inlinecode"><span class="id" title="var">nat</span></span> and <span class="inlinecode"><span class="id" title="var">bool</span></span> can't be isomorphic because <span class="inlinecode"><span class="id" title="var">bool</span></span> has two inhabitants
+    while <span class="inlinecode"><span class="id" title="var">nat</span></span> has countably many. 
 </div>
 <div class="code">
 
@@ -173,12 +191,68 @@ Now, since <span class="inlinecode"><span class="id" title="var">bool</span></sp
 <span class="id" title="keyword">Qed</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+It'd be nice to automate this kind of reasoning as much as possible. 
+    Define a cardinality as an arithmetic expression built from standard
+    arithmetic operators and A0, the cardinality of <span class="inlinecode"><span class="id" title="var">nat</span></span>: 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Inductive</span> <a name="card"><span class="id" title="inductive">card</span></a> :=<br/>
+| <a name="A0"><span class="id" title="constructor">A0</span></a><br/>
+| <a name="Zero"><span class="id" title="constructor">Zero</span></a> | <a name="One"><span class="id" title="constructor">One</span></a><br/>
+| <a name="Add"><span class="id" title="constructor">Add</span></a> (<span class="id" title="var">c1</span> <span class="id" title="var">c2</span> : <a class="idref" href="types_not_equal.html#card"><span class="id" title="inductive">card</span></a>)<br/>
+| <a name="Mul"><span class="id" title="constructor">Mul</span></a> (<span class="id" title="var">c1</span> <span class="id" title="var">c2</span> : <a class="idref" href="types_not_equal.html#card"><span class="id" title="inductive">card</span></a>)<br/>
+| <a name="Exp"><span class="id" title="constructor">Exp</span></a> (<span class="id" title="var">c1</span> <span class="id" title="var">c2</span> : <a class="idref" href="types_not_equal.html#card"><span class="id" title="inductive">card</span></a>).<br/>
+<span class="id" title="keyword">Infix</span> <a name="faf71928a8d555b351c83b424510aae3"><span class="id" title="notation">&quot;</span></a>|^|" := <a class="idref" href="types_not_equal.html#Exp"><span class="id" title="constructor">Exp</span></a> (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 60, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Infix</span> <a name="a9db8acd706fabc802321391b6c85694"><span class="id" title="notation">&quot;</span></a>|*|" := <a class="idref" href="types_not_equal.html#Mul"><span class="id" title="constructor">Mul</span></a> (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 62, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Infix</span> <a name="43a4dfb5c2cbaf8bcbe9e5f8fa29461b"><span class="id" title="notation">&quot;</span></a>|+|" := <a class="idref" href="types_not_equal.html#Add"><span class="id" title="constructor">Add</span></a> (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 63, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+We can write a function <span class="inlinecode"><span class="id" title="var">cardD</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">card</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span> maps each <span class="inlinecode"><span class="id" title="var">c</span></span> to a 
+    type with cardinality <span class="inlinecode"><span class="id" title="var">c</span></span>: 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Fixpoint</span> <a name="cardD"><span class="id" title="definition">cardD</span></a> <span class="id" title="var">c</span> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="types_not_equal.html#c"><span class="id" title="variable">c</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#A0"><span class="id" title="constructor">A0</span></a> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a><br/>
+&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Zero"><span class="id" title="constructor">Zero</span></a> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a><br/>
+&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#One"><span class="id" title="constructor">One</span></a> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#True"><span class="id" title="inductive">True</span></a><br/>
+&nbsp;&nbsp;| <span class="id" title="var">c1</span> <a class="idref" href="types_not_equal.html#43a4dfb5c2cbaf8bcbe9e5f8fa29461b"><span class="id" title="notation">|+|</span></a> <span class="id" title="var">c2</span> ⇒ <a class="idref" href="types_not_equal.html#cardD"><span class="id" title="definition">cardD</span></a> <span class="id" title="var">c1</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="types_not_equal.html#cardD"><span class="id" title="definition">cardD</span></a> <span class="id" title="var">c2</span><br/>
+&nbsp;&nbsp;| <span class="id" title="var">c1</span> <a class="idref" href="types_not_equal.html#a9db8acd706fabc802321391b6c85694"><span class="id" title="notation">|*|</span></a> <span class="id" title="var">c2</span> ⇒ <a class="idref" href="types_not_equal.html#cardD"><span class="id" title="definition">cardD</span></a> <span class="id" title="var">c1</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="types_not_equal.html#cardD"><span class="id" title="definition">cardD</span></a> <span class="id" title="var">c2</span><br/>
+&nbsp;&nbsp;| <span class="id" title="var">c1</span> <a class="idref" href="types_not_equal.html#faf71928a8d555b351c83b424510aae3"><span class="id" title="notation">|^|</span></a> <span class="id" title="var">c2</span> ⇒ <a class="idref" href="types_not_equal.html#cardD"><span class="id" title="definition">cardD</span></a> <span class="id" title="var">c2</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#cardD"><span class="id" title="definition">cardD</span></a> <span class="id" title="var">c1</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+In general <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span> can be proved this way if <span class="inlinecode"><span class="id" title="var">A</span></span> and <span class="inlinecode"><span class="id" title="var">B</span></span> are both finite with differing numbers
+    of inhabitants, or if one of types is finite and the other not. 
+
+<div class="paragraph"> </div>
+
+    What if <span class="inlinecode"><span class="id" title="var">A</span></span> and <span class="inlinecode"><span class="id" title="var">B</span></span> are infinite? Diagonalization says that <span class="inlinecode"><span class="id" title="var">nat</span></span> and <span class="inlinecode"><span class="id" title="var">nat</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">bool</span></span> can't be
+    isomorphic.
+
+</div>
+<div class="code">
+
+<br/>
 <span class="id" title="keyword">Definition</span> <a name="disambiguable"><span class="id" title="definition">disambiguable</span></a> <span class="id" title="var">A</span> := <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">∃</span></a> <span class="id" title="var">f</span> : <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <span class="id" title="keyword">∀</span> <span class="id" title="var">x</span>, <a class="idref" href="types_not_equal.html#f"><span class="id" title="variable">f</span></a> <a class="idref" href="types_not_equal.html#x"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a0a5068f83a704fcfbda8cd473a6cfea"><span class="id" title="notation">≠</span></a> <a class="idref" href="types_not_equal.html#x"><span class="id" title="variable">x</span></a>.<br/>
 
 <br/>
-<span class="id" title="keyword">Lemma</span> <a name="diag"><span class="id" title="lemma">diag</span></a> {<span class="id" title="var">A</span>} :<br/>
-&nbsp;&nbsp;<a class="idref" href="types_not_equal.html#disambiguable"><span class="id" title="definition">disambiguable</span></a> <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">∀</span> <span class="id" title="var">f</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a>,<br/>
-&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">∃</span></a> <span class="id" title="var">g</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <span class="id" title="keyword">∀</span> <span class="id" title="var">n</span>, <a class="idref" href="types_not_equal.html#f"><span class="id" title="variable">f</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a0a5068f83a704fcfbda8cd473a6cfea"><span class="id" title="notation">≠</span></a> <a class="idref" href="types_not_equal.html#g"><span class="id" title="variable">g</span></a>.<br/>
+<span class="id" title="keyword">Lemma</span> <a name="diag"><span class="id" title="lemma">diag</span></a> {<span class="id" title="var">A</span> <span class="id" title="var">B</span>} :<br/>
+&nbsp;&nbsp;<a class="idref" href="types_not_equal.html#disambiguable"><span class="id" title="definition">disambiguable</span></a> <a class="idref" href="types_not_equal.html#B"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">∀</span> <span class="id" title="var">f</span> : <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#B"><span class="id" title="variable">B</span></a>,<br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">∃</span></a> <span class="id" title="var">g</span> : <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#B"><span class="id" title="variable">B</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <span class="id" title="keyword">∀</span> <span class="id" title="var">n</span>, <a class="idref" href="types_not_equal.html#f"><span class="id" title="variable">f</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a0a5068f83a704fcfbda8cd473a6cfea"><span class="id" title="notation">≠</span></a> <a class="idref" href="types_not_equal.html#g"><span class="id" title="variable">g</span></a>.<br/>
 
 <br/>
 <span class="id" title="keyword">Lemma</span> <a name="cantor"><span class="id" title="lemma">cantor</span></a> {<span class="id" title="var">A</span>} : <a class="idref" href="types_not_equal.html#disambiguable"><span class="id" title="definition">disambiguable</span></a> <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#not"><span class="id" title="definition">not</span></a> (<a class="idref" href="types_not_equal.html#iso"><span class="id" title="definition">iso</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a>)).<br/>

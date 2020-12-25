@@ -4,12 +4,13 @@
 
 (** * When are Coq types provably unequal? *)
 
-(** Have you ever tried to prove [bool <> nat] in Coq?
-    It's not pleasant. Since [bool] and [nat] are types and not
-    constructors, the usual tactics like [discriminate], [injection], etc. don't work.
+(** Given that Coq is dependently typed, one might expect it
+    to be capable of doing everything that
+    languages with "dependent types at home" (e.g. GADTs, type families, ..) 
+    can do. But it's actually pretty difficult to naively translate code using things
+    like GADTs into Coq, and it seems to be because languages with features like GADTs
+    bake a number of extra rules about type inequality into the type checker.
 
-    What's interesting is that these disequalities seem baked into
-    non-dependently-typed languages, like OCaml.
     For example, OCaml accepts the following code without complaining about non-exhaustive 
     pattern matching:
 
@@ -56,9 +57,23 @@ Definition success (H : bool <> nat) (x : T nat) : unit :=
   end eq_refl.
 
 (** But how to prove two types unequal?
-    Idea: if [A = B] then [A] and [B] are isomorphic. 
-    So [A <> B] if [A] is not isomorphic to [B].
+    The usual tactics for proving things unequal
+    ([discriminate], [inversion], etc.) don't work here because
+    [nat] and [bool] aren't constructors.
 
+    First, some metatheoretical handwaving already suggests that
+    proving two types unequal will be impossible most of the time
+    in practice.
+    If we could prove [A <> B] for isomorphic [A] and [B],
+    then univalence wouldn't be safe to add as an axiom.
+    So we should expect to be able to prove [A <> B]
+    only when [A] and [B] aren't isomorphic.
+    This is pretty bad: most data types in functional
+    programming are trees of some kind or other, which are all
+    isomorphic to each other (they all have a countable number of
+    inhabitants).
+
+    But, let's try to prove whatever we can anyway.
     Define isomorphisms and some lemmas about them:
 *)
 
@@ -70,7 +85,7 @@ Infix "≅" := iso (at level 70, no associativity).
 Notation "a '≇' b" := (~ (a ≅ b)) (at level 70, no associativity).
 
 Lemma iso_refl {A} : A ≅ A.
-Proof. unfold iso; exists (fun x => x), (fun x => x); auto. Qed.
+Proof. unfold iso; now exists (fun x => x), (fun x => x). Qed.
 
 Lemma iso_sym {A B} : A ≅ B -> B ≅ A.
 Proof. unfold iso; firstorder. Qed.
@@ -101,8 +116,9 @@ Polymorphic Lemma iso_ne {A B} : A ≇ B -> A <> B.
 Proof. intros Hnot Heq; subst; apply Hnot, iso_refl. Qed.
 
 (* begin show *)
-(** Now, since [bool] has two inhabitants and [nat] has countably many,
-    the two types can't be isomorphic. Therefore, they can't be equal: *)
+(** This is already enough to prove [nat <> bool]:
+    [nat] and [bool] can't be isomorphic because [bool] has two inhabitants
+    while [nat] has countably many. *)
 
 Lemma nat_ne_bool : nat <> bool.
 Proof.
@@ -123,17 +139,51 @@ Proof.
 Qed.
 (* end show *)
 
+(** It'd be nice to automate this kind of reasoning as much as possible. 
+    Define a cardinality as an arithmetic expression built from standard
+    arithmetic operators and A0, the cardinality of [nat]: *)
+
+Inductive card :=
+| A0
+| Zero | One
+| Add (c1 c2 : card)
+| Mul (c1 c2 : card)
+| Exp (c1 c2 : card).
+Infix "|^|" := Exp (at level 60, right associativity).
+Infix "|*|" := Mul (at level 62, right associativity).
+Infix "|+|" := Add (at level 63, right associativity).
+
+(** We can write a function [cardD : card -> Type] maps each [c] to a 
+    type with cardinality [c]: *)
+
+Fixpoint cardD c : Type :=
+  match c with
+  | A0 => nat
+  | Zero => False
+  | One => True
+  | c1 |+| c2 => cardD c1 + cardD c2
+  | c1 |*| c2 => cardD c1 * cardD c2
+  | c1 |^| c2 => cardD c2 -> cardD c1
+  end.
+
+(** In general [A <> B] can be proved this way if [A] and [B] are both finite with differing numbers
+    of inhabitants, or if one of types is finite and the other not. 
+
+    What if [A] and [B] are infinite? Diagonalization says that [nat] and [nat -> bool] can't be
+    isomorphic.
+*)
+
 Definition disambiguable A := exists f : A -> A, forall x, f x <> x.
 
-(* If A is disambiguable, [f : nat -> nat -> A] can never be surjective *)
-Lemma diag {A} :
-  disambiguable A -> forall f : nat -> nat -> A,
-  exists g : nat -> A, forall n, f n <> g.
+(* If B is disambiguable, [f : A -> A -> B] can never be surjective *)
+Lemma diag {A B} :
+  disambiguable B -> forall f : A -> A -> B,
+  exists g : A -> B, forall n, f n <> g.
 Proof.
-  intros [dis Hdis] f; exists (fun n => dis (f n n)).
-  intros n Heq.
-  apply f_equal with (f := fun f => f n) in Heq.
-  specialize (Hdis (f n n)); congruence.
+  intros [dis Hdis] f; exists (fun x => dis (f x x)).
+  intros x Heq.
+  apply f_equal with (f := fun f => f x) in Heq.
+  specialize (Hdis (f x x)); congruence.
 Qed.
 
 Lemma cantor {A} : disambiguable A -> not (iso nat (nat -> A)).
