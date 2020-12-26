@@ -55,7 +55,7 @@ Fail Definition failure (x : T nat) : unit :=
 Definition success (H : bool <> nat) (x : T nat) : unit :=
   match x in T A return A = nat -> unit with
   | C1 => fun _ => tt
-  | C2 => fun Heq : bool = nat => False_rect _ (H Heq)
+  | C2 => fun Heq : bool = nat => match H Heq with end
   end eq_refl.
 
 (** But how to prove two types unequal?
@@ -84,6 +84,11 @@ Definition leq A B := exists f : A -> B, injective f.
 Infix "⊑" := leq (at level 70, no associativity).
 
 Lemma leq_refl {A} : A ⊑ A. Proof. exists (fun x =>  x); firstorder. Qed.
+
+(** [A] is strictly smaller than [B] if there's no injection [f : B -> A]: *)
+
+Definition lt A B := ~ B ⊑ A.
+Infix "⋤" := lt (at level 70, no associativity).
 
 (** Two types are isomorphic if they're less than or equal to each other: *)
 
@@ -178,7 +183,7 @@ Qed.
 
 Lemma inj_ump {A B C} (f : B -> C) :
   injective f ->
-  forall g h : A -> B, comp f g = comp f h -> g = h.
+  injective (@comp A B C f).
 Proof.
   intros Hinj g h Heq.
   apply functional_extensionality; intros x.
@@ -384,18 +389,10 @@ Proof.
       end; now rewrite Heq.
 Qed.
 
-(** A type is finite if it has exactly [n] inhabitants for some [n : nat]: *)
+(** A type is finite if it has exactly [n] inhabitants for some [n : nat]. *)
 
-Fixpoint fin n : Type :=
-  match n with
-  | 0 => False
-  | S n => True + fin n
-  end.
-
+Definition fin n : Type := Nat.iter n (sum True) False.
 Definition finite A := exists n, A ≅ fin n.
-
-(** Simple types like [bool] are finite, and combinations of finite types
-    remain finite: *)
 
 Lemma fin_False : False ≅ fin 0. Proof. apply iso_refl. Qed.
 Lemma fin_True : True ≅ fin 1. Proof. cbn; now rewrite sum_comm, sum_False. Qed.
@@ -433,8 +430,6 @@ Proof.
     apply iso_prod; [|easy].
     apply fun_True.
 Qed.
-
-(** [nat] "absorbs" finite types: *)
 
 Require Import Lia.
 Lemma nat_fin_sum {n} : fin n + nat ≅ nat.
@@ -578,9 +573,154 @@ Proof.
       now apply halving_eq2. }
     congruence.
 Qed.
+(* begin hide *)
+Lemma fin_fun_has_max {n} (f : fin n -> nat) : exists n, forall x, f x <= n.
+Proof.
+  induction n.
+  - exists 0; intros [].
+  - specialize (IHn (comp f inr)); unfold comp in IHn.
+    destruct IHn as [max_n Hmax_n].
+    exists (max (f (inl I)) max_n).
+    intros [[]|x].
+    + apply Max.le_max_l.
+    + assert (Nat.max (f (inl I)) max_n >= max_n) by apply Max.le_max_r.
+      specialize (Hmax_n x).
+      eapply PeanoNat.Nat.le_trans; eauto.
+Qed.
+(* end hide *)
+Lemma fin_lt_nat {n} : fin n ⋤ nat.
+Proof.
+  assert (Hno_surjection : forall f : fin n -> nat, exists y, forall x, f x <> y).
+  { intros f. destruct (fin_fun_has_max f) as [max Hmax].
+    exists (S max); intros x Heq; specialize (Hmax x); lia. }
+  intros [f Hf].
+  apply (inj_sur f) in Hf; [|now exists 0].
+  destruct Hf as [g Hg].
+  specialize (Hno_surjection g).
+  destruct Hno_surjection as [y Hy].
+  specialize (Hg y).
+  destruct Hg as [x Hx]; now specialize (Hy x).
+Qed.
 
-(* Lemma nat_fun_fin {n} : (nat -> fin (S (S n))) ≅ (nat -> fin (S (S (S n)))). *)
-(* Proof. *)
+(** [A] is always strictly smaller than [A -> fin 2], by diagonalization: *)
+
+Lemma A_lt_PA {A} : A ⋤ (A -> fin 2).
+Proof.
+  assert (Hno_surjection : forall f : A -> A -> fin 2, exists g, forall n, f n <> g).
+  { pose (negate := fun b : fin 2 =>
+                      match b with 
+                      | inl _ => inr (inl I)
+                      | inr (inl _) => inl I
+                      | inr (inr x) => match x with end
+                      end : fin 2).
+    intros f; exists (fun n => negate (f n n)).
+    intros n Heq.
+    apply f_equal with (f := fun f => f n) in Heq.
+    destruct (f n n) as [[]|[[]|[]]]; cbn in Heq; congruence. }
+  intros [f Hf].
+  apply (inj_sur f) in Hf; [|now exists (fun _ => inl I)].
+  destruct Hf as [g Hg].
+  specialize (Hno_surjection g).
+  destruct Hno_surjection as [y Hy].
+  specialize (Hg y).
+  destruct Hg as [x Hx]; now specialize (Hy x).
+Qed.
+
+(** But, changing the codomain from [fin 2] to [fin (2 + n)]
+    doesn't make the cardinality any bigger: *)
+(* begin hide *)
+Fixpoint fin_inj {m n} : fin m -> fin (n + m) :=
+  match n with
+  | 0 => fun k => k
+  | S n => fun k => inr (fin_inj k)
+  end.
+Lemma fin_inj_ok {m n} : injective (fin_inj : fin m -> fin (n + m)).
+Proof.
+  induction n; [firstorder|].
+  cbn; intros k1 k2 Heq.
+  inversion Heq as [Heq'].
+  now apply IHn.
+Qed.
+
+Lemma pow2n_ge_n n : n <= Nat.pow 2 n.
+Proof.
+  induction n; [cbn; lia|].
+  replace (Nat.pow 2 (S n)) with (2 * Nat.pow 2 n) by (cbn; lia).
+  transitivity (S (Nat.pow 2 n)); [lia|].
+  remember (Nat.pow 2 n) as m.
+  assert (m > 0 -> S m <= 2 * m) by lia.
+  assert (Hpow_gt : forall n, Nat.pow 2 n > 0).
+  { clear; induction n as [|n IHn]; auto; cbn in *; lia. }
+  assert (m > 0) by (specialize (Hpow_gt n); now subst).
+  lia.
+Qed.
+
+Lemma n_le_pow_2m_n m n : n <= Nat.pow (2 + m) n.
+Proof.
+  assert (Nat.pow (2 + m) n >= Nat.pow 2 n).
+  { apply PeanoNat.Nat.pow_le_mono_l; lia. }
+  assert (Nat.pow 2 n >= n) by apply pow2n_ge_n.
+  lia.
+Qed.
+(* end hide *)
+
+Lemma PA2n_eq_PA {A n} :
+  inhabited A ->
+  (forall k, fin k * A ≅ A) ->
+  (A -> fin (2 + n)) ≅ (A -> fin 2).
+Proof.
+  intros Hinh Hdup.
+  assert (inject : forall m n, m <= n -> (A -> fin m) ⊑ (A -> fin n)).
+  { clear - Hdup; intros m n Hle.
+    assert (Hk : exists k, n = k + m) by (exists (n - m); lia).
+    destruct Hk as [k Hk].
+    rewrite Hk.
+    exists (comp fin_inj).
+    apply inj_ump, fin_inj_ok. }
+  split.
+  - assert (Hmult : A ≅ A * fin (2 + n)) by (symmetry; rewrite prod_comm; apply Hdup).
+    eapply leq_trans; [|eapply leq_fn1; [|apply (proj2 Hmult)]].
+    2:{ destruct Hinh as [arb _]; now exists (arb, inl I). }
+    eapply leq_trans; [|eapply (proj1 fun_uncurry)].
+    eapply leq_trans; [|eapply leq_fn2, (proj2 fin_fun)].
+    apply inject, n_le_pow_2m_n.
+  - assert (Hmult : A ≅ A * fin 2) by (symmetry; rewrite prod_comm; apply Hdup).
+    eapply leq_trans; [|eapply leq_fn1; [|apply (proj2 Hmult)]].
+    2:{ destruct Hinh as [arb _]; now exists (arb, inl I). }
+    eapply leq_trans; [|eapply (proj1 fun_uncurry)].
+    eapply leq_trans; [|eapply leq_fn2, (proj2 fin_fun)].
+    apply inject, n_le_pow_2m_n.
+Qed.
+
+(** In fact, even going from [fin (2 + n)] to [nat] doesn't change the cardinality
+    if the domain is large enough: *)
+
+Lemma PAnat_eq_PA {A} :
+  inhabited A ->
+  A * nat ⊑ A ->
+  (A -> nat) ≅ (A -> fin 2).
+Proof.
+  intros Hinh Hinf.
+  split.
+  - eapply leq_trans; [|eapply leq_fn1; [|apply Hinf]].
+    2: destruct Hinh as [arb _]; now exists (arb, 0).
+    eapply leq_trans; [|apply (proj1 fun_uncurry)].
+    exists (fun f x y => if Nat.eqb (f x) y then inl I else inr (inl I)).
+    intros f g Heq; apply functional_extensionality; intros x.
+    apply f_equal with (f := fun f => f x (g x)) in Heq.
+    rewrite PeanoNat.Nat.eqb_refl in Heq.
+    destruct (Nat.eqb (f x) (g x)) eqn:Heqb; [|congruence].
+    now apply PeanoNat.Nat.eqb_eq.
+  - pose (inj_fin2 := fun (x : fin 2) =>
+      match x with
+      | inl _ => 0
+      | inr (inl _) => 1
+      | inr (inr x) => match x with end
+      end : nat).
+    assert (inj_fin2_ok : injective inj_fin2).
+    { intros [[]|[[]|[]]] [[]|[[]|[]]]; cbn in *; congruence. }
+    exists (comp inj_fin2); now apply inj_ump.
+Qed.
 
 Inductive card :=
 | A0
