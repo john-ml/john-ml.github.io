@@ -587,7 +587,85 @@ Proof.
       specialize (Hmax_n x).
       eapply PeanoNat.Nat.le_trans; eauto.
 Qed.
+Fixpoint fin_inj {m n} : fin m -> fin (n + m) :=
+  match n with
+  | 0 => fun k => k
+  | S n => fun k => inr (fin_inj k)
+  end.
+Lemma fin_inj_ok {m n} : injective (fin_inj : fin m -> fin (n + m)).
+Proof.
+  induction n; [firstorder|].
+  cbn; intros k1 k2 Heq.
+  inversion Heq as [Heq'].
+  now apply IHn.
+Qed.
+Lemma fin_S_leq' {m n} : fin (S n) ⊑ fin (S (S m)) -> fin n ⊑ fin (S m).
+Proof.
+  intros [f Hf]; simpl in f.
+  destruct (f (inl I)) as [[]|y] eqn:Hinl.
+  - exists (fun x =>
+        match f (inr x) with
+        | inl t => inl I
+        | inr y => y
+        end).
+    intros x y Heq.
+    destruct (f (inr x)) as [[]|z] eqn:Hfx.
+    { now assert (inl I = inr x) by (apply Hf; congruence). }
+    destruct (f (inr y)) as [[]|z'] eqn:Hfy.
+    { now assert (inl I = inr y) by (apply Hf; congruence). }
+    subst z'.
+    assert (f (inr x) = f (inr y)) by congruence.
+    assert (inr x = inr y) by now apply Hf.
+    congruence.
+  - 
+Lemma fin_S_leq' {m n} : fin (S n) ⊑ fin (S (S m)) -> fin n ⊑ fin (S m).
+Proof.
+  intros [f Hf]; simpl in f.
+  destruct (f (inl I)) as [[]|y] eqn:Hinl.
+  - exists (fun x =>
+        match f (inr x) with
+        | inl t => inl I
+        | inr y => y
+        end).
+    intros x y Heq.
+    destruct (f (inr x)) as [[]|z] eqn:Hfx.
+    { now assert (inl I = inr x) by (apply Hf; congruence). }
+    destruct (f (inr y)) as [[]|z'] eqn:Hfy.
+    { now assert (inl I = inr y) by (apply Hf; congruence). }
+    subst z'.
+    assert (f (inr x) = f (inr y)) by congruence.
+    assert (inr x = inr y) by now apply Hf.
+    congruence.
+
+
 (* end hide *)
+Lemma fin_leq {m n} : fin n ⊑ fin m <-> n <= m.
+Proof.
+  split; intros Hle.
+  - assert (H : n <= m \/ n > m) by lia.
+    destruct H as [|H]; auto.
+    assert (fin (n - m) ⊑ fin 0).
+    { generalize dependent m; induction n; destruct m; try lia; auto.
+      intros Hleq Hgt.
+      apply IHn; [|lia].
+      destruct Hleq as [f Hf].
+      exists (fun x => f (inr x)).
+      - simpl.
+
+    assert (Hsub : n - m > 0) by lia.
+  - replace m with ((m - n) + n) by lia.
+    exists fin_inj; apply fin_inj_ok.
+  assert (Hno_surjection : forall f : fin n -> nat, exists y, forall x, f x <> y).
+  { intros f. destruct (fin_fun_has_max f) as [max Hmax].
+    exists (S max); intros x Heq; specialize (Hmax x); lia. }
+  intros [f Hf].
+  apply (inj_sur f) in Hf; [|now exists 0].
+  destruct Hf as [g Hg].
+  specialize (Hno_surjection g).
+  destruct Hno_surjection as [y Hy].
+  specialize (Hg y).
+  destruct Hg as [x Hx]; now specialize (Hy x).
+Qed.
 Lemma fin_lt_nat {n} : fin n ⋤ nat.
 Proof.
   assert (Hno_surjection : forall f : fin n -> nat, exists y, forall x, f x <> y).
@@ -629,19 +707,6 @@ Qed.
 (** But, changing the codomain from [fin 2] to [fin (2 + n)]
     doesn't make the cardinality any bigger: *)
 (* begin hide *)
-Fixpoint fin_inj {m n} : fin m -> fin (n + m) :=
-  match n with
-  | 0 => fun k => k
-  | S n => fun k => inr (fin_inj k)
-  end.
-Lemma fin_inj_ok {m n} : injective (fin_inj : fin m -> fin (n + m)).
-Proof.
-  induction n; [firstorder|].
-  cbn; intros k1 k2 Heq.
-  inversion Heq as [Heq'].
-  now apply IHn.
-Qed.
-
 Lemma pow2n_ge_n n : n <= Nat.pow 2 n.
 Proof.
   induction n; [cbn; lia|].
@@ -694,6 +759,15 @@ Qed.
 
 (** In fact, even going from [fin (2 + n)] to [nat] doesn't change the cardinality
     if the domain is large enough: *)
+
+Definition infinite A := not (finite A).
+
+Lemma dup_infinite {A} :
+  inhabited A ->
+  (forall k, fin k * A ≅ A) ->
+  infinite A.
+Proof.
+  intros Hinh Hdup [n Hn].
 
 Lemma PAnat_eq_PA {A} :
   inhabited A ->
