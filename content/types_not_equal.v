@@ -85,11 +85,6 @@ Infix "⊑" := leq (at level 70, no associativity).
 
 Lemma leq_refl {A} : A ⊑ A. Proof. exists (fun x =>  x); firstorder. Qed.
 
-(** [A] is strictly smaller than [B] if there's no injection [f : B -> A]: *)
-
-Definition lt A B := ~ B ⊑ A.
-Infix "⋤" := lt (at level 70, no associativity).
-
 (** Two types are isomorphic if they're less than or equal to each other: *)
 
 Definition iso A B := A ⊑ B /\ B ⊑ A.
@@ -155,7 +150,7 @@ Qed.
 
 Definition inj_sur {A B} (f : A -> B) :
   injective f -> inhabited A ->
-  exists g : B -> A, surjective g.
+  exists g : B -> A, surjective g /\ forall x, g (f x) = x.
 Proof.
   intros Hinj [arbitrary_A _].
   enough (exists g, forall x, g (f x) = x) by firstorder.
@@ -229,7 +224,7 @@ Qed.
 Lemma leq_fn1 {A B C} : inhabited A -> A ⊑ B -> (A -> C) ⊑ (B -> C).
 Proof.
   intros HA [f Hf].
-  destruct (inj_sur f Hf HA) as [f' Hf'].
+  destruct (inj_sur f Hf HA) as [f' [Hf' _]].
   exists (fun h => comp h f').
   intros h1 h2 Heq; eapply sur_ump; eauto.
 Qed.
@@ -253,8 +248,8 @@ Lemma iso_fn1 {A B C} : inhabited A -> A ≅ B -> (A -> C) ≅ (B -> C).
 Proof.
   intros HA [[f Hf] [g Hg]].
   assert (HB : inhabited B) by (destruct HA as [arbA _]; now exists (f arbA)).
-  destruct (inj_sur f Hf HA) as [f' Hf'].
-  destruct (inj_sur g Hg HB) as [g' Hg'].
+  destruct (inj_sur f Hf HA) as [f' [Hf' _]].
+  destruct (inj_sur g Hg HB) as [g' [Hg' _]].
   split; [exists (fun h => comp h f')|exists (fun h => comp h g')];
   intros h1 h2 Heq; eapply sur_ump; eauto.
 Qed.
@@ -290,6 +285,12 @@ Qed.
 
 Lemma unit_True : unit ≅ True.
 Proof. split; [exists (fun _ => I)|exists (fun _ => tt)]; now intros [] []. Qed.
+Lemma uninhabited_False {A} : ~ inhabited A -> A ≅ False.
+Proof.
+  intros HA; split; [|unshelve eexists; [intros []|]; intros []].
+  unshelve eexists; [intros x; apply HA; now exists x|].
+  intros x; exfalso; apply HA; now exists x.
+Qed.
 Lemma sum_False {A} : False + A ≅ A.
 Proof.
   split; [unshelve eexists; [intros [[]|x]; exact x|]|exists inr].
@@ -618,25 +619,105 @@ Proof.
     assert (inr x = inr y) by now apply Hf.
     congruence.
   - 
-Lemma fin_S_leq' {m n} : fin (S n) ⊑ fin (S (S m)) -> fin n ⊑ fin (S m).
-Proof.
-  intros [f Hf]; simpl in f.
-  destruct (f (inl I)) as [[]|y] eqn:Hinl.
-  - exists (fun x =>
-        match f (inr x) with
-        | inl t => inl I
-        | inr y => y
-        end).
-    intros x y Heq.
-    destruct (f (inr x)) as [[]|z] eqn:Hfx.
-    { now assert (inl I = inr x) by (apply Hf; congruence). }
-    destruct (f (inr y)) as [[]|z'] eqn:Hfy.
-    { now assert (inl I = inr y) by (apply Hf; congruence). }
-    subst z'.
-    assert (f (inr x) = f (inr y)) by congruence.
-    assert (inr x = inr y) by now apply Hf.
-    congruence.
+Abort.
 
+Fixpoint nat_of {n} : fin (S n) -> nat :=
+  match n with
+  | 0 => fun m => match m with inl I => 0 | inr x => match x with end end
+  | S n => fun m =>
+    match m with
+    | inl I => 0
+    | inr m => nat_of m
+    end
+  end.
+
+Definition fin_eq_dec {n} (x y : fin n) : {x = y} + {x <> y}.
+Proof.
+  induction n as [|n IHn]; [destruct x|].
+  destruct x as [[]|x], y as [[]|y]; try solve [left; abstract easy|right; abstract easy].
+  destruct (IHn x y) as [Heq|Hne]; [subst; left; abstract easy|].
+  right; abstract congruence.
+Defined.
+
+Definition fin_analyze {n} (f : fin n -> bool) : {x | f x = true} + {forall x, f x = false}.
+Proof.
+  induction n; [right; abstract intros []|].
+  destruct (IHn (comp f inr)) as [[x Hx]|Hfor].
+  - left; abstract now exists (inr x).
+  - destruct (f (inl I)) eqn:HfI; [left; abstract now exists (inl I)|].
+    right; abstract (intros [[]|x]; firstorder).
+Defined.
+
+Definition fin_fun_analyze {m n} (f : fin m -> fin n) (p : fin n -> bool) :
+  {x | p (f x) = true} + {forall x, p (f x) = false}.
+Proof.
+  induction m; [right; abstract intros []|].
+  destruct (IHm (comp f inr)) as [[x Hx]|Hfor].
+  - left; abstract now exists (inr x).
+  - destruct (p (f (inl I))) eqn:HfI; [left; abstract now exists (inl I)|].
+    right; abstract (intros [[]|x]; firstorder).
+Defined.
+
+Lemma fin_Sn_cancel {n m} :
+  fin (S n) ⊑ fin (S m) ->
+  fin n ⊑ fin m.
+Proof.
+  simpl; intros [f Hf].
+  (* If (inl I) ∉ image (f ∘ inr), then f (inr x) is of the form inr y for all x : fin n
+     and x ↦ y is a injection fin n -> fin n. *)
+  destruct (@fin_fun_analyze n (S m) (fun x => f (inr x)) (fun x => if x then true else false)) as [HT|HF].
+  2:{ 
+    assert (Hinr_only : forall x, exists y, f (inr x) = inr y).
+    { intros x; specialize (HF x); destruct (f (inr x)) as [[]|y] eqn:Hx.
+      - enough (inl I = inr x) by congruence.
+        apply Hf; congruence.
+      - exists y; congruence. }
+    apply FChoice in Hinr_only.
+    destruct Hinr_only as [g Hg].
+    exists g; intros x y Heq.
+    assert (f (inr x) = f (inr y)) by congruence.
+    enough (inr x = (inr y : fin (S n))) by congruence.
+    apply Hf; congruence. }
+  (* If, on the other hand, there is some x' such that f x' = inl I,
+     then f (inl I) ≠ inl I and for all x : fin n, x ≠ x' -> f x = inr _. 
+     Therefore,
+       f x = if x = x' then f (inl I) else f (inr x)
+     is an injection. *)
+  destruct HT as [x' Hx''].
+  destruct (f (inr x')) as [[]|] eqn:Hx'; [|congruence]; clear Hx''.
+  assert (HfI : exists fI, f (inl I) = inr fI).
+  { destruct (f (inl I)) as [[]|] eqn:HfI; [|eauto].
+    enough (inr x' = inl I) by congruence.
+    apply Hf; congruence. }
+  destruct HfI as [fI HfI].
+  assert (Hfxs : forall x, x <> inr x' -> exists y, f x = inr y).
+  { intros x Hne.
+    assert (Hney : f x <> inl I).
+    { intros Hfalso; apply Hne.
+      assert (f (inr x') = f x) by congruence.
+      now apply Hf. }
+    destruct (f x) as [[]|y']; [congruence|now exists y']. }
+  assert (Hfn : 
+    forall x : fin n, exists y : fin m,
+    if fin_eq_dec x x'
+    then inr y = f (inl I)
+    else inr y = f (inr x)).
+  { intros x; destruct (fin_eq_dec x x') as [Heq|Hne]; [eauto|].
+    destruct (f (inr x)) as [[]|y'] eqn:Hy'; [|eauto].
+    enough (inr x = (inr x' : fin (S n))) by congruence.
+    apply Hf; congruence. }
+  apply FChoice in Hfn.
+  destruct Hfn as [inj Hinj].
+  exists inj; intros x y Heq.
+  pose proof Hinj x as Hinjx.
+  pose proof Hinj y as Hinjy.
+  (destruct (fin_eq_dec x x') as [Heqx|Hnex]; [subst x|]);
+  (destruct (fin_eq_dec y x') as [Heqy|Hney]; [subst y|]).
+  - reflexivity.
+  - enough (inl I = inr y) by congruence. apply Hf; congruence.
+  - enough (inr x = inl I) by congruence. apply Hf; congruence.
+  - enough (inr x = (inr y : fin (S n))) by congruence. apply Hf; congruence.
+Qed.
 
 (* end hide *)
 Lemma fin_leq {m n} : fin n ⊑ fin m <-> n <= m.
@@ -644,29 +725,25 @@ Proof.
   split; intros Hle.
   - assert (H : n <= m \/ n > m) by lia.
     destruct H as [|H]; auto.
-    assert (fin (n - m) ⊑ fin 0).
-    { generalize dependent m; induction n; destruct m; try lia; auto.
-      intros Hleq Hgt.
-      apply IHn; [|lia].
-      destruct Hleq as [f Hf].
-      exists (fun x => f (inr x)).
-      - simpl.
-
-    assert (Hsub : n - m > 0) by lia.
-  - replace m with ((m - n) + n) by lia.
+    exfalso; induction H as [|n Hle' IHle].
+    + induction m; [destruct Hle as [f Hf]; exact (f (inl I))|].
+      apply IHm, fin_Sn_cancel, Hle.
+    + apply IHle.
+      destruct Hle as [f Hf].
+      exists (comp f inr); apply inj_comp; [auto|congruence].
+  - replace m with (m - n + n) by lia.
     exists fin_inj; apply fin_inj_ok.
-  assert (Hno_surjection : forall f : fin n -> nat, exists y, forall x, f x <> y).
-  { intros f. destruct (fin_fun_has_max f) as [max Hmax].
-    exists (S max); intros x Heq; specialize (Hmax x); lia. }
-  intros [f Hf].
-  apply (inj_sur f) in Hf; [|now exists 0].
-  destruct Hf as [g Hg].
-  specialize (Hno_surjection g).
-  destruct Hno_surjection as [y Hy].
-  specialize (Hg y).
-  destruct Hg as [x Hx]; now specialize (Hy x).
 Qed.
-Lemma fin_lt_nat {n} : fin n ⋤ nat.
+
+(** [A] is strictly smaller than [B] if there's no injection [f : B -> A]: *)
+
+Definition lt A B := ~ B ⊑ A.
+Infix "⊏" := lt (at level 70, no associativity).
+
+(** Every [fin n] is strictly smaller than [nat], and [A] 
+    is strictly smaller than [A -> fin 2] by diagonalization: *)
+
+Lemma fin_lt_nat {n} : fin n ⊏ nat.
 Proof.
   assert (Hno_surjection : forall f : fin n -> nat, exists y, forall x, f x <> y).
   { intros f. destruct (fin_fun_has_max f) as [max Hmax].
@@ -680,9 +757,7 @@ Proof.
   destruct Hg as [x Hx]; now specialize (Hy x).
 Qed.
 
-(** [A] is always strictly smaller than [A -> fin 2], by diagonalization: *)
-
-Lemma A_lt_PA {A} : A ⋤ (A -> fin 2).
+Lemma A_lt_PA {A} : A ⊏ (A -> fin 2).
 Proof.
   assert (Hno_surjection : forall f : A -> A -> fin 2, exists g, forall n, f n <> g).
   { pose (negate := fun b : fin 2 =>
@@ -704,8 +779,8 @@ Proof.
   destruct Hg as [x Hx]; now specialize (Hy x).
 Qed.
 
-(** But, changing the codomain from [fin 2] to [fin (2 + n)]
-    doesn't make the cardinality any bigger: *)
+(** Interestingly, if [A] is infinite, then changing the codomain from 
+    [fin 2] to [fin (2 + n)] doesn't make the cardinality any bigger: *)
 (* begin hide *)
 Lemma pow2n_ge_n n : n <= Nat.pow 2 n.
 Proof.
@@ -758,16 +833,7 @@ Proof.
 Qed.
 
 (** In fact, even going from [fin (2 + n)] to [nat] doesn't change the cardinality
-    if the domain is large enough: *)
-
-Definition infinite A := not (finite A).
-
-Lemma dup_infinite {A} :
-  inhabited A ->
-  (forall k, fin k * A ≅ A) ->
-  infinite A.
-Proof.
-  intros Hinh Hdup [n Hn].
+    if the domain is big enough: *)
 
 Lemma PAnat_eq_PA {A} :
   inhabited A ->

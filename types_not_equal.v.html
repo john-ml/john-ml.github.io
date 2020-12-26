@@ -141,18 +141,6 @@ But how to prove two types unequal?
 </div>
 
 <div class="doc">
-<span class="inlinecode"><span class="id" title="var">A</span></span> is strictly smaller than <span class="inlinecode"><span class="id" title="var">B</span></span> if there's no injection <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">B</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">A</span></span>: 
-</div>
-<div class="code">
-
-<br/>
-<span class="id" title="keyword">Definition</span> <a name="lt"><span class="id" title="definition">lt</span></a> <span class="id" title="var">A</span> <span class="id" title="var">B</span> := <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">¬</span></a> <a class="idref" href="types_not_equal.html#B"><span class="id" title="variable">B</span></a> <a class="idref" href="types_not_equal.html#807cf07fc9b6e174a5f6d1ef141e1432"><span class="id" title="notation">⊑</span></a> <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a>.<br/>
-<span class="id" title="keyword">Infix</span> <a name="a2feafdfa8e224279be28045c3eb818e"><span class="id" title="notation">&quot;</span></a>⋤" := <a class="idref" href="types_not_equal.html#lt"><span class="id" title="definition">lt</span></a> (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 70, <span class="id" title="keyword">no</span> <span class="id" title="keyword">associativity</span>).<br/>
-
-<br/>
-</div>
-
-<div class="doc">
 Two types are isomorphic if they're less than or equal to each other: 
 </div>
 <div class="code">
@@ -310,25 +298,41 @@ A type is finite if it has exactly <span class="inlinecode"><span class="id" tit
 <span class="id" title="keyword">Lemma</span> <a name="nat_fin_sum"><span class="id" title="lemma">nat_fin_sum</span></a> {<span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>.<br/>
 <span class="id" title="keyword">Lemma</span> <a name="nat_fin_prod"><span class="id" title="lemma">nat_fin_prod</span></a> {<span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>.<br/>
 <span class="id" title="keyword">Lemma</span> <a name="nat_fin_fun"><span class="id" title="lemma">nat_fin_fun</span></a> {<span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">(</span></a><a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a><a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">)</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>.<br/>
-<span class="id" title="keyword">Lemma</span> <a name="fin_lt_nat"><span class="id" title="lemma">fin_lt_nat</span></a> {<span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#a2feafdfa8e224279be28045c3eb818e"><span class="id" title="notation">⋤</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>.<br/>
+<span class="id" title="keyword">Lemma</span> <a name="fin_leq"><span class="id" title="lemma">fin_leq</span></a> {<span class="id" title="var">m</span> <span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#807cf07fc9b6e174a5f6d1ef141e1432"><span class="id" title="notation">⊑</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#4bfb4f2d0721ba668e3a802ab1b745a1"><span class="id" title="notation">↔</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#cb53cf0ee22c036a03b4a9281c68b5a3"><span class="id" title="notation">≤</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-<span class="inlinecode"><span class="id" title="var">A</span></span> is always strictly smaller than <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2</span>, by diagonalization: 
+<span class="inlinecode"><span class="id" title="var">A</span></span> is strictly smaller than <span class="inlinecode"><span class="id" title="var">B</span></span> if there's no injection <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">B</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">A</span></span>: 
 </div>
 <div class="code">
 
 <br/>
-<span class="id" title="keyword">Lemma</span> <a name="A_lt_PA"><span class="id" title="lemma">A_lt_PA</span></a> {<span class="id" title="var">A</span>} : <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="types_not_equal.html#a2feafdfa8e224279be28045c3eb818e"><span class="id" title="notation">⋤</span></a> <a class="idref" href="types_not_equal.html#a2feafdfa8e224279be28045c3eb818e"><span class="id" title="notation">(</span></a><a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> 2<a class="idref" href="types_not_equal.html#a2feafdfa8e224279be28045c3eb818e"><span class="id" title="notation">)</span></a>.<br/>
+<span class="id" title="keyword">Definition</span> <a name="lt"><span class="id" title="definition">lt</span></a> <span class="id" title="var">A</span> <span class="id" title="var">B</span> := <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#63a68285c81db8f9bc456233bb9ed181"><span class="id" title="notation">¬</span></a> <a class="idref" href="types_not_equal.html#B"><span class="id" title="variable">B</span></a> <a class="idref" href="types_not_equal.html#807cf07fc9b6e174a5f6d1ef141e1432"><span class="id" title="notation">⊑</span></a> <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a>.<br/>
+<span class="id" title="keyword">Infix</span> <a name="7defa197c0c99f1a992655adbb36412a"><span class="id" title="notation">&quot;</span></a>⊏" := <a class="idref" href="types_not_equal.html#lt"><span class="id" title="definition">lt</span></a> (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 70, <span class="id" title="keyword">no</span> <span class="id" title="keyword">associativity</span>).<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-But, changing the codomain from <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2</span> to <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">(2</span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">n</span>)</span>
-    doesn't make the cardinality any bigger: 
+Every <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode"><span class="id" title="var">n</span></span> is strictly smaller than <span class="inlinecode"><span class="id" title="var">nat</span></span>, and <span class="inlinecode"><span class="id" title="var">A</span></span> 
+    is strictly smaller than <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2</span> by diagonalization: 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a name="fin_lt_nat"><span class="id" title="lemma">fin_lt_nat</span></a> {<span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#7defa197c0c99f1a992655adbb36412a"><span class="id" title="notation">⊏</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">nat</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a name="A_lt_PA"><span class="id" title="lemma">A_lt_PA</span></a> {<span class="id" title="var">A</span>} : <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="types_not_equal.html#7defa197c0c99f1a992655adbb36412a"><span class="id" title="notation">⊏</span></a> <a class="idref" href="types_not_equal.html#7defa197c0c99f1a992655adbb36412a"><span class="id" title="notation">(</span></a><a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> 2<a class="idref" href="types_not_equal.html#7defa197c0c99f1a992655adbb36412a"><span class="id" title="notation">)</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Interestingly, if <span class="inlinecode"><span class="id" title="var">A</span></span> is infinite, then changing the codomain from 
+    <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2</span> to <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">(2</span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">n</span>)</span> doesn't make the cardinality any bigger: 
 </div>
 <div class="code">
 
@@ -343,7 +347,7 @@ But, changing the codomain from <span class="inlinecode"><span class="id" title=
 
 <div class="doc">
 In fact, even going from <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">(2</span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">n</span>)</span> to <span class="inlinecode"><span class="id" title="var">nat</span></span> doesn't change the cardinality
-    if the domain is large enough: 
+    if the domain is big enough: 
 </div>
 <div class="code">
 

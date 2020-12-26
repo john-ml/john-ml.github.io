@@ -85,11 +85,6 @@ Infix "⊑" := leq (at level 70, no associativity).
 
 Lemma leq_refl {A} : A ⊑ A. Proof. exists (fun x =>  x); firstorder. Qed.
 
-(** [A] is strictly smaller than [B] if there's no injection [f : B -> A]: *)
-
-Definition lt A B := ~ B ⊑ A.
-Infix "⋤" := lt (at level 70, no associativity).
-
 (** Two types are isomorphic if they're less than or equal to each other: *)
 
 Definition iso A B := A ⊑ B /\ B ⊑ A.
@@ -587,8 +582,62 @@ Proof.
       specialize (Hmax_n x).
       eapply PeanoNat.Nat.le_trans; eauto.
 Qed.
+Fixpoint fin_inj {m n} : fin m -> fin (n + m) :=
+  match n with
+  | 0 => fun k => k
+  | S n => fun k => inr (fin_inj k)
+  end.
+Lemma fin_inj_ok {m n} : injective (fin_inj : fin m -> fin (n + m)).
+Proof.
+  induction n; [firstorder|].
+  cbn; intros k1 k2 Heq.
+  inversion Heq as [Heq'].
+  now apply IHn.
+Qed.
+Lemma fin_S_leq' {m n} : fin (S n) ⊑ fin (S (S m)) -> fin n ⊑ fin (S m).
+Proof.
+  intros [f Hf]; simpl in f.
+  destruct (f (inl I)) as [[]|y] eqn:Hinl.
+  - exists (fun x =>
+        match f (inr x) with
+        | inl t => inl I
+        | inr y => y
+        end).
+    intros x y Heq.
+    destruct (f (inr x)) as [[]|z] eqn:Hfx.
+    { now assert (inl I = inr x) by (apply Hf; congruence). }
+    destruct (f (inr y)) as [[]|z'] eqn:Hfy.
+    { now assert (inl I = inr y) by (apply Hf; congruence). }
+    subst z'.
+    assert (f (inr x) = f (inr y)) by congruence.
+    assert (inr x = inr y) by now apply Hf.
+    congruence.
+  - 
+Abort.
+
+
 (* end hide *)
-Lemma fin_lt_nat {n} : fin n ⋤ nat.
+Lemma fin_leq {m n} : fin n ⊑ fin m <-> n <= m.
+Proof.
+  split; intros Hle.
+  - assert (H : n <= m \/ n > m) by lia.
+    destruct H as [|H]; auto.
+    assert (fin (n - m) ⊑ fin 0).
+    { generalize dependent m; induction n; destruct m; try lia; auto.
+      intros Hleq Hgt.
+      apply IHn; [|lia].
+      destruct Hleq as [f Hf].
+Abort.
+
+(** [A] is strictly smaller than [B] if there's no injection [f : B -> A]: *)
+
+Definition lt A B := ~ B ⊑ A.
+Infix "⊏" := lt (at level 70, no associativity).
+
+(** Every [fin n] is strictly smaller than [nat], and [A] 
+    is strictly smaller than [A -> fin 2] by diagonalization: *)
+
+Lemma fin_lt_nat {n} : fin n ⊏ nat.
 Proof.
   assert (Hno_surjection : forall f : fin n -> nat, exists y, forall x, f x <> y).
   { intros f. destruct (fin_fun_has_max f) as [max Hmax].
@@ -602,9 +651,7 @@ Proof.
   destruct Hg as [x Hx]; now specialize (Hy x).
 Qed.
 
-(** [A] is always strictly smaller than [A -> fin 2], by diagonalization: *)
-
-Lemma A_lt_PA {A} : A ⋤ (A -> fin 2).
+Lemma A_lt_PA {A} : A ⊏ (A -> fin 2).
 Proof.
   assert (Hno_surjection : forall f : A -> A -> fin 2, exists g, forall n, f n <> g).
   { pose (negate := fun b : fin 2 =>
@@ -626,22 +673,9 @@ Proof.
   destruct Hg as [x Hx]; now specialize (Hy x).
 Qed.
 
-(** But, changing the codomain from [fin 2] to [fin (2 + n)]
-    doesn't make the cardinality any bigger: *)
+(** Interestingly, if [A] is infinite, then changing the codomain from 
+    [fin 2] to [fin (2 + n)] doesn't make the cardinality any bigger: *)
 (* begin hide *)
-Fixpoint fin_inj {m n} : fin m -> fin (n + m) :=
-  match n with
-  | 0 => fun k => k
-  | S n => fun k => inr (fin_inj k)
-  end.
-Lemma fin_inj_ok {m n} : injective (fin_inj : fin m -> fin (n + m)).
-Proof.
-  induction n; [firstorder|].
-  cbn; intros k1 k2 Heq.
-  inversion Heq as [Heq'].
-  now apply IHn.
-Qed.
-
 Lemma pow2n_ge_n n : n <= Nat.pow 2 n.
 Proof.
   induction n; [cbn; lia|].
@@ -693,7 +727,7 @@ Proof.
 Qed.
 
 (** In fact, even going from [fin (2 + n)] to [nat] doesn't change the cardinality
-    if the domain is large enough: *)
+    if the domain is big enough: *)
 
 Lemma PAnat_eq_PA {A} :
   inhabited A ->
