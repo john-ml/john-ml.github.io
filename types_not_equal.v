@@ -794,6 +794,7 @@ Qed.
 
 (** What's more, two finite types are isomorphic iff they have the same cardinality: *)
 
+(* begin hide *)
 Lemma fin_leq {m n} : fin n ⊑ fin m <-> n <= m.
 Proof.
   split; intros Hle.
@@ -808,6 +809,7 @@ Proof.
   - replace m with (m - n + n) by lia.
     exists fin_inj; apply fin_inj_ok.
 Qed.
+(* end hide *)
 Lemma fin_iso {m n} : fin n ≅ fin m <-> n = m.
 Proof.
   split; [intros [Hle Hge]|intros; subst; apply iso_refl].
@@ -1020,33 +1022,34 @@ Inductive nf :=
 | Finite (n : nat)
 | Tower (m : nat).
 
-Fixpoint tower n :=
+Fixpoint tower n : Type :=
   match n with
-  | 0 => Nat
-  | S n => Fun (tower n) (Fin 2)
+  | 0 => nat
+  | S n => tower n -> fin 2
   end.
 
-(** [nfD] converts normal forms back into [type]s: *)
+(** [⟦⋅⟧ₙ] maps each normal form to its denotation: *)
 
 Fixpoint nfD t :=
   match t with
-  | Finite n => Fin n
+  | Finite n => fin n
   | Tower n => tower n
   end.
+Notation "'⟦' t '⟧ₙ'" := (nfD t).
 
 (** We'll need to know a number of properties about towers to derive our 
     type normalizer and prove it correct.
     
     First, towers represent infinite types, so every tower is inhabited. *)
 
-Lemma tower_inhabited n : inhabited ⟦tower n⟧.
+Lemma tower_inhabited n : inhabited (tower n).
 Proof. destruct n; [now exists 0|now exists (fun _ => inl I)]. Qed.
 
 (** Next, towers are so infinite that doing finite things to them
     usually has no effect: *)
 
 (* begin hide *)
-Lemma tower_succ n : True + ⟦tower n⟧ ≅ ⟦tower n⟧.
+Lemma tower_succ n : True + tower n ≅ tower n.
 Proof.
   induction n.
   - simpl. split; [|exists inr; firstorder congruence].
@@ -1062,7 +1065,7 @@ Proof.
     intros [[]|f] [[]|g] Heq; congruence.
 Qed.
 (* end hide *)
-Lemma tower_add_fin m n : fin m + ⟦tower n⟧ ≅ ⟦tower n⟧.
+Lemma tower_add_fin m n : fin m + tower n ≅ tower n.
 Proof.
   induction m.
   - apply sum_False.
@@ -1071,7 +1074,7 @@ Proof.
     apply tower_succ.
 Qed.
 (* begin hide *)
-Lemma tower_add n : ⟦tower n⟧ + ⟦tower n⟧ ≅ ⟦tower n⟧.
+Lemma tower_add n : tower n + tower n ≅ tower n.
 Proof.
   induction n.
   - simpl.
@@ -1097,7 +1100,7 @@ Proof.
       now apply f_equal with (f := fun f => f inh) in Heq'.
 Qed.
 (* end hide *)
-Lemma tower_mul_fin m n : fin (S m) * ⟦tower n⟧ ≅ ⟦tower n⟧.
+Lemma tower_mul_fin m n : fin (S m) * tower n ≅ tower n.
 Proof.
   induction m.
   - eapply iso_trans; [apply iso_prod; [symmetry; apply fin_True|apply iso_refl]|].
@@ -1108,7 +1111,7 @@ Proof.
     apply tower_add.
 Qed.
 (* begin hide *)
-Lemma tower_mul n : ⟦tower n⟧ * ⟦tower n⟧ ≅ ⟦tower n⟧.
+Lemma tower_mul n : tower n * tower n ≅ tower n.
 Proof.
   induction n.
   - simpl. assert (Hsqr : nat * nat ≅ (fin 2 -> nat)).
@@ -1129,7 +1132,7 @@ Proof.
     eapply leq_iso1; [apply fun_uncurry|]; apply leq_refl.
 Qed.
 (* end hide *)
-Lemma tower_fun_fin m n : (fin (S m) -> ⟦tower n⟧) ≅ ⟦tower n⟧.
+Lemma tower_fun_fin m n : (fin (S m) -> tower n) ≅ tower n.
 Proof.
   induction m.
   - eapply iso_trans; [eapply iso_fun1; symmetry; apply fin_True|].
@@ -1140,15 +1143,15 @@ Proof.
     apply tower_mul.
 Qed.
 
-(** (Though, going from [⟦tower n⟧] to [⟦tower n⟧ -> fin (S m)]
-    _does_ have an effect, since by putting [⟦tower n⟧] to the left of an
+(** (Though, going from [tower n] to [tower n -> fin (S m)]
+    _does_ have an effect, since by putting [tower n] to the left of an
     arrow we could potentially be building a bigger power tower.)
 
     In fact, even multiplying a tower by [nat] doesn't change its size:
 *)
 
 (* begin hide *)
-Lemma add_leq_towers n m : n <= m -> ⟦tower n⟧ + ⟦tower m⟧ ≅ ⟦tower m⟧.
+Lemma add_leq_towers n m : n <= m -> tower n + tower m ≅ tower m.
 Proof.
   induction 1; [apply tower_add|].
   split; [|exists inr; firstorder congruence].
@@ -1157,7 +1160,7 @@ Proof.
   destruct IHle as [[f Hf] _].
   exists (comp f inl); firstorder congruence.
 Qed.
-Lemma mul_leq_towers n m : n <= m -> ⟦tower n⟧ * ⟦tower m⟧ ≅ ⟦tower m⟧.
+Lemma mul_leq_towers n m : n <= m -> tower n * tower m ≅ tower m.
 Proof.
   induction 1; [apply tower_mul|].
   destruct (tower_inhabited n) as [inh _].
@@ -1169,7 +1172,7 @@ Proof.
   exists (fun x => f (x, inh)); firstorder congruence.
 Qed.
 (* end hide *)
-Lemma nat_mul_tower_eq_tower n : nat * ⟦tower n⟧ ≅ ⟦tower n⟧.
+Lemma nat_mul_tower_eq_tower n : nat * tower n ≅ tower n.
 Proof.
   induction n.
   - apply (tower_mul 0).
@@ -1179,17 +1182,17 @@ Proof.
     apply mul_leq_towers; lia.
 Qed.
 
-(** Finally, if [n >= m], [⟦tower n⟧] is so much bigger than [⟦tower m⟧]
-    that adding or multiplying by [⟦tower m⟧] has no effect: *)
+(** Finally, if [n >= m], [tower n] is so much bigger than [tower m]
+    that adding or multiplying by [tower m] has no effect: *)
 
-Lemma add_towers n m : ⟦tower n⟧ + ⟦tower m⟧ ≅ ⟦tower (max n m)⟧.
+Lemma add_towers n m : tower n + tower m ≅ tower (max n m).
 Proof.
   assert (H : n <= m \/ m <= n) by lia.
   destruct H as [H|H]; [rewrite max_r|rewrite max_l]; auto.
   - apply add_leq_towers; auto.
   - rewrite sum_comm; apply add_leq_towers; auto.
 Qed.
-Lemma mul_towers n m : ⟦tower n⟧ * ⟦tower m⟧ ≅ ⟦tower (max n m)⟧.
+Lemma mul_towers n m : tower n * tower m ≅ tower (max n m).
 Proof.
   assert (H : n <= m \/ m <= n) by lia.
   destruct H as [H|H]; [rewrite max_r|rewrite max_l]; auto.
@@ -1263,17 +1266,31 @@ Fixpoint norm (t : type) : nf :=
         cardinality, then [⟦t1⟧ -> ⟦t2⟧] is empty too: *)
 
     | (Tower _ | Finite (S _)), Finite 0 => Finite 0
-    (** (Every [fin (S n)] and power tower is inhabited.) *)
+    (** With these edge cases out of the way, we can safely assume that
+        - If [⟦t1⟧] is finite, then it's nonempty
+        - If [⟦t2⟧] is finite, then it has cardinality at least 2
+        from this point onwards.
+
+        If both types are finite, then the result is finite: *)
 
     | Finite m, Finite n => Finite (Nat.pow n m)
-    | Finite _, Tower n => Tower n
+    (** If one type is finite and the other infinite, then the result
+        depends on which side the infinite type is on. 
+
+        If [⟦t2⟧] is infinite then 
+        [(⟦t1⟧ -> ⟦t2⟧) ≅ (fin (S _) -> ⟦t2⟧) ≅ ⟦t2⟧]: *)
+
+    | Finite (S _), Tower n => Tower n
+    (** If [⟦t1⟧] is infinite and isomorphic to a power tower of height [n],
+        then [(⟦t1⟧ -> ⟦t2⟧) ≅ (tower n -> fin (2 + _)) ≅ (tower n -> fin 2) ≅ tower (S n)]: *)
+
     | Tower n, Finite (S (S _)) => Tower (S n)
     | Tower n, Tower 0 => Tower (S n)
     | Tower n, Tower (S m) => Tower (S (max n m))
     end
   end.
 
-Lemma norm_spec t : ⟦t⟧ ≅ ⟦nfD (norm t)⟧.
+Lemma norm_spec t : ⟦t⟧ ≅ ⟦norm t⟧ₙ.
 Proof.
   induction t; simpl.
   - apply iso_refl.
@@ -1321,25 +1338,25 @@ Qed.
     iff they have the same height: *)
 
 (* begin hide *)
-Lemma tower_leq {m n} : ⟦tower n⟧ ⊑ ⟦tower m⟧ <-> n <= m.
+Lemma tower_leq {m n} : tower n ⊑ tower m <-> n <= m.
 Proof.
   split.
   - intros Hleq.
     assert (Hgt : n > m \/ n <= m) by lia.
     destruct Hgt as [Hgt|Hgt]; auto.
     exfalso. induction Hgt as [|m' Hle' IHle'].
-    + assert (⟦tower m⟧ ⊏ ⟦tower (S m)⟧) by apply A_lt_PA.
+    + assert (tower m ⊏ tower (S m)) by apply A_lt_PA.
       contradiction.
     + apply IHle'.
       destruct Hleq as [f Hf].
-      assert (Hinj : ⟦tower m'⟧ ⊑ ⟦tower (S m')⟧) by apply A_le_PA.
+      assert (Hinj : tower m' ⊑ tower (S m')) by apply A_le_PA.
       destruct Hinj as [g Hg].
       exists (comp f g); now apply inj_comp.
   - induction 1; [apply leq_refl|].
-    now eapply leq_trans; [|apply (@A_le_PA ⟦tower m⟧)].
+    now eapply leq_trans; [|apply (@A_le_PA (tower m))].
 Qed.
 (* end hide *)
-Lemma tower_iso {m n} : ⟦tower n⟧ ≅ ⟦tower m⟧ <-> n = m.
+Lemma tower_iso {m n} : tower n ≅ tower m <-> n = m.
 Proof.
   split.
   - intros [Hle Hge]; apply tower_leq in Hle; apply tower_leq in Hge; lia.
@@ -1353,7 +1370,7 @@ Definition nf_iso t1 t2 :=
   | _, _ => false
   end.
 
-Lemma nf_iso_spec t1 t2 : Bool.reflect (⟦nfD t1⟧ ≅ ⟦nfD t2⟧) (nf_iso t1 t2).
+Lemma nf_iso_spec t1 t2 : Bool.reflect (⟦t1⟧ₙ ≅ ⟦t2⟧ₙ) (nf_iso t1 t2).
 Proof.
   destruct t1 as [m|m], t2 as [n|n]; cbn.
   - destruct (PeanoNat.Nat.eqb_spec m n) as [Heq|Hne]; [left; subst m; apply iso_refl|].
@@ -1362,14 +1379,14 @@ Proof.
     destruct Hiso as [Hleq Hgeq].
     assert (nat ⊑ fin m).
     { eapply leq_trans; [|apply Hgeq].
-      change nat with ⟦tower 0⟧.
+      change nat with (tower 0).
       apply tower_leq; lia. }
     contradiction.
   - right; intros Hiso. pose proof (@fin_lt_nat n) as Hlt.
     destruct Hiso as [Hleq Hgeq].
     assert (nat ⊑ fin n).
     { eapply leq_trans; [|apply Hleq].
-      change nat with ⟦tower 0⟧.
+      change nat with (tower 0).
       apply tower_leq; lia. }
     contradiction.
   - destruct (PeanoNat.Nat.eqb_spec m n) as [Heq|Hne]; [left; subst m; apply iso_refl|].
