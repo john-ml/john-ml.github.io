@@ -845,6 +845,19 @@ Proof.
   specialize (Hg y).
   destruct Hg as [x Hx]; now specialize (Hy x).
 Qed.
+Lemma A_le_PA {A} : A ⊑ (A -> fin 2).
+Proof.
+  assert (H : forall x x' : A, exists b : fin 2, if b then x = x' else x <> x').
+  { intros x x'. destruct (LEM (x = x')); [exists (inl I)|exists (inr (inl I))]; auto. }
+  assert (Hinner : forall x, exists f : A -> fin 2, forall x', if f x' then x = x' else x <> x').
+  { intros x; specialize (H x); now apply FChoice in H. }
+  apply FChoice in Hinner.
+  destruct Hinner as [f Hf]; exists f.
+  intros x x' Heq; pose proof Hf x x' as Hfxx'.
+  apply f_equal with (f := fun f => f x') in Heq.
+  destruct (f x x') as [[]|[[]|[]]]; auto.
+  now specialize (Hf x' x'); rewrite <- Heq in Hf.
+Qed.
 
 (** Interestingly, if [A] is infinite, then changing the codomain from 
     [fin 2] to [fin (2 + n)] doesn't make the cardinality any bigger: *)
@@ -1482,40 +1495,96 @@ Fixpoint norm t : nf :=
     | Finite _, Tower n => Tower n
     | Tower n, Finite (S (S _)) => Tower (S n)
     | Tower n, Tower 0 => Tower (S n)
-    | Tower n, Tower (S m) => Tower (max n m)
+    | Tower n, Tower (S m) => Tower (S (max n m))
     end
   end.
+
+Lemma add_leq_towers n m : n <= m -> ⟦tower n⟧ + ⟦tower m⟧ ≅ ⟦tower m⟧.
+Proof.
+  induction 1; [apply tower_add|].
+  split; [|exists inr; firstorder congruence].
+  eapply leq_iso2; [symmetry; apply tower_add|].
+  apply leq_sum1; eapply leq_trans; [|simpl; apply A_le_PA].
+  destruct IHle as [[f Hf] _].
+  exists (comp f inl); firstorder congruence.
+Qed.
+Lemma add_towers n m : ⟦tower n⟧ + ⟦tower m⟧ ≅ ⟦tower (max n m)⟧.
+Proof.
+  assert (H : n <= m \/ m <= n) by lia.
+  destruct H as [H|H]; [rewrite max_r|rewrite max_l]; auto.
+  - apply add_leq_towers; auto.
+  - rewrite sum_comm; apply add_leq_towers; auto.
+Qed.
+Lemma mul_leq_towers n m : n <= m -> ⟦tower n⟧ * ⟦tower m⟧ ≅ ⟦tower m⟧.
+Proof.
+  induction 1; [apply tower_mul|].
+  destruct (tower_inhabited n) as [inh _].
+  split; [|exists (fun x => (inh, x)); firstorder congruence].
+  eapply leq_iso2; [symmetry; apply tower_mul|].
+  apply leq_prod1; eapply leq_trans; [|simpl; apply A_le_PA].
+  destruct IHle as [[f Hf] _].
+  clear inh; destruct (tower_inhabited m) as [inh _].
+  exists (fun x => f (x, inh)); firstorder congruence.
+Qed.
+Lemma mul_towers n m : ⟦tower n⟧ * ⟦tower m⟧ ≅ ⟦tower (max n m)⟧.
+Proof.
+  assert (H : n <= m \/ m <= n) by lia.
+  destruct H as [H|H]; [rewrite max_r|rewrite max_l]; auto.
+  - apply mul_leq_towers; auto.
+  - rewrite prod_comm; apply mul_leq_towers; auto.
+Qed.
+Lemma nat_mul_tower_eq_tower n : nat * ⟦tower n⟧ ≅ ⟦tower n⟧.
+Proof.
+  induction n.
+  - apply (tower_mul 0).
+  - eapply iso_trans; [apply iso_prod; [apply iso_refl|symmetry; apply (mul_leq_towers n (S n)); lia]|].
+    eapply iso_trans; [symmetry; apply prod_assoc|].
+    eapply iso_trans; [apply iso_prod; [apply IHn|apply iso_refl]|].
+    apply mul_leq_towers; lia.
+Qed.
 
 Lemma norm_spec t : ⟦t⟧ ≅ ⟦nfD (norm t)⟧.
 Proof.
   induction t; simpl.
   - apply iso_refl.
   - apply iso_refl.
-  - destruct (norm t1) as [n1|n1], (norm t2) as [n2|n2].
-    + admit.
-    + admit.
-    + admit.
-    + (* TODO *) admit.
-  - destruct (norm t1) as [[|n1]|n1]; [|destruct (norm t2) as [[|n2]|n2]..].
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + (* TODO *) admit.
-  - destruct (norm t1) as [[|n1]|n1]; [|destruct (norm t2) as [[|[|n2]]|n2]|destruct (norm t2) as [[|[|n2]]|[|n2]]].
-    + (* 0 -> 1 = 1 *) admit.
-    + (* S _ -> 0 = 0 *) admit.
-    + (* S _ -> 1 = 1 *) admit.
-    + (* S _ -> S (S _) = S (S _) ^ S _ *) admit.
-    + (* tower_fun_fin *) admit.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + (* TODO: provable if earlier TODO about multiplying towers is provable *) admit.
-Abort.
+  - destruct (norm t1) as [n1|n1], (norm t2) as [n2|n2];
+      (eapply iso_trans; [apply iso_sum; eassumption|]).
+    + apply fin_sum.
+    + apply tower_add_fin.
+    + rewrite sum_comm; apply tower_add_fin.
+    + rewrite sum_comm; apply add_towers.
+  - destruct (norm t1) as [[|n1]|n1]; [|destruct (norm t2) as [[|n2]|n2]..];
+      (eapply iso_trans; [apply iso_prod; eassumption|]).
+    + apply prod_False.
+    + rewrite prod_comm; apply prod_False.
+    + apply fin_prod.
+    + apply tower_mul_fin.
+    + rewrite prod_comm; apply prod_False.
+    + rewrite prod_comm; apply tower_mul_fin.
+    + rewrite prod_comm; apply mul_towers.
+  - destruct (norm t1) as [[|n1]|n1];
+      [|destruct (norm t2) as [[|[|n2]]|n2]|destruct (norm t2) as [[|[|n2]]|[|n2]]];
+      (eapply iso_trans; [apply iso_fun; eassumption|]).
+    + eapply iso_trans; [|apply fin_True]; apply fun_False1.
+    + apply fun_False2; now exists (inl I).
+    + eapply iso_trans; [|apply fin_True]. 
+      eapply iso_trans; [symmetry; eapply iso_fun2, fin_True|].
+      apply fun_True2.
+    + apply fin_fun.
+    + apply tower_fun_fin.
+    + apply fun_False2, tower_inhabited.
+    + eapply iso_trans; [|apply fin_True].
+      eapply iso_trans; [symmetry; eapply iso_fun2, fin_True|].
+      apply fun_True2.
+    + eapply iso_trans; [apply PA2n_eq_PA; [apply tower_inhabited|]|apply iso_refl].
+      intros; apply tower_mul_fin.
+    + eapply iso_trans; [apply PAnat_eq_PA; [apply tower_inhabited|]|apply iso_refl].
+      apply nat_mul_tower_eq_tower.
+    + unfold nfD; fold nfD; unfold tower; fold tower; unfold typeD; fold typeD.
+      eapply iso_trans; [apply fun_uncurry|].
+      apply iso_fun1, mul_towers.
+Qed.
 
 (*
 
