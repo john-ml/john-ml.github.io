@@ -1258,10 +1258,58 @@ Proof.
     now eapply iso_trans; [|apply norm_spec].
 Qed.
 
-Class Iso A t := witness : A ≅ ⟦t⟧.
+Class Reifies A t := reifies : A ≅ ⟦t⟧.
+Instance reify_nat : Reifies nat Nat := iso_refl.
+Instance reify_bool : Reifies bool (Fin 2) := fin_bool.
+Instance reify_sum {A B s t} `{HA : Reifies A s} `{HB : Reifies B t} :
+  Reifies (A + B) (Add s t).
+Proof. now apply iso_sum. Qed.
+Instance reify_prod {A B s t} `{HA : Reifies A s} `{HB : Reifies B t} :
+  Reifies (A * B) (Mul s t).
+Proof. now apply iso_prod. Qed.
+Instance reify_fun {A B s t} `{HA : Reifies A s} `{HB : Reifies B t} :
+  Reifies (A -> B) (Fun s t).
+Proof. now apply iso_fun. Qed.
 
+Ltac reify A k :=
+  let t := fresh "t" in
+  evar (t : type);
+  let Ht := fresh "Ht" in
+  (assert (Ht : Reifies A t) by (subst t; typeclasses eauto));
+  subst t;
+  lazymatch type of Ht with
+  | Reifies _ ?t' =>
+    unfold Reifies in Ht;
+    k Ht t'
+  end.
 
-Ltac reify 
+Ltac dec_ne :=
+  lazymatch goal with
+  | |- ?A <> ?B =>
+    reify A ltac:(fun HA s =>
+    reify B ltac:(fun HB t =>
+    let b := eval cbv in (isob s t) in
+    lazymatch b with
+    | true => fail "Types are isomorphic"
+    | false =>
+      assert (isob s t = b) by reflexivity;
+      let Hne := fresh "Hne" in
+      destruct (isob_spec s t) as [|Hne]; [discriminate|];
+      let Hiso := fresh "Hiso" in
+      apply iso_ne; intro Hiso; apply Hne;
+      eapply iso_trans; [|eapply iso_trans; [apply Hiso|]];
+      [symmetry; apply HA|apply HB]
+    end))
+  end.
+
+Lemma example1 : nat <> bool. Proof. dec_ne. Qed.
+Lemma example2 : nat <> (nat -> nat). Proof. dec_ne. Qed.
+Lemma example3 : bool <> (bool -> bool). Proof. dec_ne. Qed.
+Lemma example4 :
+  (nat -> bool -> nat -> nat -> (bool -> nat) -> nat * nat)
+  <> (nat -> bool -> nat -> nat -> (nat -> bool) -> nat * nat).
+Proof. dec_ne. Qed.
+
 (*
 
 Inductive index : Type -> Type -> Type :=
