@@ -1068,7 +1068,9 @@ Fixpoint nfD t :=
   end.
 Notation "'⟦' t '⟧ₙ'" := (nfD t).
 
-(** It's easy to decide isomorphism for types in normal form: 
+(** It's easy to decide isomorphism for types in normal form.
+    In fact, two normal forms denote isomorphic types iff they're structurally
+    equal:
     - If both types are finite, then they are isomorphic iff they have the 
       same number of inhabitants;
     - If both types are infinite, then they are isomorphic iff they are
@@ -1109,11 +1111,11 @@ Qed.
 (** Therefore, it would be equally easy to decide isomorphism of
     any two types in our universe if we only had a type normalization
     function [norm : type -> nf]
-    such that [⟦t⟧ ≅ ⟦norm t⟧ₙ] for all [t]. To write such a function 
-    correctly, we'll first need a few properties about power towers.
+    such that [⟦t⟧ ≅ ⟦norm t⟧ₙ] for all [t]. We will write such a function.
+    To do so, we need a few properties about power towers.
 
-    First, towers are so infinite that doing finite things to them
-    usually has no effect: *)
+    First, towers are so infinite that adding, multiplying, and exponentiating
+    by a finite amount doesn't change their size: *)
 
 (* begin hide *)
 Lemma tower_succ n : True + tower n ≅ tower n.
@@ -1250,7 +1252,7 @@ Proof.
 Qed.
 
 (** Finally, if [n >= m], [tower n] is so much bigger than [tower m]
-    that adding or multiplying by [tower m] has no effect: *)
+    that adding or multiplying by [tower m] doesn't change its size: *)
 
 Lemma add_towers n m : tower n + tower m ≅ tower (max n m).
 Proof.
@@ -1447,7 +1449,10 @@ Proof.
     now eapply iso_trans; [|apply norm_ok].
 Qed.
 
-(** We can define the reification of Coq types into [type]s
+(** Now all we have to do is package this function up with
+    some helpers to automatically prove goals of the form [A <> B].
+
+    We can define the reification of Coq types into [type]s
     as a collection of typeclass instances: *)
 
 Class Reifies A t := reifies : A ≅ ⟦t⟧.
@@ -1534,3 +1539,43 @@ Lemma example4 :
   <> (nat -> (bool + fin 7) -> (nat -> bool) -> fin 3 * nat).
 Proof. dec_ne. Qed.
 (* end show *)
+
+(** At the end of the day, this is probably not very useful:
+    as mentioned at the start, we can't prove [A <> B]
+    if [A] and [B] are isomorphic, and most commonly-used types
+    have a countable number of inhabitants. But it was still fun
+    to see the tactic in action, and it's always fun to prove some
+    recursive functions correct.
+
+    For the future: what about dependent types?
+    - Dependent types can be even bigger than power towers:
+      for all [m], [tower m ⊏ {n : nat & tower n}] because
+      any injection [{n : nat & tower n} -> tower m] can be used
+      to construct an impossible injection [tower (S m) -> tower m].
+      (Proof below.)
+    - We've shown that simple types have the following equivalence classes modulo 
+      isomorphism, listed in increasing order:
+      - [fin 0]
+      - [fin 1]
+      - ...
+      - [tower 0]
+      - [tower 1]
+      - ...
+      There is no equivalence class, say, in between [tower 0] and [tower 1].
+      Is this still true with dependent types?
+*)
+
+(* begin show *)
+Definition huge := {n : nat & tower n}.
+Lemma bruh n : tower n ⊏ huge.
+Proof.
+  intros [f Hf].
+  assert (Hwat : tower (S n) ⊑ tower n).
+  { exists (fun x => f (existT tower (S n) x)).
+    intros x y Heq.
+    apply Hf in Heq.
+    apply Eqdep_dec.inj_pair2_eq_dec in Heq; auto.
+    decide equality. }
+  now apply A_lt_PA in Hwat.
+Qed.
+(* end show *)            

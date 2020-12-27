@@ -411,7 +411,9 @@ A normal form is either a finite type with <span class="inlinecode"><span class=
 </div>
 
 <div class="doc">
-It's easy to decide isomorphism for types in normal form: 
+It's easy to decide isomorphism for types in normal form.
+    In fact, two normal forms denote isomorphic types iff they're structurally
+    equal:
 <ul class="doclist">
 <li> If both types are finite, then they are isomorphic iff they have the 
       same number of inhabitants;
@@ -446,13 +448,13 @@ It's easy to decide isomorphism for types in normal form:
 Therefore, it would be equally easy to decide isomorphism of
     any two types in our universe if we only had a type normalization
     function <span class="inlinecode"><span class="id" title="var">norm</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="keyword">type</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">nf</span></span>
-    such that <span class="inlinecode">⟦<span class="id" title="var">t</span>⟧</span> <span class="inlinecode">≅</span> <span class="inlinecode">⟦<span class="id" title="var">norm</span></span> <span class="inlinecode"><span class="id" title="var">t</span>⟧ₙ</span> for all <span class="inlinecode"><span class="id" title="var">t</span></span>. To write such a function 
-    correctly, we'll first need a few properties about power towers.
+    such that <span class="inlinecode">⟦<span class="id" title="var">t</span>⟧</span> <span class="inlinecode">≅</span> <span class="inlinecode">⟦<span class="id" title="var">norm</span></span> <span class="inlinecode"><span class="id" title="var">t</span>⟧ₙ</span> for all <span class="inlinecode"><span class="id" title="var">t</span></span>. We will write such a function.
+    To do so, we need a few properties about power towers.
 
 <div class="paragraph"> </div>
 
-    First, towers are so infinite that doing finite things to them
-    usually has no effect: 
+    First, towers are so infinite that adding, multiplying, and exponentiating
+    by a finite amount doesn't change their size: 
 </div>
 <div class="code">
 
@@ -484,7 +486,7 @@ Therefore, it would be equally easy to decide isomorphism of
 
 <div class="doc">
 Finally, if <span class="inlinecode"><span class="id" title="var">n</span></span> <span class="inlinecode">≥</span> <span class="inlinecode"><span class="id" title="var">m</span></span>, <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">n</span></span> is so much bigger than <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">m</span></span>
-    that adding or multiplying by <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">m</span></span> has no effect: 
+    that adding or multiplying by <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">m</span></span> doesn't change its size: 
 </div>
 <div class="code">
 
@@ -750,7 +752,12 @@ Now that we have <span class="inlinecode"><span class="id" title="var">norm</spa
 </div>
 
 <div class="doc">
-We can define the reification of Coq types into <span class="inlinecode"><span class="id" title="keyword">type</span></span>s
+Now all we have to do is package this function up with
+    some helpers to automatically prove goals of the form <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span>.
+
+<div class="paragraph"> </div>
+
+    We can define the reification of Coq types into <span class="inlinecode"><span class="id" title="keyword">type</span></span>s
     as a collection of typeclass instances: 
 </div>
 <div class="code">
@@ -834,6 +841,73 @@ With this we can write a tactic <span class="inlinecode"><span class="id" title=
 &nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a0a5068f83a704fcfbda8cd473a6cfea"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">𝔹</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> 7 <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">(</span></a><a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> 5 <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">𝔹</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a0a5068f83a704fcfbda8cd473a6cfea"><span class="id" title="notation">)</span></a><br/>
 &nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a0a5068f83a704fcfbda8cd473a6cfea"><span class="id" title="notation">≠</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a0a5068f83a704fcfbda8cd473a6cfea"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">𝔹</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> 7<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">𝔹</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> 3 <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a0a5068f83a704fcfbda8cd473a6cfea"><span class="id" title="notation">)</span></a>.<br/>
 <span class="id" title="keyword">Proof</span>. <span class="id" title="var">dec_ne</span>. <span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+At the end of the day, this is probably not very useful:
+    as mentioned at the start, we can't prove <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span>
+    if <span class="inlinecode"><span class="id" title="var">A</span></span> and <span class="inlinecode"><span class="id" title="var">B</span></span> are isomorphic, and most commonly-used types
+    have a countable number of inhabitants. But it was still fun
+    to see the tactic in action, and it's always fun to prove some
+    recursive functions correct.
+
+<div class="paragraph"> </div>
+
+    For the future: what about dependent types?
+<ul class="doclist">
+<li> Dependent types can be even bigger than power towers:
+      for all <span class="inlinecode"><span class="id" title="var">m</span></span>, <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">m</span></span> <span class="inlinecode">⊏</span> <span class="inlinecode">{<span class="id" title="var">n</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">ℕ</span></span> <span class="inlinecode">&amp;</span> <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">n</span>}</span> because
+      any injection <span class="inlinecode">{<span class="id" title="var">n</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">ℕ</span></span> <span class="inlinecode">&amp;</span> <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">n</span>}</span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">m</span></span> can be used
+      to construct an impossible injection <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode">(<span class="id" title="var">S</span></span> <span class="inlinecode"><span class="id" title="var">m</span>)</span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">m</span></span>.
+      (Proof below.)
+
+</li>
+<li> We've shown that simple types have the following equivalence classes modulo 
+      isomorphism, listed in increasing order:
+<ul class="doclist">
+<li> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">0</span>
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">1</span>
+
+</li>
+<li> ...
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode">0</span>
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode">1</span>
+
+</li>
+<li> ...
+
+</li>
+</ul>
+      There is no equivalence class, say, in between <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode">0</span> and <span class="inlinecode"><span class="id" title="var">tower</span></span> <span class="inlinecode">1</span>.
+      Is this still true with dependent types?
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a name="huge"><span class="id" title="definition">huge</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">{</span></a><span class="id" title="var">n</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">:</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">&amp;</span></a> <a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Specif.html#cc5e56ba3765e2d6b17e66d19b966f1d"><span class="id" title="notation">}</span></a>.<br/>
+<span class="id" title="keyword">Lemma</span> <a name="bruh"><span class="id" title="lemma">bruh</span></a> <span class="id" title="var">n</span> : <a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#7defa197c0c99f1a992655adbb36412a"><span class="id" title="notation">⊏</span></a> <a class="idref" href="types_not_equal.html#huge"><span class="id" title="definition">huge</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> [<span class="id" title="var">f</span> <span class="id" title="var">Hf</span>].<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">assert</span> (<span class="id" title="var">Hwat</span> : <a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">n</span>) <a class="idref" href="types_not_equal.html#807cf07fc9b6e174a5f6d1ef141e1432"><span class="id" title="notation">⊑</span></a> <a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <span class="id" title="var">n</span>).<br/>
+&nbsp;&nbsp;{ <span class="id" title="tactic">∃</span> (<span class="id" title="keyword">λ</span> <span class="id" title="var">x</span> ⇒ <span class="id" title="var">f</span> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> <a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">n</span>) <a class="idref" href="types_not_equal.html#x"><span class="id" title="variable">x</span></a>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">x</span> <span class="id" title="var">y</span> <span class="id" title="var">Heq</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <span class="id" title="var">Hf</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Heq</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Logic.Eqdep_dec.html#inj_pair2_eq_dec"><span class="id" title="lemma">Eqdep_dec.inj_pair2_eq_dec</span></a> <span class="id" title="tactic">in</span> <span class="id" title="var">Heq</span>; <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">decide</span> <span class="id" title="var">equality</span>. }<br/>
+&nbsp;&nbsp;<span class="id" title="var">now</span> <span class="id" title="tactic">apply</span> <a class="idref" href="types_not_equal.html#A_lt_PA"><span class="id" title="lemma">A_lt_PA</span></a> <span class="id" title="tactic">in</span> <span class="id" title="var">Hwat</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
 </div>
 <hr/>This page has been generated by <a href="http://coq.inria.fr/">coqdoc</a>
 </div>
