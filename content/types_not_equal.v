@@ -107,14 +107,13 @@ Proof. intros Hnot Heq; subst; apply Hnot, iso_refl. Qed.
 Lemma nat_ne_bool : nat <> bool.
 Proof.
   apply iso_ne; intros [[f Hfg] [g Hgf]].
-  (** #<pre>
+  (** [[
   f : nat -> bool
   Hfg : injective f
   g : bool -> nat
   Hgf : injective g
   ============================
-  False</pre># 
-
+  False]]
   Since [f] returns a boolean, [[f 0; f 1; f 2]] must contain a duplicate. *)
   pose proof Hfg 0 1 as H0.
   pose proof Hfg 1 2 as H1.
@@ -522,7 +521,7 @@ Fixpoint halve n :=
   | 0 | 1 => 0
   | S (S n) => S (halve n)
   end.
-Lemma halve_spec : 
+Lemma halve_ok : 
   forall m, if Nat.even m then exists n, m = 2*halve n else exists n, m = 2*halve n+1.
 Proof.
   fix go 1; intros [|[|m]]; [exists 0; auto..|].
@@ -559,8 +558,8 @@ Proof.
       |exists (fun m => if Nat.even m then inl (halve m) else inr (halve m))];
       [intros [?|?] [?|?] Heq; try congruence; try lia; f_equal; lia|].
     intros m n.
-    pose proof halve_spec m as Hevenbm.
-    pose proof halve_spec n as Hevenbn.
+    pose proof halve_ok m as Hevenbm.
+    pose proof halve_ok n as Hevenbn.
     destruct (Nat.even m); destruct Hevenbm as [km Hkm];
     destruct (Nat.even n); destruct Hevenbn as [kn Hkn]; try congruence.
     + subst; rewrite !halve_cancel; congruence.
@@ -982,8 +981,7 @@ Qed.
 
     Together these properties suggest that every type built from
     simple type constructors (sum, product, and function) can be
-    reduced to a normal form. Specifically, every such type
-    should be either:
+    reduced to a normal form. Specifically, every type should be either
     - Finite, with [n] inhabitants, or
     - Infinite, and isomorphic to a "power tower" of the form
       [((nat -> ..) -> fin 2) -> fin 2].
@@ -1013,14 +1011,12 @@ Fixpoint typeD t :=
   end%type
 where "'⟦' t '⟧'" := (typeD t).
 
-(** A normal form is either a finite type with [n] inhabitants or
-    a power tower with height [m].
-    The power tower of height [0] is just [nat].
-*)
+(** A power tower of height [n] is the type [nat] nested under [(_ -> fin 2)],
+    [n] times.
 
-Inductive nf :=
-| Finite (n : nat)
-| Tower (m : nat).
+    Since [A ⊏ (A -> fin 2)] and power towers are constructed
+    by repeatedly nesting types inside [(_ -> fin 2)], two towers are isomorphic
+    iff they have the same height. *)
 
 Fixpoint tower n : Type :=
   match n with
@@ -1028,7 +1024,42 @@ Fixpoint tower n : Type :=
   | S n => tower n -> fin 2
   end.
 
-(** [⟦⋅⟧ₙ] maps each normal form to its denotation: *)
+(* begin hide *)
+Lemma tower_inhabited n : inhabited (tower n).
+Proof. destruct n; [now exists 0|now exists (fun _ => inl I)]. Qed.
+Lemma tower_leq {m n} : tower n ⊑ tower m <-> n <= m.
+Proof.
+  split.
+  - intros Hleq.
+    assert (Hgt : n > m \/ n <= m) by lia.
+    destruct Hgt as [Hgt|Hgt]; auto.
+    exfalso. induction Hgt as [|m' Hle' IHle'].
+    + assert (tower m ⊏ tower (S m)) by apply A_lt_PA.
+      contradiction.
+    + apply IHle'.
+      destruct Hleq as [f Hf].
+      assert (Hinj : tower m' ⊑ tower (S m')) by apply A_le_PA.
+      destruct Hinj as [g Hg].
+      exists (comp f g); now apply inj_comp.
+  - induction 1; [apply leq_refl|].
+    now eapply leq_trans; [|apply (@A_le_PA (tower m))].
+Qed.
+(* end hide *)
+Lemma tower_iso {m n} : tower n ≅ tower m <-> n = m.
+Proof.
+  split.
+  - intros [Hle Hge]; apply tower_leq in Hle; apply tower_leq in Hge; lia.
+  - intros; subst; apply iso_refl.
+Qed.
+
+(** A normal form is either a finite type with [n] inhabitants or
+    a power tower of height [m], and
+    [⟦⋅⟧ₙ] maps each normal form to its denotation.
+*)
+
+Inductive nf :=
+| Finite (n : nat)
+| Tower (m : nat).
 
 Fixpoint nfD t :=
   match t with
@@ -1037,15 +1068,51 @@ Fixpoint nfD t :=
   end.
 Notation "'⟦' t '⟧ₙ'" := (nfD t).
 
-(** We'll need to know a number of properties about towers to derive our 
-    type normalizer and prove it correct.
-    
-    First, towers represent infinite types, so every tower is inhabited. *)
+(** It's easy to decide isomorphism for types in normal form: 
+    - If both types are finite, then they are isomorphic iff they have the 
+      same number of inhabitants;
+    - If both types are infinite, then they are isomorphic iff they are
+      power towers of the same height;
+    - If one type is finite and the other infinite, then they can't be isomorphic. *)
 
-Lemma tower_inhabited n : inhabited (tower n).
-Proof. destruct n; [now exists 0|now exists (fun _ => inl I)]. Qed.
+Definition nf_iso t1 t2 :=
+  match t1, t2 with
+  | Finite n, Finite m => Nat.eqb n m
+  | Tower n, Tower m => Nat.eqb n m
+  | Finite _, Tower _ | Tower _, Finite _ => false
+  end.
 
-(** Next, towers are so infinite that doing finite things to them
+Lemma nf_iso_ok t1 t2 : Bool.reflect (⟦t1⟧ₙ ≅ ⟦t2⟧ₙ) (nf_iso t1 t2).
+Proof.
+  destruct t1 as [m|m], t2 as [n|n]; cbn.
+  - destruct (PeanoNat.Nat.eqb_spec m n) as [Heq|Hne]; [left; subst m; apply iso_refl|].
+    right; intros Hiso; now apply Hne, fin_iso.
+  - right; intros Hiso. pose proof (@fin_lt_nat m) as Hlt.
+    destruct Hiso as [Hleq Hgeq].
+    assert (nat ⊑ fin m).
+    { eapply leq_trans; [|apply Hgeq].
+      change nat with (tower 0).
+      apply tower_leq; lia. }
+    contradiction.
+  - right; intros Hiso. pose proof (@fin_lt_nat n) as Hlt.
+    destruct Hiso as [Hleq Hgeq].
+    assert (nat ⊑ fin n).
+    { eapply leq_trans; [|apply Hleq].
+      change nat with (tower 0).
+      apply tower_leq; lia. }
+    contradiction.
+  - destruct (PeanoNat.Nat.eqb_spec m n) as [Heq|Hne]; [left; subst m; apply iso_refl|].
+    right; intros Hiso; apply Hne.
+    now apply tower_iso.
+Qed.
+
+(** Therefore, it would be equally easy to decide isomorphism of
+    any two types in our universe if we only had a type normalization
+    function [norm : type -> nf]
+    such that [⟦t⟧ ≅ ⟦norm t⟧ₙ] for all [t]. To write such a function 
+    correctly, we'll first need a few properties about power towers.
+
+    First, towers are so infinite that doing finite things to them
     usually has no effect: *)
 
 (* begin hide *)
@@ -1147,7 +1214,7 @@ Qed.
     _does_ have an effect, since by putting [tower n] to the left of an
     arrow we could potentially be building a bigger power tower.)
 
-    In fact, even multiplying a tower by [nat] doesn't change its size:
+    Second, multiplying a tower by [nat] doesn't change its size:
 *)
 
 (* begin hide *)
@@ -1200,7 +1267,7 @@ Proof.
   - rewrite prod_comm; apply mul_leq_towers; auto.
 Qed.
 
-(** Now we're ready to derive the type normalizer.
+(** Now we're ready to write the type normalizer.
     It will be a function [norm] that takes a [type] and 
     recursively reduces it to its normal form: *)
 
@@ -1221,19 +1288,20 @@ Fixpoint norm (t : type) : nf :=
     (** Otherwise, one of the two types is a power tower and the largest tower 
         dominates: *)
 
-    | Tower n, Tower m => Tower (max m n)
     | Tower n, Finite _ | Finite _, Tower n => Tower n
+    | Tower n, Tower m => Tower (max m n)
     end
   (** To reduce [⟦t1⟧ * ⟦t2⟧], first recursively reduce [⟦t1⟧] and [⟦t2⟧]
       just like in the [Add] case: *)
 
   | Mul t1 t2 =>
     match norm t1, norm t2 with
-    (** Products are slightly trickier than sums because there's
-        an edge case:
+    (** There's an edge case:
         if [⟦t1⟧] is empty (that is, isomorphic to [fin 0]) then
-        [⟦t1⟧ * ⟦t2⟧ ≅ fin 0 * ⟦t2⟧ ≅ fin 0] no _matter how big_ [⟦t2⟧] _is_;
-        ditto if [⟦t2⟧] is empty. So, we first check if
+        [⟦t1⟧ * ⟦t2⟧] is empty too, no matter how big [⟦t2⟧] is.
+        Ditto if [⟦t2⟧] is empty. 
+
+        So, we first check if
         either of the recursive calls produced an empty type, and return
         the empty type if so: *)
 
@@ -1243,8 +1311,8 @@ Fixpoint norm (t : type) : nf :=
         and if any of the types are infinite then the largest tower dominates: *)
 
     | Finite n, Finite m => Finite (n * m)
-    | Tower n, Tower m => Tower (max m n)
     | Tower n, Finite _ | Finite _, Tower n => Tower n
+    | Tower n, Tower m => Tower (max m n)
     end
   (** The [Fun] case is where things get interesting.
       As before, we first make recursive calls: *)
@@ -1257,40 +1325,69 @@ Fixpoint norm (t : type) : nf :=
         and one function [A -> fin 1], no matter how big [A] is: *)
 
     | Finite 0, _ | _, Finite 1 => Finite 1
-
     (** Second, if [A] is inhabited then there are no functions
-        [A -> fin 0].
-
-        So if [⟦t2⟧] is empty
-        and [⟦t1⟧] is either a power tower or a finite type with nonzero 
-        cardinality, then [⟦t1⟧ -> ⟦t2⟧] is empty too: *)
+        [A -> fin 0]: *)
 
     | (Tower _ | Finite (S _)), Finite 0 => Finite 0
-    (** With these edge cases out of the way, we can safely assume that
-        - If [⟦t1⟧] is finite, then it's nonempty
-        - If [⟦t2⟧] is finite, then it has cardinality at least 2
-        from this point onwards.
+    (** ([⟦t1⟧] is inhabited exactly when it's isomorphic to
+        either a power tower or a finite type with nonzero cardinality.)
+
+        With these edge cases out of the way, from this point onwards
+        we can safely assume that
+        - If [⟦t1⟧] is finite, then it's nonempty;
+        - If [⟦t2⟧] is finite, then it has cardinality at least 2.
 
         If both types are finite, then the result is finite: *)
 
     | Finite m, Finite n => Finite (Nat.pow n m)
     (** If one type is finite and the other infinite, then the result
-        depends on which side the infinite type is on. 
+        depends on which side of the arrow the infinite type is on. 
 
-        If [⟦t2⟧] is infinite then 
-        [(⟦t1⟧ -> ⟦t2⟧) ≅ (fin (S _) -> ⟦t2⟧) ≅ ⟦t2⟧]: *)
+        If [⟦t2⟧] is infinite then [(⟦t1⟧ -> ⟦t2⟧) ≅ (fin (S _) -> ⟦t2⟧) ≅ ⟦t2⟧]: *)
 
     | Finite (S _), Tower n => Tower n
-    (** If [⟦t1⟧] is infinite and isomorphic to a power tower of height [n],
-        then [(⟦t1⟧ -> ⟦t2⟧) ≅ (tower n -> fin (2 + _)) ≅ (tower n -> fin 2) ≅ tower (S n)]: *)
+    (** On the other hand, if [⟦t1⟧] is infinite, then it must be isomorphic to
+        a power tower of height [n] for some [n] and [[
+  (⟦t1⟧ -> ⟦t2⟧) 
+  ≅ (tower n -> fin (2 + _)) 
+  ≅ (tower n -> fin 2) 
+  ≅ tower (S n)]]
+    *)
 
     | Tower n, Finite (S (S _)) => Tower (S n)
+    (** Now the only cases remaining are those
+        where [⟦t1⟧] and [⟦t2⟧] are both infinite.
+
+        The result depends on the height of [⟦t2⟧]'s power tower.
+        Let [n] be the height of [⟦t1⟧]'s power tower.
+
+        If [⟦t2⟧ ≅ nat], then [[
+  (⟦t1⟧ -> ⟦t2⟧) 
+  ≅ (tower n -> nat) 
+  ≅ (tower n -> fin 2) 
+  ≅ tower (S n)]]
+    *)
+
     | Tower n, Tower 0 => Tower (S n)
+    (** On the other hand, if [⟦t2⟧ = tower (S m)] for some [m], then [[
+  (⟦t1⟧ -> ⟦t2⟧) 
+  ≅ (tower n -> tower (S m)) 
+  ≅ (tower n -> tower m -> fin 2) 
+  ≅ (tower n * tower m -> fin 2)
+  ≅ (tower (max n m) -> fin 2)
+  ≅ tower (S (max n m))]]
+    *)
+
     | Tower n, Tower (S m) => Tower (S (max n m))
     end
   end.
 
-Lemma norm_spec t : ⟦t⟧ ≅ ⟦norm t⟧ₙ.
+(** This completes the implementation of the type normalizer. 
+    
+    We can convince Coq that [norm] is correct by translating
+    the above explanation into Coq tactics: *)
+
+Lemma norm_ok t : ⟦t⟧ ≅ ⟦norm t⟧ₙ.
 Proof.
   induction t; simpl.
   - apply iso_refl.
@@ -1333,84 +1430,30 @@ Proof.
       apply iso_fun1, mul_towers.
 Qed.
 
-(** Since [A ⊏ (A -> fin 2)] and power towers are constructed
-    by repeatedly nesting types inside [(_ -> fin 2)], two towers are isomorphic
-    iff they have the same height: *)
+(** Now that we have [norm], it's easy to decide isomorphism of arbitrary 
+    [type]s: *)
 
-(* begin hide *)
-Lemma tower_leq {m n} : tower n ⊑ tower m <-> n <= m.
-Proof.
-  split.
-  - intros Hleq.
-    assert (Hgt : n > m \/ n <= m) by lia.
-    destruct Hgt as [Hgt|Hgt]; auto.
-    exfalso. induction Hgt as [|m' Hle' IHle'].
-    + assert (tower m ⊏ tower (S m)) by apply A_lt_PA.
-      contradiction.
-    + apply IHle'.
-      destruct Hleq as [f Hf].
-      assert (Hinj : tower m' ⊑ tower (S m')) by apply A_le_PA.
-      destruct Hinj as [g Hg].
-      exists (comp f g); now apply inj_comp.
-  - induction 1; [apply leq_refl|].
-    now eapply leq_trans; [|apply (@A_le_PA (tower m))].
-Qed.
-(* end hide *)
-Lemma tower_iso {m n} : tower n ≅ tower m <-> n = m.
-Proof.
-  split.
-  - intros [Hle Hge]; apply tower_leq in Hle; apply tower_leq in Hge; lia.
-  - intros; subst; apply iso_refl.
-Qed.
+Definition isob (t1 t2 : type) := nf_iso (norm t1) (norm t2).
 
-Definition nf_iso t1 t2 :=
-  match t1, t2 with
-  | Finite n, Finite m => Nat.eqb n m
-  | Tower n, Tower m => Nat.eqb n m
-  | _, _ => false
-  end.
-
-Lemma nf_iso_spec t1 t2 : Bool.reflect (⟦t1⟧ₙ ≅ ⟦t2⟧ₙ) (nf_iso t1 t2).
-Proof.
-  destruct t1 as [m|m], t2 as [n|n]; cbn.
-  - destruct (PeanoNat.Nat.eqb_spec m n) as [Heq|Hne]; [left; subst m; apply iso_refl|].
-    right; intros Hiso; now apply Hne, fin_iso.
-  - right; intros Hiso. pose proof (@fin_lt_nat m) as Hlt.
-    destruct Hiso as [Hleq Hgeq].
-    assert (nat ⊑ fin m).
-    { eapply leq_trans; [|apply Hgeq].
-      change nat with (tower 0).
-      apply tower_leq; lia. }
-    contradiction.
-  - right; intros Hiso. pose proof (@fin_lt_nat n) as Hlt.
-    destruct Hiso as [Hleq Hgeq].
-    assert (nat ⊑ fin n).
-    { eapply leq_trans; [|apply Hleq].
-      change nat with (tower 0).
-      apply tower_leq; lia. }
-    contradiction.
-  - destruct (PeanoNat.Nat.eqb_spec m n) as [Heq|Hne]; [left; subst m; apply iso_refl|].
-    right; intros Hiso; apply Hne.
-    now apply tower_iso.
-Qed.
-
-Definition isob t1 t2 := nf_iso (norm t1) (norm t2).
-
-Lemma isob_spec t1 t2 : Bool.reflect (⟦t1⟧ ≅ ⟦t2⟧) (isob t1 t2).
+Lemma isob_ok t1 t2 : Bool.reflect (⟦t1⟧ ≅ ⟦t2⟧) (isob t1 t2).
 Proof.
   unfold isob; remember (norm t1) as n1; remember (norm t2) as n2.
-  destruct (nf_iso_spec n1 n2) as [Hiso|Hniso].
-  - left; eapply iso_trans; [apply norm_spec|].
-    eapply iso_trans; [|symmetry; apply norm_spec].
+  destruct (nf_iso_ok n1 n2) as [Hiso|Hniso].
+  - left; eapply iso_trans; [apply norm_ok|].
+    eapply iso_trans; [|symmetry; apply norm_ok].
     congruence.
   - right; intros Hiso; apply Hniso; subst.
-    eapply iso_trans; [symmetry; apply norm_spec|].
-    now eapply iso_trans; [|apply norm_spec].
+    eapply iso_trans; [symmetry; apply norm_ok|].
+    now eapply iso_trans; [|apply norm_ok].
 Qed.
+
+(** We can define the reification of Coq types into [type]s
+    as a collection of typeclass instances: *)
 
 Class Reifies A t := reifies : A ≅ ⟦t⟧.
 Instance reify_nat : Reifies nat Nat := iso_refl.
 Instance reify_bool : Reifies bool (Fin 2) := fin_bool.
+Instance reify_fin {n} : Reifies (fin n) (Fin n) := iso_refl.
 Instance reify_sum {A B s t} `{HA : Reifies A s} `{HB : Reifies B t} :
   Reifies (A + B) (Add s t).
 Proof. now apply iso_sum. Qed.
@@ -1421,6 +1464,36 @@ Instance reify_fun {A B s t} `{HA : Reifies A s} `{HB : Reifies B t} :
   Reifies (A -> B) (Fun s t).
 Proof. now apply iso_fun. Qed.
 
+(** Typeclass resolution can then be used to reify any simple type.
+    For example, to reify [nat -> fin 5 -> (nat -> bool) -> bool]: *)
+
+(* begin show *)
+Goal True.
+  evar (t : type);
+  assert (Ht : Reifies (nat -> fin 5 -> (nat -> bool) -> bool) t)
+    by (subst t; typeclasses eauto).
+  unfold Reifies in Ht; subst t.
+  (** [[
+  Ht : (nat -> fin 5 -> (nat -> bool) -> bool) 
+     ≅ ⟦ Fun Nat (Fun (Fin 5) (Fun (Fun Nat (Fin 2)) (Fin 2))) ⟧
+  ============================
+  True]]
+  Typeclass resolution has found a suitable [type] and
+  proved that its denotation really is isomorphic to the type we want. *)
+Abort.
+(* end show *)
+
+(** With this we can write a tactic [dec_ne] for solving goals of the form [A <> B]
+    as follows:
+    - Reify [A] into [s] and [B] into [t].
+    - Use [isob] to check whether [s] and [t] have equal normal forms.
+    - If they don't, then [⟦s⟧ ≇ ⟦t⟧]. Use this fact to prove [A <> B].
+    - Otherwise, fail with a message that says the two types are isomorphic. 
+
+    I won't show [dec_ne] here because, like most Ltac, it's pretty ugly. 
+    But, here are some examples of it in action: *)
+
+(* begin hide *)
 Ltac reify A k :=
   let t := fresh "t" in
   evar (t : type);
@@ -1444,559 +1517,20 @@ Ltac dec_ne :=
     | false =>
       assert (isob s t = b) by reflexivity;
       let Hne := fresh "Hne" in
-      destruct (isob_spec s t) as [|Hne]; [discriminate|];
+      destruct (isob_ok s t) as [|Hne]; [discriminate|];
       let Hiso := fresh "Hiso" in
       apply iso_ne; intro Hiso; apply Hne;
       eapply iso_trans; [|eapply iso_trans; [apply Hiso|]];
       [symmetry; apply HA|apply HB]
     end))
   end.
-
+(* end hide *)
+(* begin show *)
 Lemma example1 : nat <> bool. Proof. dec_ne. Qed.
 Lemma example2 : nat <> (nat -> nat). Proof. dec_ne. Qed.
 Lemma example3 : bool <> (bool -> bool). Proof. dec_ne. Qed.
 Lemma example4 :
-  (nat -> bool -> nat -> nat -> (bool -> nat) -> nat * nat)
-  <> (nat -> bool -> nat -> nat -> (nat -> bool) -> nat * nat).
+  (nat -> bool -> fin 7 -> (fin 5 * nat) -> (bool -> nat) -> nat * nat)
+  <> (nat -> (bool + fin 7) -> (nat -> bool) -> fin 3 * nat).
 Proof. dec_ne. Qed.
-
-(*
-
-Inductive index : Type -> Type -> Type :=
-| zero {Γ T} : index (T * Γ) T
-| succ {Γ S T} : index Γ T -> index (S * Γ) T.
-
-Inductive exp : Type -> Type -> Type :=
-| lit {Γ T} (x : T) : exp Γ T
-| var {Γ T} (n : index Γ T) : exp Γ T
-| app {Γ S T} (e1 : exp Γ (S -> T)) (e2 : exp Γ S) : exp Γ T
-| lam {Γ S T} (e : exp (S * Γ) T) : exp Γ (S -> T).
-
-Fixpoint indexD {Γ T} (n : index Γ T) : Γ -> T :=
-  match n with
-  | zero => fun '(v, _) => v
-  | succ n => fun '(_, ρ) => indexD n ρ
-  end.
-
-Fixpoint expD {Γ T} (e : exp Γ T) : Γ -> T :=
-  match e with
-  | lit x => fun _ => x
-  | var n => indexD n
-  | app e1 e2 => fun ρ => expD e1 ρ (expD e2 ρ)
-  | lam e => fun ρ v => expD e (v, ρ)
-  end.
-
-Require Import Coq.Lists.List.
-Import ListNotations.
-
-Module Original.
-
-Fixpoint contextD Γ : Type :=
-  match Γ with
-  | [] => unit
-  | t :: Γ => t * contextD Γ
-  end.
-
-Inductive index : Type -> Type -> Type :=
-| Zero : forall {t Γ}, index (t * Γ) t
-| Succ : forall {s t Γ}, index Γ t -> index (s * Γ) t.
-
-Inductive exp : Type -> Type -> Type :=
-| Var {Γ t} (n : index Γ t) : exp Γ t
-| Lam {Γ s t} (e : exp (s * Γ) t) : exp Γ (s -> t)
-| App {Γ s t} (e1 : exp Γ (s -> t)) (e2 : exp Γ s) : exp Γ t
-| Bool {Γ} (b : bool) : exp Γ bool
-| BoolElim {Γ t} (e1 : exp Γ bool) (e2 e3 : exp Γ t) : exp Γ t
-| Nat {Γ} (n : nat) : exp Γ nat
-| NatElim {Γ t} (e1 : exp Γ nat) (e2 : exp Γ (t -> t)) (e3 : exp Γ t) : exp Γ t.
-
-Fixpoint indexD {Γ t} (n : index Γ t) : Γ -> t :=
-  match n with
-  | Zero => fun '(v, _) => v
-  | Succ n => fun '(_, ρ) => indexD n ρ
-  end.
-
-Fixpoint expD {Γ t} (e : exp Γ t) : Γ -> t :=
-  match e with
-  | Var n => indexD n
-  | Lam e => fun ρ => fun v => expD e (v, ρ)
-  | App e1 e2 => fun ρ => expD e1 ρ (expD e2 ρ)
-  | Bool b => fun _ => b
-  | BoolElim e1 e2 e3 => fun ρ => if expD e1 ρ then expD e2 ρ else expD e3 ρ
-  | Nat n => fun _ => n
-  | NatElim e1 e2 e3 => fun ρ => Nat.iter (expD e1 ρ) (expD e2 ρ) (expD e3 ρ)
-  end.
-
-Recursive Extraction expD.
-
-Definition well_erased {A} (f : (A -> Type) -> Type) :=
-  exists x, (fun k => k x) = f.
-
-Inductive erased A : Type :=
-  mk_erased :
-    { f : (A -> Type) -> Type
-    | well_erased f
-    } -> erased A.
-
-Notation "'(' x ';' prf ')'" := (mk_erased _ (exist _ x prf)).
-Notation "'(' x ';;' prf ')'" := (ex_intro _ x prf).
-
-Definition ret {A} (x : A) : erased A := (fun k => k x; (_;; eq_refl)).
-
-Definition map {A B} (f : A -> B) (x : erased A) : erased B :=
-  let '(x_cps; Hx) := x in
-  (fun k => x_cps (fun x => k (f x));
-   let '(x;; Hx_cps) := Hx in
-   let 'eq_refl := Hx_cps in
-   (_;; eq_refl)).
-
-Definition ap {A B} (f : erased (A -> B)) (x : erased A) : erased B :=
-  let '(f_cps; Hf) := f in
-  let '(x_cps; Hx) := x in
-  (fun k => f_cps (fun f => x_cps (fun x => k (f x)));
-   let '(f;; Hf_cps) := Hf in
-   let '(x;; Hx_cps) := Hx in
-   let 'eq_refl := Hf_cps in
-   let 'eq_refl := Hx_cps in
-   (_;; eq_refl)).
-
-Definition use {A} (x : erased A) : (A -> Type) -> Type :=
-  let '(x; _) := x in x.
-
-Ltac mk_cast x :=
-  match goal with
-  | |- ?expected =>
-    let got := type of x in
-    replace expected with got; [exact x|];
-    clear x;
-    repeat multimatch goal with
-    | H : ?T |- _ =>
-      progress(
-      let T' := eval hnf in T in
-      lazymatch T' with
-      | erased _ =>
-        let cps := fresh "cps" in
-        let Hcps := fresh "Hcps" in
-        destruct H as [[cps Hcps]]
-      end)
-    end;
-    cbn;
-    repeat progress match goal with H : well_erased _ |- _ => destruct H end;
-    (* subst; exact eq_refl *)
-    idtac
-  end.
-
-Notation "'![' e ']'" := (let x := e in ltac:(mk_cast x)).
-
-Inductive vec {A} : erased nat -> Type :=
-| vnil : vec (ret 0)
-| vcons {n} : A -> vec n -> vec (map S n).
-Arguments vec : clear implicits.
-
-Goal nat = bool -> False.
-  intros H.
-  pose (x := 3).
-  rewrite H in x.
-  pose (y := if x then 0 else 1).
-  Show Proof.
-
-  Show Proof.
-
-
-Definition app {A m n} (xs : vec A m) (ys : vec A n) : vec A (ap (map Nat.add m) n).
-  refine(
-  match xs with
-  | vnil => ![ys]
-  | vcons x xs => _
-  end
-  ).
-    repeat multimatch goal with
-    | H : ?T |- _ =>
-      progress(
-      let T' := eval hnf in T in
-      lazymatch T' with
-      | erased _ =>
-        idtac T T';
-        let cps := fresh "cps" in
-        let Hcps := fresh "Hcps" in
-        idtac H cps Hcps
-        (* destruct H as [[cps Hcps]] *)
-      end)
-    end.
-    destruct m.
-    revert xs ys.
-    destruct n as [[cps Hcps]].
-  remember (map S n) as m.
-  destruct xs eqn:Hxs.
-  match xs with
-  | vnil => _
-  | vcons x _ => x
-  end.
-
-Inductive type := TBool | TNat | TFun (s t : type).
-
-Require Import Coq.Lists.List.
-Import ListNotations.
-
-Module Original.
-
-Definition context := list type.
-
-Fixpoint typeD t : Type :=
-  match t with
-  | TBool => bool
-  | TNat => nat
-  | TFun s t => typeD s -> typeD t
-  end.
-
-Fixpoint contextD Γ : Type :=
-  match Γ with
-  | [] => unit
-  | t :: Γ => typeD t * contextD Γ
-  end.
-
-Inductive index : context -> type -> Type :=
-| Zero : forall {t Γ}, index (t :: Γ) t
-| Succ : forall {s t Γ}, index Γ t -> index (s :: Γ) t.
-
-Inductive exp : context -> type -> Type :=
-| Var {Γ t} (n : index Γ t) : exp Γ t
-| Lam {Γ s t} (e : exp (s :: Γ) t) : exp Γ (TFun s t)
-| App {Γ s t} (e1 : exp Γ (TFun s t)) (e2 : exp Γ s) : exp Γ t
-| Bool {Γ} (b : bool) : exp Γ TBool
-| BoolElim {Γ t} (e1 : exp Γ TBool) (e2 e3 : exp Γ t) : exp Γ t
-| Nat {Γ} (n : nat) : exp Γ TNat
-| NatElim {Γ t} (e1 : exp Γ TNat) (e2 : exp Γ (TFun t t)) (e3 : exp Γ t) : exp Γ t.
-
-Fixpoint indexD {Γ t} (n : index Γ t) : contextD Γ -> typeD t :=
-  match n with
-  | Zero => fun '(v, _) => v
-  | Succ n => fun '(_, ρ) => indexD n ρ
-  end.
-
-Fixpoint expD {Γ t} (e : exp Γ t) : contextD Γ -> typeD t :=
-  match e with
-  | Var n => indexD n
-  | Lam e => fun ρ => fun v => expD e (v, ρ)
-  | App e1 e2 => fun ρ => expD e1 ρ (expD e2 ρ)
-  | Bool b => fun _ => b
-  | BoolElim e1 e2 e3 => fun ρ => if expD e1 ρ then expD e2 ρ else expD e3 ρ
-  | Nat n => fun _ => n
-  | NatElim e1 e2 e3 => fun ρ => Nat.iter (expD e1 ρ) (expD e2 ρ) (expD e3 ρ)
-  end.
-
-End Original.
-
-(** %\begin{verbatim}
-\end{verbatim}%
-
-#<pre>
-let rec expD _ _ = function
-  | Var (_UU0393_0, t, n) -> indexD _UU0393_0 t n
-  | Lam (_UU0393_0, s, t, e) -> fun _UU03c1_ v -> expD (Cons (s, _UU0393_0)) t e (Pair (v, _UU03c1_))
-  | App (_UU0393_0, s, t, e1, e2) ->
-    fun _UU03c1_ -> expD _UU0393_0 (TFun (s, t)) e1 _UU03c1_ (expD _UU0393_0 s e2 _UU03c1_)
-  | Bool (_, b) -> fun _ -> b
-  | BoolElim (_UU0393_0, t, e1, e2, e3) -> fun _UU03c1_ -> (
-    match expD _UU0393_0 TBool e1 _UU03c1_ with
-    | True -> expD _UU0393_0 t e2 _UU03c1_
-    | False -> expD _UU0393_0 t e3 _UU03c1_)
-  | Nat (_, n) -> fun _ -> n
-  | NatElim (_UU0393_0, t, e1, e2, e3) -> fun _UU03c1_ ->
-    iter (expD _UU0393_0 TNat e1 _UU03c1_) (expD _UU0393_0 (TFun (t, t)) e2 _UU03c1_)
-      (expD _UU0393_0 t e3 _UU03c1_)
-</pre># *)
-
-Definition well_erased {A} (f : (A -> Type) -> Type) :=
-  exists x, (fun k => k x) = f.
-
-Inductive erased A : Type :=
-  mk_erased :
-    { f : (A -> Type) -> Type
-    | well_erased f
-    } -> erased A.
-
-Notation "'(' x ';' prf ')'" := (mk_erased _ (exist _ x prf)).
-Notation "'(' x ';;' prf ')'" := (ex_intro _ x prf).
-
-Definition ret {A} (x : A) : erased A := (fun k => k x; (_;; eq_refl)).
-
-Definition map {A B} (f : A -> B) (x : erased A) : erased B :=
-  let '(x_cps; Hx) := x in
-  (fun k => x_cps (fun x => k (f x));
-   let '(x;; Hx_cps) := Hx in
-   let 'eq_refl := Hx_cps in
-   (_;; eq_refl)).
-
-Definition ap {A B} (f : erased (A -> B)) (x : erased A) : erased B :=
-  let '(f_cps; Hf) := f in
-  let '(x_cps; Hx) := x in
-  (fun k => f_cps (fun f => x_cps (fun x => k (f x)));
-   let '(f;; Hf_cps) := Hf in
-   let '(x;; Hx_cps) := Hx in
-   let 'eq_refl := Hf_cps in
-   let 'eq_refl := Hx_cps in
-   (_;; eq_refl)).
-
-Definition use {A} (x : erased A) : (A -> Type) -> Type :=
-  let '(x; _) := x in x.
-
-Definition context := erased (list type).
-
-Fixpoint typeD t : Type :=
-  match t with
-  | TBool => bool
-  | TNat => nat
-  | TFun s t => typeD s -> typeD t
-  end.
-
-Fixpoint contextD (Γ : list type) : Type :=
-  match Γ with
-  | [] => unit
-  | t :: Γ => typeD t * contextD Γ
-  end.
-
-Inductive index : context -> erased type -> Type :=
-| Zero : forall {t Γ}, index (ap (map cons t) Γ) t
-| Succ : forall {s t Γ}, index Γ t -> index (ap (map cons s) Γ) t.
-
-Inductive exp : context -> erased type -> Type :=
-| Var {Γ t} (n : index Γ t) : exp Γ t
-| Lam {Γ s t} (e : exp (ap (map cons s) Γ) t) : exp Γ (ap (map TFun s) t)
-| App {Γ s t} (e1 : exp Γ (ap (map TFun s) t)) (e2 : exp Γ s) : exp Γ t
-| Bool {Γ} (b : bool) : exp Γ (ret TBool)
-| BoolElim {Γ t} (e1 : exp Γ (ret TBool)) (e2 e3 : exp Γ t) : exp Γ t
-| Nat {Γ} (n : nat) : exp Γ (ret TNat)
-| NatElim {Γ t} (e1 : exp Γ (ret TNat)) (e2 : exp Γ (ap (map TFun t) t)) (e3 : exp Γ t) : exp Γ t.
-
-Fixpoint indexD {Γ t} (n : index Γ t) : use Γ contextD -> use t typeD :=
-  match n with
-  | @Zero t Γ => ![(fun '(v, _) => v) : use t typeD * use Γ contextD -> _]
-  | @Succ s t Γ n => ![(fun '(_, ρ) => indexD n ρ) : use s typeD * _ -> _]
-  end.
-
-Fixpoint expD {Γ t} (e : exp Γ t) : use Γ contextD -> use t typeD :=
-  match e with
-  | Var n => indexD n
-  | @Lam Γ s t e => fun ρ => ![(fun v => expD e ![(v, ρ) : use s typeD * use Γ contextD])]
-  | @App Γ s t e1 e2 => fun ρ => (![expD e1 ρ] : use s typeD -> use t typeD) (expD e2 ρ)
-  | Bool b => fun _ => b
-  | BoolElim e1 e2 e3 =>
-    fun ρ =>
-      if expD e1 ρ
-      then expD e2 ρ
-      else expD e3 ρ
-  | Nat n => fun _ => n
-  | @NatElim _ t e1 e2 e3 =>
-    fun ρ =>
-      @Nat.iter
-        (expD e1 ρ)
-        (use t typeD)
-        ![expD e2 ρ]
-        (expD e3 ρ)
-  end.
-
-Extraction Inline ret map ap.
-Recursive Extraction expD.
-
-Inductive index : context -> erased type -> Type :=
-| Zero : forall {t Γ}, index (t :: Γ) (ret t)
-| Succ : forall {s t Γ}, index Γ t -> index (s :: Γ) t.
-
-Inductive exp : context -> erased type -> Type :=
-| Var {Γ t} (n : index Γ t) : exp Γ t
-| Lam {Γ s t} (e : exp (s :: Γ) (ret t)) : exp Γ (ret (TFun s t))
-| App {Γ s t} (e1 : exp Γ (ret (TFun s t))) (e2 : exp Γ (ret s)) : exp Γ (ret t)
-| Bool {Γ} (b : bool) : exp Γ (ret TBool)
-| BoolElim {Γ t} (e1 : exp Γ (ret TBool)) (e2 e3 : exp Γ t) : exp Γ t
-| Nat {Γ} (n : nat) : exp Γ (ret TNat)
-| NatElim {Γ t} (e1 : exp Γ (ret TNat)) (e2 : exp Γ (ret (TFun t t))) (e3 : exp Γ (ret t)) : exp Γ (ret t).
-
-Fixpoint indexD {Γ t} (n : index Γ t) : contextD Γ -> proj1_sig t (fun t => typeD t) :=
-  match n with
-  | Zero => fun '(v, _) => v
-  | Succ n => fun '(_, ρ) => indexD n ρ
-  end.
-
-Fixpoint expD {Γ t} (e : exp Γ t) : contextD Γ -> proj1_sig t (fun t => typeD t) :=
-  match e with
-  | Var n => indexD n
-  | Lam e => fun ρ => fun v => expD e (v, ρ)
-  | App e1 e2 => fun ρ => expD e1 ρ (expD e2 ρ)
-  | Bool b => fun _ => b
-  | BoolElim e1 e2 e3 => fun ρ => if expD e1 ρ then expD e2 ρ else expD e3 ρ
-  | Nat n => fun _ => n
-  | NatElim e1 e2 e3 => fun ρ => Nat.iter (expD e1 ρ) (expD e2 ρ) (expD e3 ρ)
-  end.
-
-Recursive Extraction expD.
-
-(* Module Extrinsically. *)
-
-(* Definition index := nat. *)
-
-(* Inductive exp := *)
-(* | Var (n : index) *)
-(* | Lam (e : exp) *)
-(* | App (e1 e2 : exp) *)
-(* | Bool (b : bool) *)
-(* | BoolElim (e1 e2 e3 : exp) *)
-(* | Nat (n : nat) *)
-(* | NatElim (e1 e2 e3 : exp). *)
-
-(* Notation "Γ ',,' x" := (x :: Γ) (at level 71, left associativity). *)
-(* Reserved Notation "x '∷' t '∈' Γ" (at level 80, no associativity). *)
-(* Inductive index_ok : index -> context -> type -> Prop := *)
-(* | Zero : forall {t Γ}, *)
-(*     0 ∷ t ∈ Γ ,, t *)
-(* | Succ : forall {n s t Γ}, *)
-(*     n ∷ t ∈ Γ -> *)
-(*     S n ∷ t ∈ Γ ,, s *)
-(* where "x '∷' t '∈' Γ" := (index_ok x Γ t). *)
-
-(* Reserved Notation "Γ '⊢' e '∷' t" (at level 80, no associativity, e at level 79). *)
-(* Inductive exp_ok : exp -> context -> type -> Prop := *)
-(* | OVar {Γ n t} : *)
-(*     n ∷ t ∈ Γ -> *)
-(*     Γ ⊢ Var n ∷ t *)
-(* | OLam {Γ e s t} : *)
-(*     s :: Γ ⊢ e ∷ t -> *)
-(*     Γ ⊢ Lam e ∷ TFun s t *)
-(* | OApp {Γ e1 s t e2} : *)
-(*     Γ ⊢ e1 ∷ TFun s t -> *)
-(*     Γ ⊢ e2 ∷ s -> *)
-(*     Γ ⊢ App e1 e2 ∷ t *)
-(* | OBool {Γ b} : *)
-(*     Γ ⊢ Bool b ∷ TBool *)
-(* | OBoolElim {Γ e1 e2 e3 t} : *)
-(*     Γ ⊢ e1 ∷ TBool -> *)
-(*     Γ ⊢ e2 ∷ t -> *)
-(*     Γ ⊢ e3 ∷ t -> *)
-(*     Γ ⊢ BoolElim e1 e2 e3 ∷ t *)
-(* | ONat {Γ n} : *)
-(*     Γ ⊢ Nat n ∷ TNat *)
-(* | ONatElim {Γ t e1 e2 e3} : *)
-(*     Γ ⊢ e1 ∷ TNat -> *)
-(*     Γ ⊢ e2 ∷ TFun t t -> *)
-(*     Γ ⊢ e3 ∷ t -> *)
-(*     Γ ⊢ NatElim e1 e2 e3 ∷ t *)
-(* where "Γ '⊢' e '∷' t" := (exp_ok e Γ t). *)
-
-(* Fixpoint indexD {Γ t} n : n ∷ t ∈ Γ -> contextD Γ -> typeD t. *)
-(*   destruct n. *)
-(*   refine( *)
-(*   match n with *)
-(*   | 0 => fun Hn => _ *)
-(*   | S n => fun Hn => _ *)
-(*   end). *)
-(*   inversion Hn. *)
-
-(* Fixpoint expD {Γ t} (e : exp Γ t) : contextD Γ -> typeD t := *)
-(*   match e with *)
-(*   | Var n => indexD n *)
-(*   | Lam e => fun ρ => fun v => expD e (v, ρ) *)
-(*   | App e1 e2 => fun ρ => expD e1 ρ (expD e2 ρ) *)
-(*   | Bool b => fun _ => b *)
-(*   | BoolElim e1 e2 e3 => fun ρ => if expD e1 ρ then expD e2 ρ else expD e3 ρ *)
-(*   | Nat n => fun _ => n *)
-(*   | NatElim e1 e2 e3 => fun ρ => Nat.iter (expD e1 ρ) (expD e2 ρ) (expD e3 ρ) *)
-(*   end. *)
-
-(* End Extrinsically. *)
-
-(* Definition erased A : Type := *)
-(*   { f : (A -> Prop) -> Prop *)
-(*   | exists x, (fun k => k x) = f *)
-(*   }. *)
-
-(* Definition ret {A} (x : A) : erased A. *)
-(* Proof. exists (fun k => k x); eauto. Defined. *)
-
-(* Notation "'(' x ';' prf ')'" := (exist _ x prf). *)
-(* Notation "'(' x ';;' prf ')'" := (ex_intro _ x prf). *)
-
-(* Definition map {A B} (f : A -> B) (x : erased A) : erased B := *)
-(*   let '(g; Hg) := x in *)
-(*   (fun k => g (fun x => k (f x)); *)
-(*    let '(x;; Hg_eq) := Hg in *)
-(*    let 'eq_refl := Hg_eq in *)
-(*    (_;; eq_refl)). *)
-
-(* Definition ret_map {A B} (f : A -> B) x : map f (ret x) = ret (f x) := eq_refl. *)
-
-(* (* *)
-(* Definition bind {A B} (f : A -> erased B) (x : erased A) : erased B. *)
-(* Proof. *)
-(*   refine ( *)
-(*     let '(g; Hg) := x in *)
-(*     _ *)
-(*   ). *)
-(*   destruct x as [g Hg]. *)
-(*   exists (fun k => g (fun x => proj1_sig (f x) k)). *)
-(*   destruct Hg as [x Hg]; subst. *)
-(*   destruct (f x) as [h [fx Hfx]]; subst h; cbn; eauto. *)
-(* Defined. *)
-
-(* Definition ret_map {A B} (f : A -> B) x : map f (ret x) = ret (f x) := eq_refl. *)
-
-(* Definition ret_bind {A B} (f : A -> erased B) x : bind f (ret x) = f x. *)
-(* Proof. *)
-(*   destruct (f x) as [g [fx Hfx]] eqn:Hfx_eq; subst g. *)
-
-
-(* (* Lemma recover {A} (e : erased A) : exists x, e = erase x. *) *)
-(* (* Proof. destruct e as [f [x Hf]]. exists x; subst; eauto. Qed. *) *)
-(* *) *)
-(* Inductive vec {A} : erased nat -> Type := *)
-(* | vnil : vec (ret 0) *)
-(* | vcons : forall n, A -> vec n -> vec (map S n). *)
-(* Arguments vec : clear implicits. *)
-
-(* Require Import Coq.Logic.Eqdep. *)
-
-(* Lemma vec_nat_inj : forall n m : nat, ret n = ret m -> n = m. *)
-(* Proof. *)
-(*   unfold ret. *)
-(*   intros. *)
-(*   match type of H with *)
-(*   | ?u = ?v => pose (test := @proj2_sig_eq _ _ u v H); clearbody test *)
-(*   end. *)
-(*   simpl in test. *)
-(*   unfold eq_rect in test. *)
-(*   inversion H. *)
-(*   destruct H1. *)
-(*   rewrite H1 in test. *)
-(*   assert (proj1_sig_eq H = let 'eq_refl := proj1_sig_eq H in eq_refl). *)
-(*   apply UIP. *)
-(*   rewrite H0 in test. *)
-(*   simpl in test. *)
-(*   rewrite UIP. *)
-(*   rewrite UIP in test. *)
-
-
-(* Definition hd {A n} (v : vec A (ret (S n))) : A. *)
-(* Proof. *)
-(*   remember (ret (S n)) as q. *)
-(*   destruct v eqn:Hv. *)
-(*   admit. *)
-(*   exact a. *)
-(*   destruct n; simpl in *. *)
-(*   assert (Heq : exists n', x (fun n => vec A (S n)) = vec A (S n')). *)
-(*   destruct e; subst; eauto. *)
-
-(*   vec A (bind (fun m => map (fun n => m + n) n) m). *)
-
-(* Definition vapp {A m n} (v : vec A m) (w : vec A n) : *)
-(*   vec A (bind (fun m => map (fun n => m + n) n) m). *)
-(* Proof. *)
-(*   destruct v as [|n' x v']. *)
-(*   -  *)
-
-(* (** This is a test *) *)
-
-(* Definition x := 4. *)
-
-
-
-
-*)
+(* end show *)
