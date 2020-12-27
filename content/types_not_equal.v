@@ -947,76 +947,6 @@ Fixpoint typeD t :=
   end%type
 where "'⟦' t '⟧'" := (typeD t).
 
-(*
-Fixpoint empty t : bool :=
-  match t with
-  | Fin 0 => true
-  | Fin (S _) => false
-  | Nat => false
-  | Add t1 t2 => empty t1 && empty t2
-  | Mul t1 t2 => empty t1 || empty t2
-  | Fun t1 t2 => negb (empty t1) && empty t2
-  end.
-
-Fixpoint finite t : bool :=
-   match t with
-  | Fin _ => empty t
-  | Nat => false
-  | Add t1 t2 => finite t1 && finite t2
-  | Mul t1 t2 => empty t || finite t1 && finite t2
-  | Fun t1 t2 => empty t || finite t1 && finite t2
-  end.
-
-Lemma inhabited_iso {A B} : A ≅ B -> inhabited A -> inhabited B.
-Proof. intros [[f Hf] _] [arb _]; now exists (f arb). Qed.
-
-Lemma empty_spec {t} :
-  if empty t then ⟦t⟧ ≅ False else inhabited ⟦t⟧.
-Proof.
-  induction t; simpl.
-  - destruct n; [intros; apply fin_False|].
-    assert (N.to_nat (N.pos p) <> 0).
-    { induction p; simpl in *.
-      - rewrite Pnat.Pos2Nat.inj_xI. lia.
-      - rewrite Pnat.Pos2Nat.inj_xO. lia.
-      - lia. }
-    destruct (N.to_nat (N.pos p)); [congruence|].
-    now exists (inl I).
-  - now exists 0.
-  - destruct (empty t1), (empty t2); cbn.
-    { eapply iso_trans; [apply iso_sum; [now apply IHt1|now apply IHt2]|].
-      now rewrite sum_False. }
-    all: match goal with
-    | H : inhabited ?t |- inhabited (_ + ?t)%type => destruct H as [arb _]; now exists (inr arb)
-    | H : inhabited ?t |- inhabited (?t + _)%type => destruct H as [arb _]; now exists (inl arb)
-    end.
-  - destruct (empty t1), (empty t2); cbn.
-    + eapply iso_trans; [apply iso_prod; [apply IHt1|]; reflexivity|]; apply prod_False.
-    + eapply iso_trans; [apply iso_prod; [apply IHt1|]; reflexivity|]; apply prod_False.
-    + eapply iso_trans; [apply iso_prod; [|apply IHt2]; reflexivity|]; rewrite prod_comm; apply prod_False.
-    + destruct IHt1 as [x _], IHt2 as [y _]; now exists (x, y).
-  - destruct (empty t1), (empty t2); cbn.
-    + apply (@inhabited_iso (False -> False) _); [|now exists (fun x => x)]. now apply iso_fun.
-    + apply (@inhabited_iso (False -> ⟦t2⟧) _); [now apply iso_fun|]. now exists (False_rect _).
-    + eapply iso_trans; [apply iso_fun; [apply iso_refl|apply IHt2]|].
-      split; [|apply leq_False].
-      destruct IHt1 as [x _]. 
-      unshelve eexists.
-      * intros f; exact (f x).
-      * intros f; exfalso; now apply f.
-    + destruct IHt2 as [x _]; now exists (fun _ => x).
-Qed.
-
-Lemma empty_finite t : empty t = true -> finite t = true.
-Proof.
-  induction t; simpl; [now destruct n|..];
-    now repeat match goal with
-           | |- context [empty ?x] => destruct (empty x)
-           | |- context [finite ?x] => destruct (finite x)
-           end.
-Qed.
-*)
-
 Fixpoint card t : option nat :=
   match t with
   | Fin n => Some n
@@ -1038,7 +968,7 @@ Fixpoint card t : option nat :=
     end
   end.
 
-Lemma card_spec {t} :
+Lemma card_spec t :
   match card t with
   | Some n => ⟦t⟧ ≅ fin n
   | None =>
@@ -1390,271 +1320,28 @@ Proof.
         apply prod_fun_leq_fun_prod; auto.
 Qed.
 
-(*
-Lemma finite_fin {t} :
-  finite t = true ->
-  match card t with
-  | Some n => ⟦t⟧ ≅ fin (N.to_nat n)
-  | None => False
-  end.
+Definition infinite t := card t = None.
+
+Corollary infinite_shrink_fin {t n} :
+  infinite t ->
+  (⟦t⟧ -> fin (2 + n)) ≅ (⟦t⟧ -> fin 2).
 Proof.
-  induction t.
-  - intros; apply iso_refl.
-  - inversion 1.
-  - simpl. destruct (finite t1), (finite t2); intros H; cbn in H; try congruence.
-    destruct (card t1), (card t2); try tauto.
-    eapply iso_trans; [apply iso_sum; [now apply IHt1|now apply IHt2]|].
-    rewrite fin_sum.
-    now rewrite Nnat.N2Nat.inj_add.
-  - simpl. intros Hguard.
-    assert (Ht : empty t1 = true \/ empty t2 = true \/ (finite t1 = true /\ finite t2 = true)).
-    { revert Hguard; repeat match goal with
-      | |- context [empty ?x] => let Hx := fresh in destruct (empty x) eqn:Hx
-      | |- context [finite ?x] => let Hx := fresh in destruct (finite x) eqn:Hx
-      | H : empty _ = true |- _ => apply empty_finite in H
-      end; simpl; try intuition congruence. }
-    clear Hguard; destruct Ht as [Ht|[Ht|[Ht1 Ht2]]].
-    + 
-    destruct (finite t1), (finite t2); intros H; cbn in H; try congruence.
-    destruct (card t1), (card t2); try tauto.
-    eapply iso_trans; [apply iso_prod; [now apply IHt1|now apply IHt2]|].
-    rewrite fin_prod.
-    now rewrite Nnat.N2Nat.inj_mul.
-  - destruct (finite t1), (finite t2); intros H; cbn in H; try congruence.
-    destruct (card t1), (card t2); try tauto.
-    eapply iso_trans; [apply iso_fun; [now apply IHt1|now apply IHt2]|].
-    rewrite fin_fun.
-    replace (n0 ^ n)%N with (N.of_nat (N.to_nat n0) ^ N.of_nat (N.to_nat n))%N
-      by now rewrite !Nnat.N2Nat.id.
-    remember (N.to_nat n) as n' eqn:Hn'; clear Hn'.
-    remember (N.to_nat n0) as n0' eqn:Hn0'; clear Hn0'.
-    enough (Heql : (Nat.pow n0' n' = N.to_nat (N.of_nat n0' ^ N.of_nat n'))%N) by now rewrite Heql.
-    clear; induction n'; [reflexivity|].
-    rewrite PeanoNat.Nat.pow_succ_r'.
-    rewrite Nnat.Nat2N.inj_succ.
-    rewrite N.pow_succ_r'.
-    rewrite Nnat.N2Nat.inj_mul.
-    now rewrite <- IHn', Nnat.Nat2N.id.
+  intros Hinf; pose proof card_spec t as Hspec.
+  unfold infinite in Hinf; destruct (card t); [congruence|].
+  apply PA2n_eq_PA; tauto.
 Qed.
 
-Corollary finite_fin' {t} :
-  finite t = true -> exists n, ⟦t⟧ ≅ fin n.
-Proof. intros H. apply finite_fin in H. destruct (card t); [|easy]; eauto. Qed.
-
-Lemma infinite_big_enough {t} :
-  finite t = false ->
-  inhabited ⟦t⟧ /\
-  (forall k, fin k + ⟦t⟧ ≅ ⟦t⟧) /\
-  (forall k, fin (S k) * ⟦t⟧ ≅ ⟦t⟧) /\
-  ⟦t⟧ * nat ⊑ ⟦t⟧.
+Corollary infinite_shrink_nat {t} :
+  infinite t ->
+  (⟦t⟧ -> nat) ≅ (⟦t⟧ -> fin 2).
 Proof.
-  induction t.
-  - inversion 1.
-  - intros _; split; [|split; [|split]].
-    + now exists 0.
-    + apply @nat_fin_sum.
-    + apply @nat_fin_prod.
-    + assert (Hsqr : nat * nat ≅ (fin 2 -> nat)).
-      { eapply iso_trans; [|eapply iso_fun1; apply (@fin_sum 1 1)].
-        rewrite fun_sum_distr.
-        assert (Hfin1 : (fin 1 -> nat) ≅ nat).
-        { eapply iso_trans; [|apply fun_True1].
-          eapply iso_fun1; symmetry; apply fin_True. }
-        apply iso_prod; now symmetry. }
-      eapply leq_trans; [apply (proj1 Hsqr)|].
-      apply nat_fin_fun.
-  - intros Hfin.
-    admit. (* seems provable *)
-  - 
-
-
-Inductive card :=
-| A0
-| Zero | One
-| Add (c1 c2 : card)
-| Mul (c1 c2 : card)
-| Exp (c1 c2 : card).
-Infix "|^|" := Exp (at level 60, right associativity).
-Infix "|*|" := Mul (at level 62, right associativity).
-Infix "|+|" := Add (at level 63, right associativity).
-
-(** We can write a function [cardD : card -> Type] that maps each [c] to a 
-    type with cardinality [c]: *)
-
-Fixpoint cardD c : Type :=
-  match c with
-  | A0 => nat
-  | Zero => False
-  | One => True
-  | c1 |+| c2 => cardD c1 + cardD c2
-  | c1 |*| c2 => cardD c1 * cardD c2
-  | c1 |^| c2 => cardD c2 -> cardD c1
-  end.
-
-(** We can also write a function [simpl : card -> card] to simplify
-    a cardinality expression: *)
-
-(* Fixpoint simpl c := *)
-(*   match c with *)
-(*   | A0 | Zero | One => c *)
-(*   | Zero |+| c | c |+| Zero => c *)
-(*   | c1 |+| c2 => *)
-(*     match simpl c1, simpl c2 with *)
-(*     | Zero, c | c, Zero => c *)
-(*     | c1, c2 => c1 |+| c2 *)
-(*     end *)
-(*   | Zero |*| _ | _ |*| Zero => Zero *)
-(*   | One |*| c | c |*| One => c *)
-(*   | c1 |*| c2 => *)
-(*     match simpl c1, simpl c2 with *)
-(*     | Zero, _ | _, Zero => Zero *)
-(*     | One, c | c, One => c *)
-(*     | c1, c2 => c1 |*| c2 *)
-(*     end *)
-(*   | Zero |^| Zero => One *)
-(*   | Zero |^| _ => Zero *)
-(*   | One |^| _ => One *)
-(*   | _ |^| Zero => c *)
-(*   | c |^| One => c *)
-(*   | c1 |^| c2 => *)
-
-(** In general [A <> B] can be proved this way if [A] and [B] are both finite with differing numbers
-    of inhabitants, or if one of types is finite and the other not. 
-
-    What if [A] and [B] are infinite? Diagonalization says that [nat] and [nat -> bool] can't be
-    isomorphic.
-*)
+  intros Hinf; pose proof card_spec t as Hspec.
+  unfold infinite in Hinf; destruct (card t); [congruence|].
+  destruct Hspec as [Hinh [Hadd [Hmul [HaddN [HmulN1 HmulN2]]]]].
+  apply PAnat_eq_PA; tauto.
+Qed.
 
 (*
-Definition disambiguable A := exists f : A -> A, forall x, f x <> x.
-
-(* If B is disambiguable, [f : A -> A -> B] can never be surjective *)
-Lemma diag {A B} :
-  disambiguable B -> forall f : A -> A -> B,
-  exists g : A -> B, forall n, f n <> g.
-Proof.
-  intros [dis Hdis] f; exists (fun x => dis (f x x)).
-  intros x Heq.
-  apply f_equal with (f := fun f => f x) in Heq.
-  specialize (Hdis (f x x)); congruence.
-Qed.
-
-Lemma cantor {A} : disambiguable A -> not (iso nat (nat -> A)).
-Proof.
-  intros Hdis [ab [ba [Hab Hba]]].
-  destruct (diag Hdis ab) as [g Hg].
-  specialize (Hab g).
-  now specialize (Hg (ba g)).
-Qed.
-
-Lemma nat_ne_nat2bool : nat <> (nat -> bool).
-Proof.
-  apply iso_ne, cantor.
-  exists negb; now intros [|].
-Qed.
-
-Definition countable A := A ≅ nat.
-
-Lemma card_ne {A B C} :
-  countable A ->
-  countable B ->
-  disambiguable C ->
-  A <> (B -> C).
-Proof.
-  intros HA HB Hdis; apply iso_ne.
-  intros Hiso; apply (@cantor C Hdis).
-  eapply iso_trans; [|eapply iso_fun1, HB].
-  eapply iso_trans; [apply iso_sym, HA|].
-  apply Hiso.
-Qed.
-
-Lemma countable_disambiguable {A} : countable A -> disambiguable A.
-Proof.
-  intros [to_nat [of_nat [Hfg Hgf]]].
-  exists (fun x => of_nat (S (to_nat x))).
-  intros x Heq.
-  rewrite <- Hgf in Heq.
-  apply f_equal with (f := to_nat) in Heq; rewrite !Hfg in Heq.
-  remember (to_nat x) as n; clear - Heq; induction n; congruence.
-Qed.
-
-Polymorphic Lemma equal_types_iso A B : 
-  A = B ->
-  exists (f : A -> B) (g : B -> A), (forall x, f (g x) = x) /\ (forall x, g (f x) = x).
-Proof. intros; subst; exists (fun x => x), (fun x => x); auto. Qed.
-
-(*
-
-Polymorphic Lemma L A B (P : Type -> Type) : A = B -> P A -> P B.
-Proof. congruence. Qed.
-
-Polymorphic Lemma L' A B :
-  (forall P : Type -> Type, P A -> P B) ->
-  A = B.
-Proof. intros H; apply (H (fun B => A = B) eq_refl). Qed.
-
-Polymorphic Inductive T : Type -> Type :=
-| Tnat : T nat
-| Tnats : False -> T (list nat).
-
-
-Require Import Coq.Program.Equality.
-Definition tn : T nat := Tnat.
-Definition ntns : T (list nat) -> False.
-  intros H.
-  remember (list nat) as n.
-  destruct H eqn:Hh.
-  dependent inversion H.
-  destruct H; auto.
-  admit.
-
-Lemma nat_ne_nats : nat <> list nat.
-Proof.
-  intros H.
-  pose (x := L nat (list nat) T H (Tnat I)).
-Lemma L A B : A = B -> forall P : Type -> Type, P A -> P B.
-Proof. congruence. Qed.
-
-Module BasicIso.
-
-Polymorphic Lemma equal_types_iso A B : 
-  A = B ->
-  exists (f : A -> B) (g : B -> A), (forall x, f (g x) = x) /\ (forall x, g (f x) = x).
-Proof. intros; subst; exists (fun x => x), (fun x => x); auto. Qed.
-
-Lemma nat_ne_bool : nat <> bool.
-Proof.
-  intros H; apply equal_types_iso in H.
-  destruct H as [f [g [Hfg Hgf]]].
-  assert (H0 : g (f 0) = 0) by auto.
-  assert (H1 : g (f 1) = 1) by auto.
-  assert (H2 : g (f 2) = 2) by auto.
-  destruct (f 0), (f 1), (f 2); congruence.
-Qed.
-
-End BasicIso.
-
-Polymorphic Lemma equal_types_size A B : 
-  A = B ->
-  forall (sizeA : A -> nat), exists (f : A -> B),
-  (forall n x, sizeA x <= n -> sizeB (f x) <= n).
-Proof. intros; subst; exists sizeA, (fun x => x); auto. Qed.
-
-Inductive test : Type -> bool -> Type :=
-| test0 : test nat true
-| test1 : test bool false.
-
-Definition f {T} (x : test T true) : bool :=
-  match x with
-  | test0 => true
-  end.
-Print f.
-
-Definition f {b} (x : test nat b) : bool :=
-  match x with
-  | test0 => true
-  | test1 => _
-  end.
 
 Inductive index : Type -> Type -> Type :=
 | zero {Γ T} : index (T * Γ) T
@@ -2192,8 +1879,5 @@ Recursive Extraction expD.
 
 
 
-
-*)
-*)
 
 *)
