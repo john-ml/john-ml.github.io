@@ -12,4 +12,3 @@ I'm a master's student interested in interactive theorem proving, program synthe
 
 ## Posts
 
-<!-- 2020 Dec 24 [When are Coq types provably unequal?](types_not_equal.v.html) -->

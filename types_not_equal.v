@@ -221,15 +221,44 @@ Proof.
   intros; assert (Hfx_eq : f y = f y') by congruence.
   apply Hf in Hfx_eq; congruence.
 Qed.
-Lemma leq_fn1 {A B C} : inhabited A -> A ⊑ B -> (A -> C) ⊑ (B -> C).
+Lemma leq_fun1 {A B C} : inhabited A -> A ⊑ B -> (A -> C) ⊑ (B -> C).
 Proof.
   intros HA [f Hf].
   destruct (inj_sur f Hf HA) as [f' [Hf' _]].
   exists (fun h => comp h f').
   intros h1 h2 Heq; eapply sur_ump; eauto.
 Qed.
-Lemma leq_fn2 {A B C} : B ⊑ C -> (A -> B) ⊑ (A -> C).
+Lemma leq_fun2 {A B C} : B ⊑ C -> (A -> B) ⊑ (A -> C).
 Proof. intros [f Hf]; exists (comp f); intros h1 h2 Heq; eapply inj_ump; eauto. Qed.
+Lemma sum_fun_leq_fun_sum {A B C} :
+  inhabited B ->
+  A + (B -> C) ⊑ (B -> A + C).
+Proof.
+  intros [y _].
+  exists (fun xf =>
+    match xf with
+    | inl x => fun _ => inl x
+    | inr f => fun y => inr (f y)
+    end).
+  intros [x1|f1] [x2|f2] Heq; try (apply f_equal with (f := fun f => f y) in Heq; congruence).
+  f_equal; apply functional_extensionality.
+  intros x; apply f_equal with (f := fun f => f x) in Heq; congruence.
+Qed.
+Lemma prod_fun_leq_fun_prod {A B C} :
+  inhabited B ->
+  A * (B -> C) ⊑ (B -> A * C).
+Proof.
+  intros [y _].
+  exists (fun '(x, f) y => (x, f y)).
+  intros [x1 f1] [x2 f2] Heq.
+  assert (x1 = x2) by (apply f_equal with (f := fun f => f y) in Heq; congruence).
+  f_equal; auto; apply functional_extensionality; intros x.
+  apply f_equal with (f := fun f => f x) in Heq; congruence.
+Qed.
+Lemma leq_iso1 {A B C} : A ≅ B -> B ⊑ C -> A ⊑ C.
+Proof. intros [[f Hf] _] [g Hg]. exists (comp g f); now apply inj_comp. Qed.
+Lemma leq_iso2 {A B C} : B ≅ C -> A ⊑ C -> A ⊑ B.
+Proof. intros [_ [f Hf]] [g Hg]. exists (comp f g); now apply inj_comp. Qed.
 
 Lemma iso_sym {A B} : A ≅ B -> B ≅ A. Proof. firstorder. Qed.
 Lemma iso_trans {A B C} : A ≅ B -> B ≅ C -> A ≅ C.
@@ -243,23 +272,6 @@ Add Parametric Relation : Type iso
   symmetry proved by @iso_sym
   transitivity proved by @iso_trans
   as iso_rel.
-
-Lemma iso_fn1 {A B C} : inhabited A -> A ≅ B -> (A -> C) ≅ (B -> C).
-Proof.
-  intros HA [[f Hf] [g Hg]].
-  assert (HB : inhabited B) by (destruct HA as [arbA _]; now exists (f arbA)).
-  destruct (inj_sur f Hf HA) as [f' [Hf' _]].
-  destruct (inj_sur g Hg HB) as [g' [Hg' _]].
-  split; [exists (fun h => comp h f')|exists (fun h => comp h g')];
-  intros h1 h2 Heq; eapply sur_ump; eauto.
-Qed.
-
-Add Parametric Morphism : (fun A B => A -> B) with
-  signature eq ==> iso ==> iso as iso_fn2.
-Proof.
-  intros x y y' [[f Hf] [g Hg]].
-  split; [exists (comp f)|exists (comp g)]; intros h1 h2 Heq; eapply inj_ump; eauto.
-Qed.
 
 Add Parametric Morphism : @sum with
   signature iso ==> iso ==> iso as iso_sum.
@@ -280,6 +292,42 @@ Proof.
   intros [x1 y1] [x2 y2] Heq; inversion Heq; subst; f_equal;
   try now (apply HfA + apply HfB + apply HgA + apply HgB).
 Qed.
+
+Lemma iso_fun1 {A B C} : A ≅ B -> (A -> C) ≅ (B -> C).
+Proof.
+  destruct (LEM (inhabited A)) as [HA|HA].
+  - intros [[f Hf] [g Hg]].
+    assert (HB : inhabited B) by (destruct HA as [arbA _]; now exists (f arbA)).
+    destruct (inj_sur f Hf HA) as [f' [Hf' _]].
+    destruct (inj_sur g Hg HB) as [g' [Hg' _]].
+    split; [exists (fun h => comp h f')|exists (fun h => comp h g')];
+    intros h1 h2 Heq; eapply sur_ump; eauto.
+  - intros [[f Hf] [g Hg]].
+    assert (HB : ~ inhabited B). { intros [arb _]; apply HA; now exists (g arb). }
+    split.
+    + unshelve eexists. { intros _ b; exfalso; apply HB; now exists b. }
+      intros h1 h2 Heq; apply functional_extensionality; intros a; exfalso; apply HA; now exists a.
+    + unshelve eexists. { intros _ a; exfalso; apply HA; now exists a. }
+      intros h1 h2 Heq; apply functional_extensionality; intros b; exfalso; apply HB; now exists b.
+Qed.
+
+Lemma iso_fun2 {A B C} : B ≅ C -> (A -> B) ≅ (A -> C).
+Proof.
+  intros [[f Hf] [g Hg]].
+  split; [exists (comp f)|exists (comp g)]; intros h1 h2 Heq; eapply inj_ump; eauto.
+Qed.
+
+Add Parametric Morphism : (fun A B => A -> B) with
+  signature iso ==> iso ==> iso as iso_fun.
+Proof.
+  intros A A' HA B B' HB.
+  eapply iso_trans; [eapply iso_fun1; eauto|].
+  eapply iso_trans; [eapply iso_fun2; eauto|].
+  reflexivity.
+Qed.
+
+Lemma inhabited_iso {A B} : A ≅ B -> inhabited A -> inhabited B.
+Proof. intros [[f Hf] _] [arb _]; now exists (f arb). Qed.
 
 (** Next, a bunch of standard isomorphisms: *)
 
@@ -348,16 +396,26 @@ Proof.
     |exists (fun xyxz => match xyxz with inl (x, y) => (x, inl y) | inr (x, z) => (x, inr z) end)];
   [intros [?[?|?]] [?[?|?]]|intros [[??]|[??]] [[??]|[??]]]; congruence.
 Qed.
-Lemma fun_False {A} : (False -> A) ≅ True.
+Lemma fun_False1 {A} : (False -> A) ≅ True.
 Proof.
   split; [exists (fun _ => I)|exists (fun _ HF => False_rect _ HF)]; [intros f g _|intros [] []; auto].
   apply functional_extensionality; intros [].
 Qed.
-Lemma fun_True {A} : (True -> A) ≅ A.
+Lemma fun_False2 {A} : inhabited A -> (A -> False) ≅ False.
+Proof.
+  intros [x _]; split; [exists (fun f => f x)|exists (fun false _ => false); intros []].
+  intros f; exfalso; now apply f.
+Qed.
+Lemma fun_True1 {A} : (True -> A) ≅ A.
 Proof.
   split; [exists (fun f => f I)|exists (fun x _ => x)]; [intros f g Heq|intros x y Heq].
   - apply functional_extensionality; now intros [].
   - change (x = y) with ((fun _ => x) I = (fun _ => y) I); now rewrite Heq.
+Qed.
+Lemma fun_True2 {A} : (A -> True) ≅ True.
+Proof.
+  split; [exists (fun _ => I)|exists (fun _ _ => I)]; [intros f g Heq|now intros [] [] Heq].
+  apply functional_extensionality; intros x; now destruct (f x), (g x).
 Qed.
 Lemma fun_uncurry {A B C} : (A -> B -> C) ≅ (A * B -> C).
 Proof.
@@ -393,7 +451,6 @@ Qed.
 (** A type is finite if it has exactly [n] inhabitants for some [n : nat]. *)
 
 Definition fin n : Type := Nat.iter n (sum True) False.
-Definition finite A := exists n, A ≅ fin n.
 
 Lemma fin_False : False ≅ fin 0. Proof. apply iso_refl. Qed.
 Lemma fin_True : True ≅ fin 1. Proof. cbn; now rewrite sum_comm, sum_False. Qed.
@@ -426,10 +483,10 @@ Qed.
 Lemma fin_fun {m n} : (fin m -> fin n) ≅ fin (Nat.pow n m).
 Proof.
   induction m as [|m IHm]; cbn.
-  - rewrite sum_comm, sum_False; apply fun_False.
+  - rewrite sum_comm, sum_False; apply fun_False1.
   - rewrite fun_sum_distr, <- fin_prod.
     apply iso_prod; [|easy].
-    apply fun_True.
+    apply fun_True1.
 Qed.
 
 Require Import Lia.
@@ -552,11 +609,11 @@ Qed.
 Lemma nat_fin_fun {n} : (fin (S n) -> nat) ≅ nat.
 Proof.
   induction n; cbn.
-  - eapply iso_trans; [eapply iso_fn1; [now exists (inl I)|rewrite sum_comm; apply sum_False]|].
-    now rewrite fun_True.
+  - eapply iso_trans; [eapply iso_fun1; rewrite sum_comm; apply sum_False|].
+    now rewrite fun_True1.
   - change (True + fin n)%type with (fin (S n)).
     rewrite fun_sum_distr.
-    eapply iso_trans; [apply iso_prod; [apply fun_True|apply IHn]|].
+    eapply iso_trans; [apply iso_prod; [apply fun_True1|apply IHn]|].
     clear.
     split; [exists (fun '(m, n) => Nat.pow 2 m * Nat.pow 3 n)|exists (fun n => (n, 0))];
     [|intros m n Heq; congruence].
@@ -697,7 +754,7 @@ Proof.
       assert (f (inr x') = f x) by congruence.
       now apply Hf. }
     destruct (f x) as [[]|y']; [congruence|now exists y']. }
-  assert (Hfn : 
+  assert (Hfun : 
     forall x : fin n, exists y : fin m,
     if fin_eq_dec x x'
     then inr y = f (inl I)
@@ -706,8 +763,8 @@ Proof.
     destruct (f (inr x)) as [[]|y'] eqn:Hy'; [|eauto].
     enough (inr x = (inr x' : fin (S n))) by congruence.
     apply Hf; congruence. }
-  apply FChoice in Hfn.
-  destruct Hfn as [inj Hinj].
+  apply FChoice in Hfun.
+  destruct Hfun as [inj Hinj].
   exists inj; intros x y Heq.
   pose proof Hinj x as Hinjx.
   pose proof Hinj y as Hinjy.
@@ -816,7 +873,7 @@ Qed.
 
 Lemma PA2n_eq_PA {A n} :
   inhabited A ->
-  (forall k, fin k * A ≅ A) ->
+  (forall k, fin (S k) * A ≅ A) ->
   (A -> fin (2 + n)) ≅ (A -> fin 2).
 Proof.
   intros Hinh Hdup.
@@ -829,16 +886,16 @@ Proof.
     apply inj_ump, fin_inj_ok. }
   split.
   - assert (Hmult : A ≅ A * fin (2 + n)) by (symmetry; rewrite prod_comm; apply Hdup).
-    eapply leq_trans; [|eapply leq_fn1; [|apply (proj2 Hmult)]].
+    eapply leq_trans; [|eapply leq_fun1; [|apply (proj2 Hmult)]].
     2:{ destruct Hinh as [arb _]; now exists (arb, inl I). }
     eapply leq_trans; [|eapply (proj1 fun_uncurry)].
-    eapply leq_trans; [|eapply leq_fn2, (proj2 fin_fun)].
+    eapply leq_trans; [|eapply leq_fun2, (proj2 fin_fun)].
     apply inject, n_le_pow_2m_n.
   - assert (Hmult : A ≅ A * fin 2) by (symmetry; rewrite prod_comm; apply Hdup).
-    eapply leq_trans; [|eapply leq_fn1; [|apply (proj2 Hmult)]].
+    eapply leq_trans; [|eapply leq_fun1; [|apply (proj2 Hmult)]].
     2:{ destruct Hinh as [arb _]; now exists (arb, inl I). }
     eapply leq_trans; [|eapply (proj1 fun_uncurry)].
-    eapply leq_trans; [|eapply leq_fn2, (proj2 fin_fun)].
+    eapply leq_trans; [|eapply leq_fun2, (proj2 fin_fun)].
     apply inject, n_le_pow_2m_n.
 Qed.
 
@@ -852,7 +909,7 @@ Lemma PAnat_eq_PA {A} :
 Proof.
   intros Hinh Hinf.
   split.
-  - eapply leq_trans; [|eapply leq_fn1; [|apply Hinf]].
+  - eapply leq_trans; [|eapply leq_fun1; [|apply Hinf]].
     2: destruct Hinh as [arb _]; now exists (arb, 0).
     eapply leq_trans; [|apply (proj1 fun_uncurry)].
     exists (fun f x y => if Nat.eqb (f x) y then inl I else inr (inl I)).
@@ -871,6 +928,353 @@ Proof.
     { intros [[]|[[]|[]]] [[]|[[]|[]]]; cbn in *; congruence. }
     exists (comp inj_fin2); now apply inj_ump.
 Qed.
+
+Inductive type :=
+| Fin (n : nat)
+| Nat
+| Add (t1 t2 : type)
+| Mul (t1 t2 : type)
+| Fun (t1 t2 : type).
+
+Reserved Notation "'⟦' t '⟧'".
+Fixpoint typeD t :=
+  match t with
+  | Fin n => fin n
+  | Nat => nat
+  | Add t1 t2 => ⟦t1⟧ + ⟦t2⟧
+  | Mul t1 t2 => ⟦t1⟧ * ⟦t2⟧
+  | Fun t1 t2 => ⟦t1⟧ -> ⟦t2⟧
+  end%type
+where "'⟦' t '⟧'" := (typeD t).
+
+(*
+Fixpoint empty t : bool :=
+  match t with
+  | Fin 0 => true
+  | Fin (S _) => false
+  | Nat => false
+  | Add t1 t2 => empty t1 && empty t2
+  | Mul t1 t2 => empty t1 || empty t2
+  | Fun t1 t2 => negb (empty t1) && empty t2
+  end.
+
+Fixpoint finite t : bool :=
+   match t with
+  | Fin _ => empty t
+  | Nat => false
+  | Add t1 t2 => finite t1 && finite t2
+  | Mul t1 t2 => empty t || finite t1 && finite t2
+  | Fun t1 t2 => empty t || finite t1 && finite t2
+  end.
+
+Lemma inhabited_iso {A B} : A ≅ B -> inhabited A -> inhabited B.
+Proof. intros [[f Hf] _] [arb _]; now exists (f arb). Qed.
+
+Lemma empty_spec {t} :
+  if empty t then ⟦t⟧ ≅ False else inhabited ⟦t⟧.
+Proof.
+  induction t; simpl.
+  - destruct n; [intros; apply fin_False|].
+    assert (N.to_nat (N.pos p) <> 0).
+    { induction p; simpl in *.
+      - rewrite Pnat.Pos2Nat.inj_xI. lia.
+      - rewrite Pnat.Pos2Nat.inj_xO. lia.
+      - lia. }
+    destruct (N.to_nat (N.pos p)); [congruence|].
+    now exists (inl I).
+  - now exists 0.
+  - destruct (empty t1), (empty t2); cbn.
+    { eapply iso_trans; [apply iso_sum; [now apply IHt1|now apply IHt2]|].
+      now rewrite sum_False. }
+    all: match goal with
+    | H : inhabited ?t |- inhabited (_ + ?t)%type => destruct H as [arb _]; now exists (inr arb)
+    | H : inhabited ?t |- inhabited (?t + _)%type => destruct H as [arb _]; now exists (inl arb)
+    end.
+  - destruct (empty t1), (empty t2); cbn.
+    + eapply iso_trans; [apply iso_prod; [apply IHt1|]; reflexivity|]; apply prod_False.
+    + eapply iso_trans; [apply iso_prod; [apply IHt1|]; reflexivity|]; apply prod_False.
+    + eapply iso_trans; [apply iso_prod; [|apply IHt2]; reflexivity|]; rewrite prod_comm; apply prod_False.
+    + destruct IHt1 as [x _], IHt2 as [y _]; now exists (x, y).
+  - destruct (empty t1), (empty t2); cbn.
+    + apply (@inhabited_iso (False -> False) _); [|now exists (fun x => x)]. now apply iso_fun.
+    + apply (@inhabited_iso (False -> ⟦t2⟧) _); [now apply iso_fun|]. now exists (False_rect _).
+    + eapply iso_trans; [apply iso_fun; [apply iso_refl|apply IHt2]|].
+      split; [|apply leq_False].
+      destruct IHt1 as [x _]. 
+      unshelve eexists.
+      * intros f; exact (f x).
+      * intros f; exfalso; now apply f.
+    + destruct IHt2 as [x _]; now exists (fun _ => x).
+Qed.
+
+Lemma empty_finite t : empty t = true -> finite t = true.
+Proof.
+  induction t; simpl; [now destruct n|..];
+    now repeat match goal with
+           | |- context [empty ?x] => destruct (empty x)
+           | |- context [finite ?x] => destruct (finite x)
+           end.
+Qed.
+*)
+
+Fixpoint card t : option nat :=
+  match t with
+  | Fin n => Some n
+  | Nat => None
+  | Add t1 t2 => match card t1, card t2 with Some m, Some n => Some (m + n) | _, _ => None end
+  | Mul t1 t2 =>
+    match card t1, card t2 with
+    | Some 0, _ | _, Some 0 => Some 0
+    | Some m, Some n => Some (m * n)
+    | _, _ => None
+    end
+  | Fun t1 t2 =>
+    match card t1, card t2 with
+    | Some 0, _ => Some 1
+    | _, Some 0 => Some 0
+    | _, Some 1 => Some 1
+    | Some m, Some n => Some (Nat.pow n m)
+    | _, _ => None
+    end
+  end.
+
+Lemma card_spec {t} :
+  match card t with
+  | Some n => ⟦t⟧ ≅ fin n
+  | None =>
+    inhabited ⟦t⟧ /\
+    (forall k, fin k + ⟦t⟧ ≅ ⟦t⟧) /\
+    (forall k, fin (S k) * ⟦t⟧ ≅ ⟦t⟧) /\
+    nat + ⟦t⟧ ≅ ⟦t⟧ /\
+    nat * ⟦t⟧ ≅ ⟦t⟧
+  end.
+Proof.
+  induction t.
+  - simpl. apply iso_refl.
+  - simpl. split; [|split; [|split; [|split]]].
+    + now exists 0.
+    + apply @nat_fin_sum.
+    + apply @nat_fin_prod.
+    + assert (Hdub : nat + nat ≅ fin 2 * nat).
+      { simpl. rewrite prod_comm, prod_sum_distr.
+        apply iso_sum; [rewrite prod_comm, prod_True; easy|].
+        rewrite prod_sum_distr, sum_comm.
+        eapply iso_trans; [|apply iso_sum; [apply prod_comm|apply iso_refl]].
+        eapply iso_trans; [|apply iso_sum; [symmetry; apply prod_False|apply iso_refl]].
+        now rewrite sum_False, prod_comm, prod_True. }
+      eapply iso_trans; [apply Hdub|].
+      apply nat_fin_prod.
+    + assert (Hsqr : nat * nat ≅ (fin 2 -> nat)).
+      { eapply iso_trans; [|eapply iso_fun1; apply (@fin_sum 1 1)].
+        rewrite fun_sum_distr.
+        assert (Hfin1 : (fin 1 -> nat) ≅ nat).
+        { eapply iso_trans; [|apply fun_True1].
+          eapply iso_fun1; symmetry; apply fin_True. }
+        apply iso_prod; now symmetry. }
+      eapply iso_trans; [apply Hsqr|].
+      apply nat_fin_fun.
+  - simpl. destruct (card t1) as [n1|], (card t2) as [n2|].
+    + eapply iso_trans; [apply iso_sum; eassumption|].
+      apply fin_sum.
+    + split; [|split; [|split; [|split]]].
+      * destruct IHt2 as [[x _] _]. now exists (inr x).
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+    + split; [|split; [|split; [|split]]].
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+    + split; [|split; [|split; [|split]]].
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+  - simpl. destruct (card t1) as [[|n1]|], (card t2) as [[|n2]|].
+    all: try match goal with
+    | H : ?t ≅ fin 0 |- _ * ?t ≅ fin 0 =>
+      eapply iso_trans; [apply iso_prod; [apply iso_refl|apply H]|];
+      rewrite prod_comm;
+      eapply iso_trans; [apply iso_prod; [symmetry; apply fin_False|apply iso_refl]|];
+      eapply iso_trans; [|symmetry; apply fin_False];
+      apply prod_False
+    | H : ?t ≅ fin 0 |- ?t * _ ≅ fin 0 =>
+      eapply iso_trans; [apply iso_prod; [apply H|apply iso_refl]|];
+      eapply iso_trans; [apply iso_prod; [symmetry; apply fin_False|apply iso_refl]|];
+      eapply iso_trans; [|symmetry; apply fin_False];
+      apply prod_False
+    end.
+    + eapply iso_trans; [apply iso_prod; eassumption|].
+      apply fin_prod.
+    + split; [|split; [|split; [|split]]].
+      * (* both sides inhabited *) admit.
+      * (* k + t1 t2 = k + n t2 = n t2 = t2 ⊆ t1 t2 *)
+        admit.
+      * (* k t1 t2 = k n t2 = t2 ⊆ t1 t2 *)
+        admit.
+      * (* t1 t2 + n = (t1 + 1) t2 + n = t1 t2 + t2 + n = t1 t2 + t2 = (t1 + 1) t2 = t1 t2 *)
+        admit.
+      * admit.
+    + split; [|split; [|split; [|split]]].
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+    + split; [|split; [|split; [|split]]].
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+  - simpl. destruct (card t1) as [[|n1]|], (card t2) as [[|[|n2]]|].
+    all: try match goal with
+    | Hs : ?s ≅ fin _, Ht : ?t ≅ fin _ |- (?s -> ?t) ≅ fin _ =>
+      eapply iso_trans; [apply iso_fun; eassumption|];
+      rewrite fin_fun; simpl; apply iso_refl
+    end.
+    + eapply iso_trans; [eapply iso_fun1, IHt1|].
+      eapply iso_trans; [apply fun_False1|].
+      apply fin_True.
+    + rewrite PeanoNat.Nat.pow_1_l; apply iso_refl.
+    + destruct IHt2 as [Hinh [Hadd [Hmul [HaddN HmulN]]]].
+      split; [|split; [|split; [|split]]].
+      * destruct Hinh as [x _]; now exists (fun _ => x).
+      * intros k; split; [|exists inr; firstorder congruence].
+        eapply leq_iso2; [eapply iso_fun2; symmetry; apply (Hadd k)|].
+        apply sum_fun_leq_fun_sum.
+        eapply inhabited_iso; [symmetry; apply IHt1|]; now exists (inl I).
+      * intros k; split; [|exists (fun x => (inl I, x)); firstorder congruence].
+        eapply leq_iso2; [eapply iso_fun2; symmetry; apply (Hmul k)|].
+        apply prod_fun_leq_fun_prod.
+        eapply inhabited_iso; [symmetry; apply IHt1|]; now exists (inl I).
+      * split; [|exists inr; firstorder congruence].
+        eapply leq_iso2; [eapply iso_fun2; symmetry; apply HaddN|].
+        apply sum_fun_leq_fun_sum.
+        eapply inhabited_iso; [symmetry; apply IHt1|]; now exists (inl I).
+      * split; [|exists (fun x => (0, x)); firstorder congruence].
+        eapply leq_iso2; [eapply iso_fun2; symmetry; apply HmulN|].
+        apply prod_fun_leq_fun_prod.
+        eapply inhabited_iso; [symmetry; apply IHt1|]; now exists (inl I).
+    + eapply iso_trans; [eapply iso_fun2, IHt2|].
+      apply fun_False2; tauto.
+    + eapply iso_trans; [eapply iso_fun2, IHt2|].
+      eapply iso_trans; [eapply iso_fun2; symmetry; apply fin_True|].
+      rewrite fun_True2; apply fin_True.
+    + split; [|split; [|split; [|split]]].
+      * eapply inhabited_iso; [symmetry; eapply iso_fun2, IHt2|].
+        now exists (fun _ => inl I).
+      * intros k; split; [|exists inr; firstorder congruence].
+        eapply leq_iso2; [eapply iso_fun2, IHt2|].
+        eapply leq_iso2; [apply PA2n_eq_PA; tauto|].
+        eapply leq_trans; [apply sum_fun_leq_fun_sum; tauto|].
+        eapply leq_iso1; [eapply iso_fun2, iso_sum; [apply iso_refl|apply IHt2]|].
+        eapply leq_iso1; [eapply iso_fun2, fin_sum|].
+        replace (k + S (S n2)) with (S (S (k + n2))) by lia.
+        apply PA2n_eq_PA; tauto.
+      * (* k (t1 -> t2) ⊆ t1 -> k t2 = t1 -> t2 (last step by PA2n_eq_PA) TODO *) admit.
+      * (* (t1 -> t2) = (t1 + N -> bool + t2) 
+           then construct injection ((t1 -> t2) + N) ⊑ (t1 + N -> bool + t2) *) admit.
+      * (* (t1 -> t2) N ⊆ (t1 -> t2 N) = (t1 -> N) = (t1 -> 2) (by PAn_eq_PA) ⊆ (t1 -> t2) *) admit.
+    + destruct IHt1 as [Hinh1 _].
+      destruct IHt2 as [Hinh [Hadd [Hmul [HaddN HmulN]]]].
+      split; [|split; [|split; [|split]]].
+      * destruct Hinh as [x _]; now exists (fun _ => x).
+      * intros k; split; [|exists inr; firstorder congruence].
+        eapply leq_iso2; [eapply iso_fun2; symmetry; apply (Hadd k)|].
+        apply sum_fun_leq_fun_sum; auto.
+      * intros k; split; [|exists (fun x => (inl I, x)); firstorder congruence].
+        eapply leq_iso2; [eapply iso_fun2; symmetry; apply (Hmul k)|].
+        apply prod_fun_leq_fun_prod; auto.
+      * split; [|exists inr; clear; firstorder congruence].
+        eapply leq_iso2; [eapply iso_fun2; symmetry; apply HaddN|].
+        apply sum_fun_leq_fun_sum; auto.
+      * split; [|exists (fun x => (0, x)); clear; firstorder congruence].
+        eapply leq_iso2; [eapply iso_fun2; symmetry; apply HmulN|].
+        apply prod_fun_leq_fun_prod; auto.
+Abort.
+
+(*
+Lemma finite_fin {t} :
+  finite t = true ->
+  match card t with
+  | Some n => ⟦t⟧ ≅ fin (N.to_nat n)
+  | None => False
+  end.
+Proof.
+  induction t.
+  - intros; apply iso_refl.
+  - inversion 1.
+  - simpl. destruct (finite t1), (finite t2); intros H; cbn in H; try congruence.
+    destruct (card t1), (card t2); try tauto.
+    eapply iso_trans; [apply iso_sum; [now apply IHt1|now apply IHt2]|].
+    rewrite fin_sum.
+    now rewrite Nnat.N2Nat.inj_add.
+  - simpl. intros Hguard.
+    assert (Ht : empty t1 = true \/ empty t2 = true \/ (finite t1 = true /\ finite t2 = true)).
+    { revert Hguard; repeat match goal with
+      | |- context [empty ?x] => let Hx := fresh in destruct (empty x) eqn:Hx
+      | |- context [finite ?x] => let Hx := fresh in destruct (finite x) eqn:Hx
+      | H : empty _ = true |- _ => apply empty_finite in H
+      end; simpl; try intuition congruence. }
+    clear Hguard; destruct Ht as [Ht|[Ht|[Ht1 Ht2]]].
+    + 
+    destruct (finite t1), (finite t2); intros H; cbn in H; try congruence.
+    destruct (card t1), (card t2); try tauto.
+    eapply iso_trans; [apply iso_prod; [now apply IHt1|now apply IHt2]|].
+    rewrite fin_prod.
+    now rewrite Nnat.N2Nat.inj_mul.
+  - destruct (finite t1), (finite t2); intros H; cbn in H; try congruence.
+    destruct (card t1), (card t2); try tauto.
+    eapply iso_trans; [apply iso_fun; [now apply IHt1|now apply IHt2]|].
+    rewrite fin_fun.
+    replace (n0 ^ n)%N with (N.of_nat (N.to_nat n0) ^ N.of_nat (N.to_nat n))%N
+      by now rewrite !Nnat.N2Nat.id.
+    remember (N.to_nat n) as n' eqn:Hn'; clear Hn'.
+    remember (N.to_nat n0) as n0' eqn:Hn0'; clear Hn0'.
+    enough (Heql : (Nat.pow n0' n' = N.to_nat (N.of_nat n0' ^ N.of_nat n'))%N) by now rewrite Heql.
+    clear; induction n'; [reflexivity|].
+    rewrite PeanoNat.Nat.pow_succ_r'.
+    rewrite Nnat.Nat2N.inj_succ.
+    rewrite N.pow_succ_r'.
+    rewrite Nnat.N2Nat.inj_mul.
+    now rewrite <- IHn', Nnat.Nat2N.id.
+Qed.
+
+Corollary finite_fin' {t} :
+  finite t = true -> exists n, ⟦t⟧ ≅ fin n.
+Proof. intros H. apply finite_fin in H. destruct (card t); [|easy]; eauto. Qed.
+
+Lemma infinite_big_enough {t} :
+  finite t = false ->
+  inhabited ⟦t⟧ /\
+  (forall k, fin k + ⟦t⟧ ≅ ⟦t⟧) /\
+  (forall k, fin (S k) * ⟦t⟧ ≅ ⟦t⟧) /\
+  ⟦t⟧ * nat ⊑ ⟦t⟧.
+Proof.
+  induction t.
+  - inversion 1.
+  - intros _; split; [|split; [|split]].
+    + now exists 0.
+    + apply @nat_fin_sum.
+    + apply @nat_fin_prod.
+    + assert (Hsqr : nat * nat ≅ (fin 2 -> nat)).
+      { eapply iso_trans; [|eapply iso_fun1; apply (@fin_sum 1 1)].
+        rewrite fun_sum_distr.
+        assert (Hfin1 : (fin 1 -> nat) ≅ nat).
+        { eapply iso_trans; [|apply fun_True1].
+          eapply iso_fun1; symmetry; apply fin_True. }
+        apply iso_prod; now symmetry. }
+      eapply leq_trans; [apply (proj1 Hsqr)|].
+      apply nat_fin_fun.
+  - intros Hfin.
+    admit. (* seems provable *)
+  - 
+
 
 Inductive card :=
 | A0
@@ -967,7 +1371,7 @@ Lemma card_ne {A B C} :
 Proof.
   intros HA HB Hdis; apply iso_ne.
   intros Hiso; apply (@cantor C Hdis).
-  eapply iso_trans; [|eapply iso_fn1, HB].
+  eapply iso_trans; [|eapply iso_fun1, HB].
   eapply iso_trans; [apply iso_sym, HA|].
   apply Hiso.
 Qed.
@@ -1598,4 +2002,6 @@ Recursive Extraction expD.
 
 
 *)
+*)
+
 *)

@@ -1196,8 +1196,9 @@ Proof.
       * split; [|exists (fun x => (0, x)); clear; firstorder congruence].
         eapply leq_iso2; [eapply iso_fun2; symmetry; apply HmulN|].
         apply prod_fun_leq_fun_prod; auto.
-Qed.
+Abort.
 
+(*
 Lemma finite_fin {t} :
   finite t = true ->
   match card t with
@@ -2001,4 +2002,6 @@ Recursive Extraction expD.
 
 
 *)
+*)
+
 *)
