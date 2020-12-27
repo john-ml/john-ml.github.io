@@ -117,7 +117,7 @@ Proof.
   ============================
   False</pre># 
 
-  Since [f] returns [bool], [[f 0, f 1, f 2]] must contain a duplicate. *)
+  Since [f] returns a boolean, [[f 0, f 1, f 2]] must contain a duplicate. *)
   pose proof Hfg 0 1 as H0.
   pose proof Hfg 1 2 as H1.
   pose proof Hfg 0 2 as H2.
@@ -1146,6 +1146,30 @@ Proof.
     apply mul_leq_towers; lia.
 Qed.
 
+Lemma tower_leq {m n} : ⟦tower n⟧ ⊑ ⟦tower m⟧ <-> n <= m.
+Proof.
+  split.
+  - intros Hleq.
+    assert (Hgt : n > m \/ n <= m) by lia.
+    destruct Hgt as [Hgt|Hgt]; auto.
+    exfalso. induction Hgt as [|m' Hle' IHle'].
+    + assert (⟦tower m⟧ ⊏ ⟦tower (S m)⟧) by apply A_lt_PA.
+      contradiction.
+    + apply IHle'.
+      destruct Hleq as [f Hf].
+      assert (Hinj : ⟦tower m'⟧ ⊑ ⟦tower (S m')⟧) by apply A_le_PA.
+      destruct Hinj as [g Hg].
+      exists (comp f g); now apply inj_comp.
+  - induction 1; [apply leq_refl|].
+    now eapply leq_trans; [|apply (@A_le_PA ⟦tower m⟧)].
+Qed.
+Lemma tower_iso {m n} : ⟦tower n⟧ ≅ ⟦tower m⟧ <-> n = m.
+Proof.
+  split.
+  - intros [Hle Hge]; apply tower_leq in Hle; apply tower_leq in Hge; lia.
+  - intros; subst; apply iso_refl.
+Qed.
+
 Lemma norm_spec t : ⟦t⟧ ≅ ⟦nfD (norm t)⟧.
 Proof.
   induction t; simpl.
@@ -1189,6 +1213,55 @@ Proof.
       apply iso_fun1, mul_towers.
 Qed.
 
+Definition nf_iso t1 t2 :=
+  match t1, t2 with
+  | Finite n, Finite m => Nat.eqb n m
+  | Tower n, Tower m => Nat.eqb n m
+  | _, _ => false
+  end.
+
+Lemma nf_iso_spec t1 t2 : Bool.reflect (⟦nfD t1⟧ ≅ ⟦nfD t2⟧) (nf_iso t1 t2).
+Proof.
+  destruct t1 as [m|m], t2 as [n|n]; cbn.
+  - destruct (PeanoNat.Nat.eqb_spec m n) as [Heq|Hne]; [left; subst m; apply iso_refl|].
+    right; intros Hiso; now apply Hne, fin_iso.
+  - right; intros Hiso. pose proof (@fin_lt_nat m) as Hlt.
+    destruct Hiso as [Hleq Hgeq].
+    assert (nat ⊑ fin m).
+    { eapply leq_trans; [|apply Hgeq].
+      change nat with ⟦tower 0⟧.
+      apply tower_leq; lia. }
+    contradiction.
+  - right; intros Hiso. pose proof (@fin_lt_nat n) as Hlt.
+    destruct Hiso as [Hleq Hgeq].
+    assert (nat ⊑ fin n).
+    { eapply leq_trans; [|apply Hleq].
+      change nat with ⟦tower 0⟧.
+      apply tower_leq; lia. }
+    contradiction.
+  - destruct (PeanoNat.Nat.eqb_spec m n) as [Heq|Hne]; [left; subst m; apply iso_refl|].
+    right; intros Hiso; apply Hne.
+    now apply tower_iso.
+Qed.
+
+Definition isob t1 t2 := nf_iso (norm t1) (norm t2).
+
+Lemma isob_spec t1 t2 : Bool.reflect (⟦t1⟧ ≅ ⟦t2⟧) (isob t1 t2).
+Proof.
+  unfold isob; remember (norm t1) as n1; remember (norm t2) as n2.
+  destruct (nf_iso_spec n1 n2) as [Hiso|Hniso].
+  - left; eapply iso_trans; [apply norm_spec|].
+    eapply iso_trans; [|symmetry; apply norm_spec].
+    congruence.
+  - right; intros Hiso; apply Hniso; subst.
+    eapply iso_trans; [symmetry; apply norm_spec|].
+    now eapply iso_trans; [|apply norm_spec].
+Qed.
+
+Class Iso A t := witness : A ≅ ⟦t⟧.
+
+
+Ltac reify 
 (*
 
 Inductive index : Type -> Type -> Type :=
