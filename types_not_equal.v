@@ -9,40 +9,16 @@
 
 (** * When are Coq types provably unequal? *)
 
-(** When I first started learning Coq, I expected it
-    to be strictly more expressive than
-    languages with "dependent types at home" (e.g. GADTs, type families, ..). 
-    But it's actually pretty difficult to translate code using things
-    like GADTs into Coq, and it seems to be because other languages
-    bake a number of extra rules about type inequality into the type checker.
-
-    For example, OCaml accepts the following code without complaining about non-exhaustive 
-    pattern matching:
-
-      #<pre>
-  type 'a t
-    = C1 : int t
-    | C2 : bool t
-  let f (x : int t) : unit =
-    match x with
-    | C1 -> ()</pre>#
-
-    To do so, it has to reason that the [C2] case is impossible because [int] is not equal
-    to [bool].
-    (Since #<a href="https://www.math.nagoya-u.ac.jp/~garrigue/papers/gadtspm.pdf">exhaustiveness 
-    checking is undecidable for GADTs</a>#, it's possible that the OCaml compiler just gave up
-    on trying to analyze the match expression. But that's unlikely, because it does 
-    complain about exhaustivity if I add an extra constructor [C3 : int t].)
-
-    The seemingly obvious fact that [nat] is not the same as [bool] is not obvious to Coq:
-*)
+(** Coq's dependent type system is very expressive, but also often annoying to use.
+    One reason why is that the type checker isn't good at proving types unequal.
+    For example, Coq rejects the following definition of [f]: *)
 
 Inductive T : Set -> Type :=
 | C1 : T nat
 | C2 : T bool.
 
 (* begin show *)
-Fail Definition failure (x : T nat) : unit :=
+Fail Definition f (x : T nat) : unit :=
   match x with
   | C1 => tt
   end.
@@ -52,10 +28,28 @@ Fail Definition failure (x : T nat) : unit :=
   The command has indeed failed with message: 
   Non exhaustive pattern-matching: no clause found for pattern C2</pre># 
 
-  If we could prove [bool <>  nat], some dependent pattern matching can prove that [C2] is impossible:
-*)
+  Coq doesn't realize that the [C2] case is impossible.
+  Meanwhile, OCaml accepts the analogous program (written using GADTs)
+  without complaining about non-exhaustive pattern matching:
 
-Definition success (H : bool <> nat) (x : T nat) : unit :=
+#<pre>
+  type 'a t
+    = C1 : int t
+    | C2 : bool t
+  let f (x : int t) : unit =
+    match x with
+    | C1 -> ()</pre>#
+
+  To do so, it has to reason that the [C2] case is impossible because [int] is not equal
+  to [bool].
+  (Since #<a href="https://www.math.nagoya-u.ac.jp/~garrigue/papers/gadtspm.pdf">exhaustiveness 
+  checking is undecidable for GADTs</a>#, it's possible that the OCaml compiler just gave up
+  on trying to analyze the match expression. But that's unlikely, because it does 
+  complain about exhaustivity if I add an extra constructor [C3 : int t].)
+
+  We could convince Coq that [C2] is impossible if we had a proof that [bool] is not equal to [nat]: *)
+
+Definition f (H : bool <> nat) (x : T nat) : unit :=
   match x in T A return A = nat -> unit with
   | C1 => fun _ => tt
   | C2 => fun Heq : bool = nat => match H Heq with end
@@ -78,8 +72,8 @@ Definition success (H : bool <> nat) (x : T nat) : unit :=
     inhabitants).
 
     But, let's try to prove whatever we can anyway.
-    We'll say a type [A] is less than or equal to [B] if
-    there exists an injection [f : A -> B]: *)
+    We can define a type [A] as less than or equal to [B] if
+    there is an injection [f : A -> B]: *)
 
 Definition injective {A B} (f : A -> B) := forall x y, f x = f y -> x = y.
 
@@ -88,13 +82,15 @@ Infix "⊑" := leq (at level 70, no associativity).
 
 Lemma leq_refl {A} : A ⊑ A. Proof. exists (fun x =>  x); firstorder. Qed.
 
-(** Two types are isomorphic if they're less than or equal to each other: *)
+(** Then, two types are isomorphic if they're less than or equal to each other: *)
 
 Definition iso A B := A ⊑ B /\ B ⊑ A.
 Infix "≅" := iso (at level 70, no associativity).
 Notation "a '≇' b" := (~ (a ≅ b)) (at level 70, no associativity).
 
 Lemma iso_refl {A} : A ≅ A. Proof. split; apply leq_refl. Qed.
+
+(** To show two types unequal, it's sufficient to show that they aren't isomorphic: *)
 
 (* begin show *)
 Polymorphic Lemma iso_ne {A B} : A ≇ B -> A <> B.
@@ -103,7 +99,7 @@ Proof. intros Hnot Heq; subst; apply Hnot, iso_refl. Qed.
 
 (* begin show *)
 (** This is already enough to prove [nat <> bool]:
-    [nat] and [bool] can't be isomorphic because [bool] has two inhabitants
+    [nat] and [bool] aren't isomorphic because [bool] has two inhabitants
     while [nat] has countably many. *)
 
 Lemma nat_ne_bool : nat <> bool.
@@ -125,9 +121,17 @@ Proof.
 Qed.
 (* end show *)
 
-(** It'd be nice to automate this kind of reasoning for more complicated types.
-    First, some lemmas to make [(⊑)] and [(≅)] easier to work with: *)
+(** It'd be nice to automate this kind of reasoning for more complicated types
+    using 
+    #<a href="http://adam.chlipala.net/cpdt/html/Reflection.html">reflection</a>#.
+    To do so, we'll first need a bunch of helper definitions and lemmas
+    about [(⊑)] and [(≅)]. 
 
+    A type is inhabited if we can construct a value of that type: *)
+
+Definition inhabited A := exists x : A, True.
+
+(* begin hide *)
 Require Coq.Logic.ChoiceFacts Coq.Logic.ClassicalFacts.
 Axiom FChoice : Coq.Logic.ChoiceFacts.FunctionalChoice.
 Axiom LEM : Coq.Logic.ClassicalFacts.excluded_middle.
@@ -135,10 +139,7 @@ Require Import Coq.Logic.FunctionalExtensionality.
 
 Definition surjective {A B} (f : A -> B) := forall y, exists x, f x = y.
 
-Definition inhabited A := exists x : A, True.
-
 Definition comp {A B C} (f : B -> C) (g : A -> B) := fun x => f (g x).
-(* begin hide *)
 
 Definition sur_inj {A B} (f : A -> B) :
   surjective f ->
@@ -189,7 +190,6 @@ Proof.
   now apply Hinj.
 Qed.
 
-(* end hide *)
 Require Import Morphisms Setoid.
 
 Lemma leq_asym {A B} : A ⊑ B -> B ⊑ A -> A ≅ B. Proof. firstorder. Qed.
@@ -332,7 +332,8 @@ Qed.
 Lemma inhabited_iso {A B} : A ≅ B -> inhabited A -> inhabited B.
 Proof. intros [[f Hf] _] [arb _]; now exists (f arb). Qed.
 
-(** Next, a bunch of standard isomorphisms: *)
+(** Using these lemmas, we can prove a bunch of standard facts
+    about sums, products, and function types: *)
 
 Lemma unit_True : unit ≅ True.
 Proof. split; [exists (fun _ => I)|exists (fun _ => tt)]; now intros [] []. Qed.
@@ -450,13 +451,20 @@ Proof.
         change (g2 x) with (g (inr x))
       end; now rewrite Heq.
 Qed.
-
-(** A type is finite if it has exactly [n] inhabitants for some [n : nat]. *)
+(* end hide *)
+(** A type is finite if it has exactly [n] inhabitants for some [n : nat]. 
+    We can represent a finite type with [n] inhabitants as
+    a sum [True + (True + (.. + False))]:
+*)
 
 Definition fin n : Type := Nat.iter n (sum True) False.
 
+(** For example, [bool] is a finite type with 2 inhabitants: *)
+
+(* begin hide *)
 Lemma fin_False : False ≅ fin 0. Proof. apply iso_refl. Qed.
 Lemma fin_True : True ≅ fin 1. Proof. cbn; now rewrite sum_comm, sum_False. Qed.
+(* end hide *)
 Lemma fin_bool : bool ≅ fin 2.
 Proof.
   split;
@@ -470,6 +478,9 @@ Proof.
   - intros [] []; congruence.
   - intros [[]|[[]|[]]] [[]|[[]|[]]]; congruence.
 Qed.
+(* begin hide *)
+(** Finite types behave as expected under sums, products, and exponentials: *)
+
 Lemma fin_sum {m n} : fin m + fin n ≅ fin (m + n).
 Proof.
   induction m as [|m IHm]; cbn; [now rewrite sum_False|].
@@ -501,7 +512,6 @@ Proof.
   split; [exists (fun xn => match xn with inl _ => 0 | inr n => S n end)|exists inr];
   [intros [[]|m] [[]|n]|intros m n]; congruence.
 Qed.
-(* begin hide *)
 Fixpoint halve n :=
   match n with
   | 0 | 1 => 0
@@ -528,7 +538,6 @@ Proof.
   cbn; replace (n + (n + 0)) with (2 * n) by lia.
   lia.
 Qed.
-(* end hide *)
 Lemma nat_fin_prod {n} : fin (S n) * nat ≅ nat.
 Proof.
   Fail induction n; cbn; [rewrite sum_comm|]. (* TODO: why setoid failures? *)
@@ -552,7 +561,6 @@ Proof.
     + subst; rewrite !halve_cancel; congruence.
     + subst; rewrite !halve_cancel1; congruence.
 Qed.
-(* begin hide *)
 Lemma pow3div2 n : ~ PeanoNat.Nat.divide 2 (Nat.pow 3 n).
 Proof.
   induction n.
@@ -608,7 +616,6 @@ Proof.
   apply f_equal with (f := fun n => Nat.div n 3) in Heq.
   now rewrite !PeanoNat.Nat.div_mul in * by auto.
 Qed.
-(* end hide *)
 Lemma nat_fin_fun {n} : (fin (S n) -> nat) ≅ nat.
 Proof.
   induction n; cbn.
@@ -634,7 +641,6 @@ Proof.
       now apply halving_eq2. }
     congruence.
 Qed.
-(* begin hide *)
 Lemma fin_fun_has_max {n} (f : fin n -> nat) : exists n, forall x, f x <= n.
 Proof.
   induction n.
@@ -781,7 +787,8 @@ Qed.
 
 (* end hide *)
 
-(** Two finite types are equal iff they have the same number of inhabitants: *)
+(** It's easy to decide whether two finite types are equal, because
+    finite types are isomorphic iff they have the same number of inhabitants: *)
 
 Lemma fin_leq {m n} : fin n ⊑ fin m <-> n <= m.
 Proof.
@@ -805,7 +812,12 @@ Proof.
   lia.
 Qed.
 
-(** [A] is strictly smaller than [B] if there's no injection [f : B -> A]: *)
+(** So now we know how to prove/disprove [A <> B]
+    in the case where [A] and [B] are both finite.
+    But what to do if one of the types is infinite?
+
+    First, we can define
+    [A] as strictly smaller than [B] if there's no injection [f : B -> A]: *)
 
 Definition lt A B := ~ B ⊑ A.
 Infix "⊏" := lt (at level 70, no associativity).
@@ -826,7 +838,6 @@ Proof.
   specialize (Hg y).
   destruct Hg as [x Hx]; now specialize (Hy x).
 Qed.
-
 Lemma A_lt_PA {A} : A ⊏ (A -> fin 2).
 Proof.
   assert (Hno_surjection : forall f : A -> A -> fin 2, exists g, forall n, f n <> g).
@@ -848,6 +859,7 @@ Proof.
   specialize (Hg y).
   destruct Hg as [x Hx]; now specialize (Hy x).
 Qed.
+(* begin hide *)
 Lemma A_le_PA {A} : A ⊑ (A -> fin 2).
 Proof.
   assert (H : forall x x' : A, exists b : fin 2, if b then x = x' else x <> x').
@@ -861,6 +873,7 @@ Proof.
   destruct (f x x') as [[]|[[]|[]]]; auto.
   now specialize (Hf x' x'); rewrite <- Heq in Hf.
 Qed.
+(* end hide *)
 
 (** Interestingly, if [A] is infinite, then changing the codomain from 
     [fin 2] to [fin (2 + n)] doesn't make the cardinality any bigger: *)
@@ -887,9 +900,7 @@ Proof.
 Qed.
 (* end hide *)
 
-Lemma PA2n_eq_PA {A n} :
-  inhabited A ->
-  (forall k, fin (S k) * A ≅ A) ->
+Lemma PA2n_eq_PA {A n} : inhabited A -> (forall k, fin (S k) * A ≅ A) ->
   (A -> fin (2 + n)) ≅ (A -> fin 2).
 Proof.
   intros Hinh Hdup.
@@ -915,12 +926,18 @@ Proof.
     apply inject, n_le_pow_2m_n.
 Qed.
 
-(** In fact, even going from [fin (2 + n)] to [nat] doesn't change the cardinality
-    if the domain is big enough: *)
+(** In other words, the following types are all isomorphic:
+    - [nat -> fin 2]
+    - [nat -> fin 3]
+    - [nat -> fin 4]
+    - [nat -> fin 5]
+    - [...]
+    
+    In fact, the above types are even isomorphic to [nat -> nat].
+    In general, going from [A -> fin (2 + n)] to [A -> nat] doesn't change the 
+    cardinality as long as [A] is big enough: *)
 
-Lemma PAnat_eq_PA {A} :
-  inhabited A ->
-  nat * A ⊑ A ->
+Lemma PAnat_eq_PA {A} : inhabited A -> nat * A ⊑ A ->
   (A -> nat) ≅ (A -> fin 2).
 Proof.
   intros Hinh Hinf.
@@ -997,7 +1014,7 @@ Proof.
     exists (fun x => match x with inl I => (true, fun _ => inl I) | inr f => (false, f) end).
     intros [[]|f] [[]|g] Heq; congruence.
 Qed.
-Corollary tower_add_fin m n : fin m + ⟦tower n⟧ ≅ ⟦tower n⟧.
+Lemma tower_add_fin m n : fin m + ⟦tower n⟧ ≅ ⟦tower n⟧.
 Proof.
   induction m.
   - apply sum_False.
@@ -1031,7 +1048,7 @@ Proof.
     + inversion Heq as [Heq']; subst.
       now apply f_equal with (f := fun f => f inh) in Heq'.
 Qed.
-Corollary tower_mul_fin m n : fin (S m) * ⟦tower n⟧ ≅ ⟦tower n⟧.
+Lemma tower_mul_fin m n : fin (S m) * ⟦tower n⟧ ≅ ⟦tower n⟧.
 Proof.
   induction m.
   - eapply iso_trans; [apply iso_prod; [symmetry; apply fin_True|apply iso_refl]|].
@@ -1062,7 +1079,7 @@ Proof.
     unfold tower, typeD; fold tower; fold typeD.
     eapply leq_iso1; [apply fun_uncurry|]; apply leq_refl.
 Qed.
-Corollary tower_fun_fin m n : (fin (S m) -> ⟦tower n⟧) ≅ ⟦tower n⟧.
+Lemma tower_fun_fin m n : (fin (S m) -> ⟦tower n⟧) ≅ ⟦tower n⟧.
 Proof.
   induction m.
   - eapply iso_trans; [eapply iso_fun1; symmetry; apply fin_True|].
