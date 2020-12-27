@@ -951,18 +951,24 @@ Fixpoint card t : option nat :=
   match t with
   | Fin n => Some n
   | Nat => None
-  | Add t1 t2 => match card t1, card t2 with Some m, Some n => Some (m + n) | _, _ => None end
+  | Add t1 t2 =>
+    match card t1, card t2 with
+    | Some m, Some n => Some (m + n)
+    | _, _ => None
+    end
   | Mul t1 t2 =>
     match card t1, card t2 with
+    (* If [t1] and [t2] are empty, then so is [t1 * t2]: *)
     | Some 0, _ | _, Some 0 => Some 0
     | Some m, Some n => Some (m * n)
     | _, _ => None
     end
   | Fun t1 t2 =>
     match card t1, card t2 with
-    | Some 0, _ => Some 1
+    (* [False -> A] and [A -> True] have exactly one inhabitant, regardless of A *)
+    | Some 0, _ | _, Some 1 => Some 1
+    (* If [A] is inhabited, then [A -> False] is uninhabited *)
     | _, Some 0 => Some 0
-    | _, Some 1 => Some 1
     | Some m, Some n => Some (Nat.pow n m)
     | _, _ => None
     end
@@ -1322,7 +1328,7 @@ Qed.
 
 Definition infinite t := card t = None.
 
-Corollary infinite_shrink_fin {t n} :
+Corollary infinite_squash_fin {t n} :
   infinite t ->
   (⟦t⟧ -> fin (2 + n)) ≅ (⟦t⟧ -> fin 2).
 Proof.
@@ -1331,7 +1337,7 @@ Proof.
   apply PA2n_eq_PA; tauto.
 Qed.
 
-Corollary infinite_shrink_nat {t} :
+Corollary infinite_squash_nat {t} :
   infinite t ->
   (⟦t⟧ -> nat) ≅ (⟦t⟧ -> fin 2).
 Proof.
@@ -1340,6 +1346,176 @@ Proof.
   destruct Hspec as [Hinh [Hadd [Hmul [HaddN [HmulN1 HmulN2]]]]].
   apply PAnat_eq_PA; tauto.
 Qed.
+
+Inductive nf :=
+| Finite (n : nat)
+| Tower (n : nat).
+
+Fixpoint tower n :=
+  match n with
+  | 0 => Nat
+  | S n => Fun (tower n) (Fin 2)
+  end.
+
+Fixpoint nfD t :=
+  match t with
+  | Finite n => Fin n
+  | Tower n => tower n
+  end.
+
+Lemma tower_inhabited n : inhabited ⟦tower n⟧.
+Proof. destruct n; [now exists 0|now exists (fun _ => inl I)]. Qed.
+
+Lemma tower_succ n : True + ⟦tower n⟧ ≅ ⟦tower n⟧.
+Proof.
+  induction n.
+  - simpl. split; [|exists inr; firstorder congruence].
+    exists (fun x => match x with inl I => 0 | inr n => S n end).
+    intros [[]|n1] [[]|n2]; congruence.
+  - unfold tower, typeD; fold tower; fold typeD.
+    split; [|exists inr; firstorder congruence].
+    eapply leq_iso2; [eapply iso_fun1; symmetry; apply IHn|].
+    eapply leq_iso2; [apply fun_sum_distr|].
+    eapply leq_iso2; [apply iso_prod; [apply fun_True1|apply iso_refl]|].
+    eapply leq_iso2; [apply iso_prod; [symmetry; apply fin_bool|apply iso_refl]|].
+    exists (fun x => match x with inl I => (true, fun _ => inl I) | inr f => (false, f) end).
+    intros [[]|f] [[]|g] Heq; congruence.
+Qed.
+Corollary tower_add_fin m n : fin m + ⟦tower n⟧ ≅ ⟦tower n⟧.
+Proof.
+  induction m.
+  - apply sum_False.
+  - simpl; rewrite sum_assoc.
+    eapply iso_trans; [apply iso_sum; [apply iso_refl|apply IHm]|].
+    apply tower_succ.
+Qed.
+
+Lemma tower_add n : ⟦tower n⟧ + ⟦tower n⟧ ≅ ⟦tower n⟧.
+Proof.
+  induction n.
+  - simpl.
+    assert (Hdub : nat + nat ≅ fin 2 * nat).
+    { simpl. rewrite prod_comm, prod_sum_distr.
+      apply iso_sum; [rewrite prod_comm, prod_True; easy|].
+      rewrite prod_sum_distr, sum_comm.
+      eapply iso_trans; [|apply iso_sum; [apply prod_comm|apply iso_refl]].
+      eapply iso_trans; [|apply iso_sum; [symmetry; apply prod_False|apply iso_refl]].
+      now rewrite sum_False, prod_comm, prod_True. }
+    eapply iso_trans; [apply Hdub|].
+    apply nat_fin_prod.
+  - unfold tower, typeD; fold tower; fold typeD.
+    split; [|exists inr; firstorder congruence].
+    eapply leq_iso2; [eapply iso_fun1; symmetry; apply IHn|].
+    eapply leq_iso2; [apply fun_sum_distr|].
+    exists (fun x => match x with inl f => (fun _ => inl I, f) | inr f => (fun _ => inr (inl I), f) end).
+    destruct (tower_inhabited n) as [inh _].
+    intros [f|f] [g|g] Heq; try congruence.
+    + inversion Heq as [Heq']; subst.
+      now apply f_equal with (f := fun f => f inh) in Heq'.
+    + inversion Heq as [Heq']; subst.
+      now apply f_equal with (f := fun f => f inh) in Heq'.
+Qed.
+Corollary tower_mul_fin m n : fin (S m) * ⟦tower n⟧ ≅ ⟦tower n⟧.
+Proof.
+  induction m.
+  - eapply iso_trans; [apply iso_prod; [symmetry; apply fin_True|apply iso_refl]|].
+    apply prod_True.
+  - change (fin (S (S m))) with (True + fin (S m))%type.
+    rewrite prod_comm, prod_sum_distr.
+    eapply iso_trans; [apply iso_sum; rewrite prod_comm; [apply prod_True|apply IHm]|].
+    apply tower_add.
+Qed.
+
+Lemma tower_mul n : ⟦tower n⟧ * ⟦tower n⟧ ≅ ⟦tower n⟧.
+Proof.
+  induction n.
+  - simpl. assert (Hsqr : nat * nat ≅ (fin 2 -> nat)).
+    { eapply iso_trans; [|eapply iso_fun1; apply (@fin_sum 1 1)].
+      rewrite fun_sum_distr.
+      assert (Hfin1 : (fin 1 -> nat) ≅ nat).
+      { eapply iso_trans; [|apply fun_True1].
+        eapply iso_fun1; symmetry; apply fin_True. }
+      apply iso_prod; now symmetry. }
+    eapply iso_trans; [apply Hsqr|].
+    apply nat_fin_fun.
+  - unfold tower, typeD; fold tower; fold typeD.
+    split; [|exists (fun x => (x, x)); firstorder congruence].
+    eapply leq_iso2; [eapply iso_fun1; symmetry; apply IHn|].
+    eapply leq_trans; [apply prod_fun_leq_fun_prod; apply tower_inhabited|].
+    eapply leq_iso1; [eapply iso_fun2; rewrite prod_comm; apply (tower_mul_fin 1 (S n))|].
+    unfold tower, typeD; fold tower; fold typeD.
+    eapply leq_iso1; [apply fun_uncurry|]; apply leq_refl.
+Qed.
+Corollary tower_fun_fin m n : (fin (S m) -> ⟦tower n⟧) ≅ ⟦tower n⟧.
+Proof.
+  induction m.
+  - eapply iso_trans; [eapply iso_fun1; symmetry; apply fin_True|].
+    apply fun_True1.
+  - change (fin (S (S m))) with (True + fin (S m))%type.
+    rewrite fun_sum_distr.
+    eapply iso_trans; [apply iso_prod; [apply fun_True1|apply IHm]|].
+    apply tower_mul.
+Qed.
+
+Fixpoint norm t : nf :=
+  match t with
+  | Fin n => Finite n
+  | Nat => Tower 0
+  | Add t1 t2 =>
+    match norm t1, norm t2 with
+    | Finite n, Finite m => Finite (n + m)
+    | Tower n, Tower m => Tower (max m n)
+    | _, Tower n | Tower n, _ => Tower n
+    end
+  | Mul t1 t2 =>
+    match norm t1, norm t2 with
+    | Finite 0, _ | _, Finite 0 => Finite 0
+    | Finite n, Finite m => Finite (n * m)
+    | Tower n, Tower m => Tower (max m n)
+    | _, Tower n | Tower n, _ => Tower n
+    end
+  | Fun t1 t2 =>
+    match norm t1, norm t2 with
+    | Finite 0, _ | _, Finite 1 => Finite 1
+    | _, Finite 0 => Finite 0
+    | Finite m, Finite n => Finite (Nat.pow n m)
+    | Finite _, Tower n => Tower n
+    | Tower n, Finite (S (S _)) => Tower (S n)
+    | Tower n, Tower 0 => Tower (S n)
+    | Tower n, Tower (S m) => Tower (max n m)
+    end
+  end.
+
+Lemma norm_spec t : ⟦t⟧ ≅ ⟦nfD (norm t)⟧.
+Proof.
+  induction t; simpl.
+  - apply iso_refl.
+  - apply iso_refl.
+  - destruct (norm t1) as [n1|n1], (norm t2) as [n2|n2].
+    + admit.
+    + admit.
+    + admit.
+    + (* TODO *) admit.
+  - destruct (norm t1) as [[|n1]|n1]; [|destruct (norm t2) as [[|n2]|n2]..].
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+    + (* TODO *) admit.
+  - destruct (norm t1) as [[|n1]|n1]; [|destruct (norm t2) as [[|[|n2]]|n2]|destruct (norm t2) as [[|[|n2]]|[|n2]]].
+    + (* 0 -> 1 = 1 *) admit.
+    + (* S _ -> 0 = 0 *) admit.
+    + (* S _ -> 1 = 1 *) admit.
+    + (* S _ -> S (S _) = S (S _) ^ S _ *) admit.
+    + (* tower_fun_fin *) admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+    + (* TODO: provable if earlier TODO about multiplying towers is provable *) admit.
+Abort.
 
 (*
 
