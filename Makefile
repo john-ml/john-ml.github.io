@@ -15,6 +15,7 @@ index.html: index.md.html
 	cp content/$*.v $*.v
 	coqc $*.v
 	coqdoc --light --utf8 --short --no-index -o $@ $*.v
+	python3 patch_coqdoc_html.py $@
 	cp css/_coqdoc.css coqdoc.css
 
 coqdoc.css: css/_coqdoc.css

@@ -4,11 +4,9 @@
 (** printing True %\top% #⊤# *)
 (** printing nat %\mathbb{N}% #ℕ# *)
 (** printing bool %\mathbb{B}% #𝔹# *)
-
 (** printing False %\bot% #⊥# *)
 
 (** * When are Coq types provably unequal? *)
-
 (*
 (** Coq's dependent type system is very expressive, but also often annoying to use.
     One reason why is that the type checker isn't good at proving types unequal.
@@ -1579,3 +1577,5 @@ Proof.
   now apply A_lt_PA in Hwat.
 Qed.
 (* end show *)            
+
+
