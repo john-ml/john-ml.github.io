@@ -9,6 +9,7 @@
 
 (** * When are Coq types provably unequal? *)
 
+(*
 (** Coq's dependent type system is very expressive, but also often annoying to use.
     One reason why is that the type checker isn't good at proving types unequal.
     For example, Coq rejects the following definition of [f]: *)
@@ -55,15 +56,16 @@ Definition f (H : bool <> nat) (x : T nat) : unit :=
   | C2 => fun Heq : bool = nat => match H Heq with end
   end eq_refl.
 
-(** But how to prove two types unequal?
+*)
+(** How does one prove in Coq that [nat <> bool]?
     The usual tactics for proving things unequal
     ([discriminate], [inversion], etc.) don't work because
     [nat] and [bool] aren't constructors.
 
-    Some metatheory handwaving suggests that proving two types unequal will be
+    Some metatheory suggests that proving two types unequal will be
     impossible for most practical situations.
     If we could prove [A <> B] for isomorphic [A] and [B],
-    then univalence wouldn't be independent of CiC.
+    then univalence wouldn't be safe to add as an axiom.
     So we should expect to be able to prove [A <> B]
     only when [A] and [B] aren't isomorphic.
     This is pretty bad: most data types in functional
@@ -72,8 +74,8 @@ Definition f (H : bool <> nat) (x : T nat) : unit :=
     inhabitants).
 
     But, let's try to prove whatever we can anyway.
-    We can define a type [A] as less than or equal to [B] if
-    there is an injection [f : A -> B]: *)
+    We can define a type [A] as less than or equal to [B] when
+    there's an injection [f : A -> B]: *)
 
 Definition injective {A B} (f : A -> B) := forall x y, f x = f y -> x = y.
 
@@ -113,7 +115,7 @@ Proof.
   ============================
   False</pre># 
 
-  Since [f] returns a boolean, [[f 0, f 1, f 2]] must contain a duplicate. *)
+  Since [f] returns a boolean, [[f 0; f 1; f 2]] must contain a duplicate. *)
   pose proof Hfg 0 1 as H0.
   pose proof Hfg 1 2 as H1.
   pose proof Hfg 0 2 as H2.
@@ -121,8 +123,8 @@ Proof.
 Qed.
 (* end show *)
 
-(** It'd be nice to automate this kind of reasoning for more complicated types
-    using 
+(** I thought it'd be fun to automate this kind of reasoning for more complicated 
+    types, using 
     #<a href="http://adam.chlipala.net/cpdt/html/Reflection.html">reflection</a>#.
     To do so, we'll first need a bunch of helper definitions and lemmas
     about [(⊑)] and [(≅)]. 
@@ -478,8 +480,10 @@ Proof.
   - intros [] []; congruence.
   - intros [[]|[[]|[]]] [[]|[[]|[]]]; congruence.
 Qed.
-(* begin hide *)
-(** Finite types behave as expected under sums, products, and exponentials: *)
+
+(** Finite types are pretty friendly. Sums, products, and functions of finite types
+    remain finite, and it's easy to compute
+    their cardinalities: *)
 
 Lemma fin_sum {m n} : fin m + fin n ≅ fin (m + n).
 Proof.
@@ -502,6 +506,7 @@ Proof.
     apply iso_prod; [|easy].
     apply fun_True1.
 Qed.
+(* begin hide *)
 
 Require Import Lia.
 Lemma nat_fin_sum {n} : fin n + nat ≅ nat.
@@ -744,7 +749,7 @@ Proof.
     assert (f (inr x) = f (inr y)) by congruence.
     enough (inr x = (inr y : fin (S n))) by congruence.
     apply Hf; congruence. }
-  (* If, on the other hand, there is some x' such that f x' = inl I,
+  (* If, on the other hand, there's some x' such that f x' = inl I,
      then f (inl I) ≠ inl I and for all x : fin n, x ≠ x' -> f x = inr _. 
      Therefore,
        f x = if x = x' then f (inl I) else f (inr x)
@@ -787,8 +792,7 @@ Qed.
 
 (* end hide *)
 
-(** It's easy to decide whether two finite types are equal, because
-    finite types are isomorphic iff they have the same number of inhabitants: *)
+(** What's more, two finite types are isomorphic iff they have the same cardinality: *)
 
 Lemma fin_leq {m n} : fin n ⊑ fin m <-> n <= m.
 Proof.
@@ -812,18 +816,19 @@ Proof.
   lia.
 Qed.
 
-(** So now we know how to prove/disprove [A <> B]
-    in the case where [A] and [B] are both finite.
-    But what to do if one of the types is infinite?
+(** This makes it easy to prove [A <> B]
+    in the case where [A] and [B] are both finite: we can just check 
+    if they have the same cardinality.
+    But what to do if [A] or [B] are infinite?
 
-    First, we can define
-    [A] as strictly smaller than [B] if there's no injection [f : B -> A]: *)
+    First, we'll define
+    [A] as strictly smaller than [B] when there's no injection [f : B -> A]: *)
 
 Definition lt A B := ~ B ⊑ A.
 Infix "⊏" := lt (at level 70, no associativity).
 
-(** Every [fin n] is strictly smaller than [nat], and [A] 
-    is strictly smaller than [A -> fin 2] by diagonalization: *)
+(** Two types are unequal if one is smaller than the other.
+    Every [fin n] is smaller than [nat]: *)
 
 Lemma fin_lt_nat {n} : fin n ⊏ nat.
 Proof.
@@ -838,6 +843,13 @@ Proof.
   specialize (Hg y).
   destruct Hg as [x Hx]; now specialize (Hy x).
 Qed.
+
+(** This generalizes the reasoning behind our earlier proof of [nat <> bool].
+    
+    Cantor famously showed that there are sets even bigger than [nat].
+    In general, his diagonal argument shows that [A] is always
+    smaller than [A -> fin 2]: *)
+
 Lemma A_lt_PA {A} : A ⊏ (A -> fin 2).
 Proof.
   assert (Hno_surjection : forall f : A -> A -> fin 2, exists g, forall n, f n <> g).
@@ -875,8 +887,8 @@ Proof.
 Qed.
 (* end hide *)
 
-(** Interestingly, if [A] is infinite, then changing the codomain from 
-    [fin 2] to [fin (2 + n)] doesn't make the cardinality any bigger: *)
+(** Interestingly, if [A] is infinite, then replacing
+    [fin 2] with [fin (2 + n)] doesn't make the cardinality any bigger: *)
 (* begin hide *)
 Lemma pow2n_ge_n n : n <= Nat.pow 2 n.
 Proof.
@@ -926,7 +938,7 @@ Proof.
     apply inject, n_le_pow_2m_n.
 Qed.
 
-(** In other words, the following types are all isomorphic:
+(** So the following types are all isomorphic:
     - [nat -> fin 2]
     - [nat -> fin 3]
     - [nat -> fin 4]
@@ -934,8 +946,8 @@ Qed.
     - [...]
     
     In fact, the above types are even isomorphic to [nat -> nat].
-    In general, going from [A -> fin (2 + n)] to [A -> nat] doesn't change the 
-    cardinality as long as [A] is big enough: *)
+    In general, [A -> fin (2 + n)] is isomorphic to [A -> nat]
+    as long as [A] is big enough: *)
 
 Lemma PAnat_eq_PA {A} : inhabited A -> nat * A ⊑ A ->
   (A -> nat) ≅ (A -> fin 2).
@@ -962,12 +974,31 @@ Proof.
     exists (comp inj_fin2); now apply inj_ump.
 Qed.
 
+(** It also seems reasonable to expect that, if [A] is infinite
+    and [A ⊒ B], then adding or multiplying it by [B] won't make a difference;
+    i.e., [A + B ≅ A] and [A * B ≅ A].
+
+    Together these properties suggest that every type built from
+    simple type constructors (sum, product, and function) can be
+    reduced to a normal form. Specifically, every such type
+    should be either:
+    - Finite, with [n] inhabitants, or
+    - Infinite, and isomorphic to a "power tower" of the form
+      [((nat -> ..) -> fin 2) -> fin 2].
+
+    Let's prove it. [type] represents a universe of types
+    built from simple type constructors, finite types,
+    and [nat]:
+*)
+
 Inductive type :=
 | Fin (n : nat)
 | Nat
 | Add (t1 t2 : type)
 | Mul (t1 t2 : type)
 | Fun (t1 t2 : type).
+
+(** [⟦⋅⟧] maps each [type] to its denotation: *)
 
 Reserved Notation "'⟦' t '⟧'".
 Fixpoint typeD t :=
@@ -980,9 +1011,14 @@ Fixpoint typeD t :=
   end%type
 where "'⟦' t '⟧'" := (typeD t).
 
+(** A normal form is either a finite type with [n] inhabitants or
+    a power tower with height [m].
+    The power tower of height [0] is just [nat].
+*)
+
 Inductive nf :=
 | Finite (n : nat)
-| Tower (n : nat).
+| Tower (m : nat).
 
 Fixpoint tower n :=
   match n with
@@ -990,15 +1026,26 @@ Fixpoint tower n :=
   | S n => Fun (tower n) (Fin 2)
   end.
 
+(** [nfD] converts normal forms back into [type]s: *)
+
 Fixpoint nfD t :=
   match t with
   | Finite n => Fin n
   | Tower n => tower n
   end.
 
+(** We'll need to know a number of properties about towers to derive our 
+    type normalizer and prove it correct.
+    
+    First, towers represent infinite types, so every tower is inhabited. *)
+
 Lemma tower_inhabited n : inhabited ⟦tower n⟧.
 Proof. destruct n; [now exists 0|now exists (fun _ => inl I)]. Qed.
 
+(** Next, towers are so infinite that doing finite things to them
+    usually has no effect: *)
+
+(* begin hide *)
 Lemma tower_succ n : True + ⟦tower n⟧ ≅ ⟦tower n⟧.
 Proof.
   induction n.
@@ -1014,6 +1061,7 @@ Proof.
     exists (fun x => match x with inl I => (true, fun _ => inl I) | inr f => (false, f) end).
     intros [[]|f] [[]|g] Heq; congruence.
 Qed.
+(* end hide *)
 Lemma tower_add_fin m n : fin m + ⟦tower n⟧ ≅ ⟦tower n⟧.
 Proof.
   induction m.
@@ -1022,7 +1070,7 @@ Proof.
     eapply iso_trans; [apply iso_sum; [apply iso_refl|apply IHm]|].
     apply tower_succ.
 Qed.
-
+(* begin hide *)
 Lemma tower_add n : ⟦tower n⟧ + ⟦tower n⟧ ≅ ⟦tower n⟧.
 Proof.
   induction n.
@@ -1048,6 +1096,7 @@ Proof.
     + inversion Heq as [Heq']; subst.
       now apply f_equal with (f := fun f => f inh) in Heq'.
 Qed.
+(* end hide *)
 Lemma tower_mul_fin m n : fin (S m) * ⟦tower n⟧ ≅ ⟦tower n⟧.
 Proof.
   induction m.
@@ -1058,7 +1107,7 @@ Proof.
     eapply iso_trans; [apply iso_sum; rewrite prod_comm; [apply prod_True|apply IHm]|].
     apply tower_add.
 Qed.
-
+(* begin hide *)
 Lemma tower_mul n : ⟦tower n⟧ * ⟦tower n⟧ ≅ ⟦tower n⟧.
 Proof.
   induction n.
@@ -1079,6 +1128,7 @@ Proof.
     unfold tower, typeD; fold tower; fold typeD.
     eapply leq_iso1; [apply fun_uncurry|]; apply leq_refl.
 Qed.
+(* end hide *)
 Lemma tower_fun_fin m n : (fin (S m) -> ⟦tower n⟧) ≅ ⟦tower n⟧.
 Proof.
   induction m.
@@ -1090,35 +1140,14 @@ Proof.
     apply tower_mul.
 Qed.
 
-Fixpoint norm t : nf :=
-  match t with
-  | Fin n => Finite n
-  | Nat => Tower 0
-  | Add t1 t2 =>
-    match norm t1, norm t2 with
-    | Finite n, Finite m => Finite (n + m)
-    | Tower n, Tower m => Tower (max m n)
-    | _, Tower n | Tower n, _ => Tower n
-    end
-  | Mul t1 t2 =>
-    match norm t1, norm t2 with
-    | Finite 0, _ | _, Finite 0 => Finite 0
-    | Finite n, Finite m => Finite (n * m)
-    | Tower n, Tower m => Tower (max m n)
-    | _, Tower n | Tower n, _ => Tower n
-    end
-  | Fun t1 t2 =>
-    match norm t1, norm t2 with
-    | Finite 0, _ | _, Finite 1 => Finite 1
-    | _, Finite 0 => Finite 0
-    | Finite m, Finite n => Finite (Nat.pow n m)
-    | Finite _, Tower n => Tower n
-    | Tower n, Finite (S (S _)) => Tower (S n)
-    | Tower n, Tower 0 => Tower (S n)
-    | Tower n, Tower (S m) => Tower (S (max n m))
-    end
-  end.
+(** (Though, going from [⟦tower n⟧] to [⟦tower n⟧ -> fin (S m)]
+    _does_ have an effect, since by putting [⟦tower n⟧] to the left of an
+    arrow we could potentially be building a bigger power tower.)
 
+    In fact, even multiplying a tower by [nat] doesn't change its size:
+*)
+
+(* begin hide *)
 Lemma add_leq_towers n m : n <= m -> ⟦tower n⟧ + ⟦tower m⟧ ≅ ⟦tower m⟧.
 Proof.
   induction 1; [apply tower_add|].
@@ -1127,13 +1156,6 @@ Proof.
   apply leq_sum1; eapply leq_trans; [|simpl; apply A_le_PA].
   destruct IHle as [[f Hf] _].
   exists (comp f inl); firstorder congruence.
-Qed.
-Lemma add_towers n m : ⟦tower n⟧ + ⟦tower m⟧ ≅ ⟦tower (max n m)⟧.
-Proof.
-  assert (H : n <= m \/ m <= n) by lia.
-  destruct H as [H|H]; [rewrite max_r|rewrite max_l]; auto.
-  - apply add_leq_towers; auto.
-  - rewrite sum_comm; apply add_leq_towers; auto.
 Qed.
 Lemma mul_leq_towers n m : n <= m -> ⟦tower n⟧ * ⟦tower m⟧ ≅ ⟦tower m⟧.
 Proof.
@@ -1146,13 +1168,7 @@ Proof.
   clear inh; destruct (tower_inhabited m) as [inh _].
   exists (fun x => f (x, inh)); firstorder congruence.
 Qed.
-Lemma mul_towers n m : ⟦tower n⟧ * ⟦tower m⟧ ≅ ⟦tower (max n m)⟧.
-Proof.
-  assert (H : n <= m \/ m <= n) by lia.
-  destruct H as [H|H]; [rewrite max_r|rewrite max_l]; auto.
-  - apply mul_leq_towers; auto.
-  - rewrite prod_comm; apply mul_leq_towers; auto.
-Qed.
+(* end hide *)
 Lemma nat_mul_tower_eq_tower n : nat * ⟦tower n⟧ ≅ ⟦tower n⟧.
 Proof.
   induction n.
@@ -1163,29 +1179,99 @@ Proof.
     apply mul_leq_towers; lia.
 Qed.
 
-Lemma tower_leq {m n} : ⟦tower n⟧ ⊑ ⟦tower m⟧ <-> n <= m.
+(** Finally, if [n >= m], [⟦tower n⟧] is so much bigger than [⟦tower m⟧]
+    that adding or multiplying by [⟦tower m⟧] has no effect: *)
+
+Lemma add_towers n m : ⟦tower n⟧ + ⟦tower m⟧ ≅ ⟦tower (max n m)⟧.
 Proof.
-  split.
-  - intros Hleq.
-    assert (Hgt : n > m \/ n <= m) by lia.
-    destruct Hgt as [Hgt|Hgt]; auto.
-    exfalso. induction Hgt as [|m' Hle' IHle'].
-    + assert (⟦tower m⟧ ⊏ ⟦tower (S m)⟧) by apply A_lt_PA.
-      contradiction.
-    + apply IHle'.
-      destruct Hleq as [f Hf].
-      assert (Hinj : ⟦tower m'⟧ ⊑ ⟦tower (S m')⟧) by apply A_le_PA.
-      destruct Hinj as [g Hg].
-      exists (comp f g); now apply inj_comp.
-  - induction 1; [apply leq_refl|].
-    now eapply leq_trans; [|apply (@A_le_PA ⟦tower m⟧)].
+  assert (H : n <= m \/ m <= n) by lia.
+  destruct H as [H|H]; [rewrite max_r|rewrite max_l]; auto.
+  - apply add_leq_towers; auto.
+  - rewrite sum_comm; apply add_leq_towers; auto.
 Qed.
-Lemma tower_iso {m n} : ⟦tower n⟧ ≅ ⟦tower m⟧ <-> n = m.
+Lemma mul_towers n m : ⟦tower n⟧ * ⟦tower m⟧ ≅ ⟦tower (max n m)⟧.
 Proof.
-  split.
-  - intros [Hle Hge]; apply tower_leq in Hle; apply tower_leq in Hge; lia.
-  - intros; subst; apply iso_refl.
+  assert (H : n <= m \/ m <= n) by lia.
+  destruct H as [H|H]; [rewrite max_r|rewrite max_l]; auto.
+  - apply mul_leq_towers; auto.
+  - rewrite prod_comm; apply mul_leq_towers; auto.
 Qed.
+
+(** Now we're ready to derive the type normalizer.
+    It will be a function [norm] that takes a [type] and 
+    recursively reduces it to its normal form: *)
+
+Fixpoint norm (t : type) : nf :=
+  match t with
+  (** The base cases are easy: [fin n] is a finite type with [n] 
+      inhabitants, and [nat] is a power tower of height [0]. *)
+
+  | Fin n => Finite n
+  | Nat => Tower 0
+  (** To reduce [⟦t1⟧ + ⟦t2⟧], first recursively reduce [⟦t1⟧] and [⟦t2⟧]: *)
+
+  | Add t1 t2 =>
+    match norm t1, norm t2 with
+    (** If both [⟦t1⟧] and [⟦t2⟧] are finite, then their sum is finite too: *)
+
+    | Finite n, Finite m => Finite (n + m)
+    (** Otherwise, one of the two types is a power tower and the largest tower 
+        dominates: *)
+
+    | Tower n, Tower m => Tower (max m n)
+    | Tower n, Finite _ | Finite _, Tower n => Tower n
+    end
+  (** To reduce [⟦t1⟧ * ⟦t2⟧], first recursively reduce [⟦t1⟧] and [⟦t2⟧]
+      just like in the [Add] case: *)
+
+  | Mul t1 t2 =>
+    match norm t1, norm t2 with
+    (** Products are slightly trickier than sums because there's
+        an edge case:
+        if [⟦t1⟧] is empty (that is, isomorphic to [fin 0]) then
+        [⟦t1⟧ * ⟦t2⟧ ≅ fin 0 * ⟦t2⟧ ≅ fin 0] no _matter how big_ [⟦t2⟧] _is_;
+        ditto if [⟦t2⟧] is empty. So, we first check if
+        either of the recursive calls produced an empty type, and return
+        the empty type if so: *)
+
+    | Finite 0, _ | _, Finite 0 => Finite 0
+    (** The rest of this case is analogous to the [Add] case:
+        if [⟦t1⟧] and [⟦t2⟧] are finite, then their product is too,
+        and if any of the types are infinite then the largest tower dominates: *)
+
+    | Finite n, Finite m => Finite (n * m)
+    | Tower n, Tower m => Tower (max m n)
+    | Tower n, Finite _ | Finite _, Tower n => Tower n
+    end
+  (** The [Fun] case is where things get interesting.
+      As before, we first make recursive calls: *)
+
+  | Fun t1 t2 =>
+    match norm t1, norm t2 with
+    (** This time there are two edge cases.
+  
+        First, there's exactly one function [fin 0 -> A]
+        and one function [A -> fin 1], no matter how big [A] is: *)
+
+    | Finite 0, _ | _, Finite 1 => Finite 1
+
+    (** Second, if [A] is inhabited then there are no functions
+        [A -> fin 0].
+
+        So if [⟦t2⟧] is empty
+        and [⟦t1⟧] is either a power tower or a finite type with nonzero 
+        cardinality, then [⟦t1⟧ -> ⟦t2⟧] is empty too: *)
+
+    | (Tower _ | Finite (S _)), Finite 0 => Finite 0
+    (** (Every [fin (S n)] and power tower is inhabited.) *)
+
+    | Finite m, Finite n => Finite (Nat.pow n m)
+    | Finite _, Tower n => Tower n
+    | Tower n, Finite (S (S _)) => Tower (S n)
+    | Tower n, Tower 0 => Tower (S n)
+    | Tower n, Tower (S m) => Tower (S (max n m))
+    end
+  end.
 
 Lemma norm_spec t : ⟦t⟧ ≅ ⟦nfD (norm t)⟧.
 Proof.
@@ -1228,6 +1314,36 @@ Proof.
     + unfold nfD; fold nfD; unfold tower; fold tower; unfold typeD; fold typeD.
       eapply iso_trans; [apply fun_uncurry|].
       apply iso_fun1, mul_towers.
+Qed.
+
+(** Since [A ⊏ (A -> fin 2)] and power towers are constructed
+    by repeatedly nesting types inside [(_ -> fin 2)], two towers are isomorphic
+    iff they have the same height: *)
+
+(* begin hide *)
+Lemma tower_leq {m n} : ⟦tower n⟧ ⊑ ⟦tower m⟧ <-> n <= m.
+Proof.
+  split.
+  - intros Hleq.
+    assert (Hgt : n > m \/ n <= m) by lia.
+    destruct Hgt as [Hgt|Hgt]; auto.
+    exfalso. induction Hgt as [|m' Hle' IHle'].
+    + assert (⟦tower m⟧ ⊏ ⟦tower (S m)⟧) by apply A_lt_PA.
+      contradiction.
+    + apply IHle'.
+      destruct Hleq as [f Hf].
+      assert (Hinj : ⟦tower m'⟧ ⊑ ⟦tower (S m')⟧) by apply A_le_PA.
+      destruct Hinj as [g Hg].
+      exists (comp f g); now apply inj_comp.
+  - induction 1; [apply leq_refl|].
+    now eapply leq_trans; [|apply (@A_le_PA ⟦tower m⟧)].
+Qed.
+(* end hide *)
+Lemma tower_iso {m n} : ⟦tower n⟧ ≅ ⟦tower m⟧ <-> n = m.
+Proof.
+  split.
+  - intros [Hle Hge]; apply tower_leq in Hle; apply tower_leq in Hge; lia.
+  - intros; subst; apply iso_refl.
 Qed.
 
 Definition nf_iso t1 t2 :=

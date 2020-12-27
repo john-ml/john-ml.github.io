@@ -26,86 +26,24 @@
 <div class="doc">
 <a name="lab1"></a><h1 class="section">When are Coq types provably unequal?</h1>
 
-<div class="paragraph"> </div>
-
- Coq's dependent type system is very expressive, but also often annoying to use.
-    One reason why is that the type checker isn't good at proving types unequal.
-    For example, Coq rejects the following definition of <span class="inlinecode"><span class="id" title="var">f</span></span>: 
 </div>
 <div class="code">
-
-<br/>
-<span class="id" title="keyword">Inductive</span> <a name="T"><span class="id" title="inductive">T</span></a> : <span class="id" title="keyword">Set</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span> :=<br/>
-| <a name="C1"><span class="id" title="constructor">C1</span></a> : <a class="idref" href="types_not_equal.html#T"><span class="id" title="inductive">T</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a><br/>
-| <a name="C2"><span class="id" title="constructor">C2</span></a> : <a class="idref" href="types_not_equal.html#T"><span class="id" title="inductive">T</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">𝔹</span></a>.<br/>
-
-<br/>
-<span class="id" title="var">Fail</span> <span class="id" title="keyword">Definition</span> <a name="f"><span class="id" title="definition">f</span></a> (<span class="id" title="var">x</span> : <a class="idref" href="types_not_equal.html#T"><span class="id" title="inductive">T</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a> :=<br/>
-&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="types_not_equal.html#x"><span class="id" title="variable">x</span></a> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#C1"><span class="id" title="constructor">C1</span></a> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#tt"><span class="id" title="constructor">tt</span></a><br/>
-&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-⟹ <pre>
-  The command has indeed failed with message: 
-  Non exhaustive pattern-matching: no clause found for pattern C2</pre> 
-
-<div class="paragraph"> </div>
-
-  Coq doesn't realize that the <span class="inlinecode"><span class="id" title="var">C2</span></span> case is impossible.
-  Meanwhile, OCaml accepts the analogous program (written using GADTs)
-  without complaining about non-exhaustive pattern matching:
-
-<div class="paragraph"> </div>
-
-<pre>
-  type 'a t
-    = C1 : int t
-    | C2 : bool t
-  let f (x : int t) : unit =
-    match x with
-    | C1 -> ()</pre>
-
-<div class="paragraph"> </div>
-
-  To do so, it has to reason that the <span class="inlinecode"><span class="id" title="var">C2</span></span> case is impossible because <span class="inlinecode"><span class="id" title="var">int</span></span> is not equal
-  to <span class="inlinecode"><span class="id" title="var">𝔹</span></span>.
-  (Since <a href="https://www.math.nagoya-u.ac.jp/~garrigue/papers/gadtspm.pdf">exhaustiveness 
-  checking is undecidable for GADTs</a>, it's possible that the OCaml compiler just gave up
-  on trying to analyze the match expression. But that's unlikely, because it does 
-  complain about exhaustivity if I add an extra constructor <span class="inlinecode"><span class="id" title="var">C3</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">int</span></span> <span class="inlinecode"><span class="id" title="var">t</span></span>.)
-
-<div class="paragraph"> </div>
-
-  We could convince Coq that <span class="inlinecode"><span class="id" title="var">C2</span></span> is impossible if we had a proof that <span class="inlinecode"><span class="id" title="var">𝔹</span></span> is not equal to <span class="inlinecode"><span class="id" title="var">ℕ</span></span>: 
-</div>
-<div class="code">
-
-<br/>
-<span class="id" title="keyword">Definition</span> <a name="f"><span class="id" title="definition">f</span></a> (<span class="id" title="var">H</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">𝔹</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a0a5068f83a704fcfbda8cd473a6cfea"><span class="id" title="notation">≠</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a>) (<span class="id" title="var">x</span> : <a class="idref" href="types_not_equal.html#T"><span class="id" title="inductive">T</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a>) : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a> :=<br/>
-&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="types_not_equal.html#x"><span class="id" title="variable">x</span></a> <span class="id" title="tactic">in</span> <a class="idref" href="types_not_equal.html#T"><span class="id" title="inductive">T</span></a> <span class="id" title="var">A</span> <span class="id" title="keyword">return</span> <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#C1"><span class="id" title="constructor">C1</span></a> ⇒ <span class="id" title="keyword">λ</span> <span class="id" title="var">_</span> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#tt"><span class="id" title="constructor">tt</span></a><br/>
-&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#C2"><span class="id" title="constructor">C2</span></a> ⇒ <span class="id" title="keyword">λ</span> <span class="id" title="var">Heq</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">𝔹</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a> ⇒ <span class="id" title="keyword">match</span> <a class="idref" href="types_not_equal.html#H"><span class="id" title="variable">H</span></a> <a class="idref" href="types_not_equal.html#Heq"><span class="id" title="variable">Heq</span></a> <span class="id" title="keyword">with</span> <span class="id" title="keyword">end</span><br/>
-&nbsp;&nbsp;<span class="id" title="keyword">end</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#eq_refl"><span class="id" title="constructor">eq_refl</span></a>.<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-But how to prove two types unequal?
+How does one prove in Coq that <span class="inlinecode"><span class="id" title="var">ℕ</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">𝔹</span></span>?
     The usual tactics for proving things unequal
     (<span class="inlinecode"><span class="id" title="tactic">discriminate</span></span>, <span class="inlinecode"><span class="id" title="tactic">inversion</span></span>, etc.) don't work because
     <span class="inlinecode"><span class="id" title="var">ℕ</span></span> and <span class="inlinecode"><span class="id" title="var">𝔹</span></span> aren't constructors.
 
 <div class="paragraph"> </div>
 
-    Some metatheory handwaving suggests that proving two types unequal will be
+    Some metatheory suggests that proving two types unequal will be
     impossible for most practical situations.
     If we could prove <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span> for isomorphic <span class="inlinecode"><span class="id" title="var">A</span></span> and <span class="inlinecode"><span class="id" title="var">B</span></span>,
-    then univalence wouldn't be independent of CiC.
+    then univalence wouldn't be safe to add as an axiom.
     So we should expect to be able to prove <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span>
     only when <span class="inlinecode"><span class="id" title="var">A</span></span> and <span class="inlinecode"><span class="id" title="var">B</span></span> aren't isomorphic.
     This is pretty bad: most data types in functional
@@ -116,8 +54,8 @@ But how to prove two types unequal?
 <div class="paragraph"> </div>
 
     But, let's try to prove whatever we can anyway.
-    We can define a type <span class="inlinecode"><span class="id" title="var">A</span></span> as less than or equal to <span class="inlinecode"><span class="id" title="var">B</span></span> if
-    there is an injection <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">B</span></span>: 
+    We can define a type <span class="inlinecode"><span class="id" title="var">A</span></span> as less than or equal to <span class="inlinecode"><span class="id" title="var">B</span></span> when
+    there's an injection <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">B</span></span>: 
 </div>
 <div class="code">
 
@@ -185,7 +123,7 @@ This is already enough to prove <span class="inlinecode"><span class="id" title=
 
 <div class="paragraph"> </div>
 
-  Since <span class="inlinecode"><span class="id" title="var">f</span></span> returns a boolean, <span class="inlinecode">[<span class="id" title="var">f</span></span> <span class="inlinecode">0,</span> <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">1,</span> <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">2]</span> must contain a duplicate. 
+  Since <span class="inlinecode"><span class="id" title="var">f</span></span> returns a boolean, <span class="inlinecode">[<span class="id" title="var">f</span></span> <span class="inlinecode">0;</span> <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">1;</span> <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">2]</span> must contain a duplicate. 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="tactic">pose</span> <span class="id" title="var">proof</span> <span class="id" title="var">Hfg</span> 0 1 <span class="id" title="keyword">as</span> <span class="id" title="var">H0</span>.<br/>
@@ -198,8 +136,8 @@ This is already enough to prove <span class="inlinecode"><span class="id" title=
 </div>
 
 <div class="doc">
-It'd be nice to automate this kind of reasoning for more complicated types
-    using 
+I thought it'd be fun to automate this kind of reasoning for more complicated 
+    types, using 
     <a href="http://adam.chlipala.net/cpdt/html/Reflection.html">reflection</a>.
     To do so, we'll first need a bunch of helper definitions and lemmas
     about <span class="inlinecode">(⊑)</span> and <span class="inlinecode">(≅)</span>. 
@@ -242,8 +180,22 @@ For example, <span class="inlinecode"><span class="id" title="var">𝔹</span></
 </div>
 
 <div class="doc">
-It's easy to decide whether two finite types are equal, because
-    finite types are isomorphic iff they have the same number of inhabitants: 
+Finite types are pretty friendly. Sums, products, and functions of finite types
+    remain finite, and it's easy to compute
+    their cardinalities: 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a name="fin_sum"><span class="id" title="lemma">fin_sum</span></a> {<span class="id" title="var">m</span> <span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> (<a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a>).<br/>
+<span class="id" title="keyword">Lemma</span> <a name="fin_prod"><span class="id" title="lemma">fin_prod</span></a> {<span class="id" title="var">m</span> <span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> (<a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">×</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a>).<br/>
+<span class="id" title="keyword">Lemma</span> <a name="fin_fun"><span class="id" title="lemma">fin_fun</span></a> {<span class="id" title="var">m</span> <span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">(</span></a><a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">)</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Nat.html#pow"><span class="id" title="definition">Nat.pow</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+What's more, two finite types are isomorphic iff they have the same cardinality: 
 </div>
 <div class="code">
 
@@ -255,14 +207,15 @@ It's easy to decide whether two finite types are equal, because
 </div>
 
 <div class="doc">
-So now we know how to prove/disprove <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span>
-    in the case where <span class="inlinecode"><span class="id" title="var">A</span></span> and <span class="inlinecode"><span class="id" title="var">B</span></span> are both finite.
-    But what to do if one of the types is infinite?
+This makes it easy to prove <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span>
+    in the case where <span class="inlinecode"><span class="id" title="var">A</span></span> and <span class="inlinecode"><span class="id" title="var">B</span></span> are both finite: we can just check 
+    if they have the same cardinality.
+    But what to do if <span class="inlinecode"><span class="id" title="var">A</span></span> or <span class="inlinecode"><span class="id" title="var">B</span></span> are infinite?
 
 <div class="paragraph"> </div>
 
-    First, we can define
-    <span class="inlinecode"><span class="id" title="var">A</span></span> as strictly smaller than <span class="inlinecode"><span class="id" title="var">B</span></span> if there's no injection <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">B</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">A</span></span>: 
+    First, we'll define
+    <span class="inlinecode"><span class="id" title="var">A</span></span> as strictly smaller than <span class="inlinecode"><span class="id" title="var">B</span></span> when there's no injection <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">B</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">A</span></span>: 
 </div>
 <div class="code">
 
@@ -274,21 +227,37 @@ So now we know how to prove/disprove <span class="inlinecode"><span class="id" t
 </div>
 
 <div class="doc">
-Every <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode"><span class="id" title="var">n</span></span> is strictly smaller than <span class="inlinecode"><span class="id" title="var">ℕ</span></span>, and <span class="inlinecode"><span class="id" title="var">A</span></span> 
-    is strictly smaller than <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2</span> by diagonalization: 
+Two types are unequal if one is smaller than the other.
+    Every <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode"><span class="id" title="var">n</span></span> is smaller than <span class="inlinecode"><span class="id" title="var">ℕ</span></span>: 
 </div>
 <div class="code">
 
 <br/>
 <span class="id" title="keyword">Lemma</span> <a name="fin_lt_nat"><span class="id" title="lemma">fin_lt_nat</span></a> {<span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#7defa197c0c99f1a992655adbb36412a"><span class="id" title="notation">⊏</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+This generalizes the reasoning behind our earlier proof of <span class="inlinecode"><span class="id" title="var">ℕ</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">𝔹</span></span>.
+
+<div class="paragraph"> </div>
+
+    Cantor famously showed that there are sets even bigger than <span class="inlinecode"><span class="id" title="var">ℕ</span></span>.
+    In general, his diagonal argument shows that <span class="inlinecode"><span class="id" title="var">A</span></span> is always
+    smaller than <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2</span>: 
+</div>
+<div class="code">
+
+<br/>
 <span class="id" title="keyword">Lemma</span> <a name="A_lt_PA"><span class="id" title="lemma">A_lt_PA</span></a> {<span class="id" title="var">A</span>} : <a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="types_not_equal.html#7defa197c0c99f1a992655adbb36412a"><span class="id" title="notation">⊏</span></a> <a class="idref" href="types_not_equal.html#7defa197c0c99f1a992655adbb36412a"><span class="id" title="notation">(</span></a><a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> 2<a class="idref" href="types_not_equal.html#7defa197c0c99f1a992655adbb36412a"><span class="id" title="notation">)</span></a>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-Interestingly, if <span class="inlinecode"><span class="id" title="var">A</span></span> is infinite, then changing the codomain from 
-    <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2</span> to <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">(2</span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">n</span>)</span> doesn't make the cardinality any bigger: 
+Interestingly, if <span class="inlinecode"><span class="id" title="var">A</span></span> is infinite, then replacing
+    <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2</span> with <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">(2</span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">n</span>)</span> doesn't make the cardinality any bigger: 
 </div>
 <div class="code">
 
@@ -300,7 +269,7 @@ Interestingly, if <span class="inlinecode"><span class="id" title="var">A</span>
 </div>
 
 <div class="doc">
-In other words, the following types are all isomorphic:
+So the following types are all isomorphic:
 <ul class="doclist">
 <li> <span class="inlinecode"><span class="id" title="var">ℕ</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2</span>
 
@@ -322,8 +291,8 @@ In other words, the following types are all isomorphic:
 <div class="paragraph"> </div>
 
     In fact, the above types are even isomorphic to <span class="inlinecode"><span class="id" title="var">ℕ</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">ℕ</span></span>.
-    In general, going from <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">(2</span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">n</span>)</span> to <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">ℕ</span></span> doesn't change the 
-    cardinality as long as <span class="inlinecode"><span class="id" title="var">A</span></span> is big enough: 
+    In general, <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">(2</span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">n</span>)</span> is isomorphic to <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">ℕ</span></span>
+    as long as <span class="inlinecode"><span class="id" title="var">A</span></span> is big enough: 
 </div>
 <div class="code">
 
@@ -332,12 +301,53 @@ In other words, the following types are all isomorphic:
 &nbsp;&nbsp;<a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">(</span></a><a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a><a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">)</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">(</span></a><a class="idref" href="types_not_equal.html#A"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> 2<a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">)</span></a>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+It also seems reasonable to expect that, if <span class="inlinecode"><span class="id" title="var">A</span></span> is infinite
+    and <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">⊒</span> <span class="inlinecode"><span class="id" title="var">B</span></span>, then adding or multiplying it by <span class="inlinecode"><span class="id" title="var">B</span></span> won't make a difference;
+    i.e., <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">B</span></span> <span class="inlinecode">≅</span> <span class="inlinecode"><span class="id" title="var">A</span></span> and <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">×</span> <span class="inlinecode"><span class="id" title="var">B</span></span> <span class="inlinecode">≅</span> <span class="inlinecode"><span class="id" title="var">A</span></span>.
+
+<div class="paragraph"> </div>
+
+    Together these properties suggest that every type built from
+    simple type constructors (sum, product, and function) can be
+    reduced to a normal form. Specifically, every such type
+    should be either:
+<ul class="doclist">
+<li> Finite, with <span class="inlinecode"><span class="id" title="var">n</span></span> inhabitants, or
+
+</li>
+<li> Infinite, and isomorphic to a "power tower" of the form
+      <span class="inlinecode">((<span class="id" title="var">ℕ</span></span> <span class="inlinecode">→</span> <span class="inlinecode">..)</span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2)</span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2</span>.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+    Let's prove it. <span class="inlinecode"><span class="id" title="keyword">type</span></span> represents a universe of types
+    built from simple type constructors, finite types,
+    and <span class="inlinecode"><span class="id" title="var">ℕ</span></span>:
+
+</div>
+<div class="code">
+
+<br/>
 <span class="id" title="keyword">Inductive</span> <a name="type"><span class="id" title="inductive">type</span></a> :=<br/>
 | <a name="Fin"><span class="id" title="constructor">Fin</span></a> (<span class="id" title="var">n</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a>)<br/>
 | <a name="Nat"><span class="id" title="constructor">Nat</span></a><br/>
 | <a name="Add"><span class="id" title="constructor">Add</span></a> (<span class="id" title="var">t1</span> <span class="id" title="var">t2</span> : <a class="idref" href="types_not_equal.html#type"><span class="id" title="inductive">type</span></a>)<br/>
 | <a name="Mul"><span class="id" title="constructor">Mul</span></a> (<span class="id" title="var">t1</span> <span class="id" title="var">t2</span> : <a class="idref" href="types_not_equal.html#type"><span class="id" title="inductive">type</span></a>)<br/>
 | <a name="Fun"><span class="id" title="constructor">Fun</span></a> (<span class="id" title="var">t1</span> <span class="id" title="var">t2</span> : <a class="idref" href="types_not_equal.html#type"><span class="id" title="inductive">type</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode">⟦⋅⟧</span> maps each <span class="inlinecode"><span class="id" title="keyword">type</span></span> to its denotation: 
+</div>
+<div class="code">
 
 <br/>
 <span class="id" title="keyword">Reserved Notation</span> &quot;'⟦' t '⟧'".<br/>
@@ -352,9 +362,20 @@ In other words, the following types are all isomorphic:
 <span class="id" title="keyword">where</span> <a name="a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">&quot;</span></a>'⟦' t '⟧'" := (<a class="idref" href="types_not_equal.html#typeD"><span class="id" title="definition">typeD</span></a> <span class="id" title="var">t</span>).<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+A normal form is either a finite type with <span class="inlinecode"><span class="id" title="var">n</span></span> inhabitants or
+    a power tower with height <span class="inlinecode"><span class="id" title="var">m</span></span>.
+    The power tower of height <span class="inlinecode">0</span> is just <span class="inlinecode"><span class="id" title="var">ℕ</span></span>.
+
+</div>
+<div class="code">
+
+<br/>
 <span class="id" title="keyword">Inductive</span> <a name="nf"><span class="id" title="inductive">nf</span></a> :=<br/>
 | <a name="Finite"><span class="id" title="constructor">Finite</span></a> (<span class="id" title="var">n</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a>)<br/>
-| <a name="Tower"><span class="id" title="constructor">Tower</span></a> (<span class="id" title="var">n</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a>).<br/>
+| <a name="Tower"><span class="id" title="constructor">Tower</span></a> (<span class="id" title="var">m</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a>).<br/>
 
 <br/>
 <span class="id" title="keyword">Fixpoint</span> <a name="tower"><span class="id" title="definition">tower</span></a> <span class="id" title="var">n</span> :=<br/>
@@ -364,6 +385,14 @@ In other words, the following types are all isomorphic:
 &nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" title="var">nfD</span></span> converts normal forms back into <span class="inlinecode"><span class="id" title="keyword">type</span></span>s: 
+</div>
+<div class="code">
+
+<br/>
 <span class="id" title="keyword">Fixpoint</span> <a name="nfD"><span class="id" title="definition">nfD</span></a> <span class="id" title="var">t</span> :=<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="types_not_equal.html#t"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">n</span> ⇒ <a class="idref" href="types_not_equal.html#Fin"><span class="id" title="constructor">Fin</span></a> <span class="id" title="var">n</span><br/>
@@ -371,42 +400,200 @@ In other words, the following types are all isomorphic:
 &nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+We'll need to know a number of properties about towers to derive our 
+    type normalizer and prove it correct.
+
+<div class="paragraph"> </div>
+
+    First, towers represent infinite types, so every tower is inhabited. 
+</div>
+<div class="code">
+
+<br/>
 <span class="id" title="keyword">Lemma</span> <a name="tower_inhabited"><span class="id" title="lemma">tower_inhabited</span></a> <span class="id" title="var">n</span> : <a class="idref" href="types_not_equal.html#inhabited"><span class="id" title="definition">inhabited</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
  
 <br/>
-<span class="id" title="keyword">Lemma</span> <a name="tower_succ"><span class="id" title="lemma">tower_succ</span></a> <span class="id" title="var">n</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#True"><span class="id" title="inductive">⊤</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
+</div>
+
+<div class="doc">
+Next, towers are so infinite that doing finite things to them
+    usually has no effect: 
+</div>
+<div class="code">
+
+<br/>
 <span class="id" title="keyword">Lemma</span> <a name="tower_add_fin"><span class="id" title="lemma">tower_add_fin</span></a> <span class="id" title="var">m</span> <span class="id" title="var">n</span> : <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
-
-<br/>
-<span class="id" title="keyword">Lemma</span> <a name="tower_add"><span class="id" title="lemma">tower_add</span></a> <span class="id" title="var">n</span> : <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
 <span class="id" title="keyword">Lemma</span> <a name="tower_mul_fin"><span class="id" title="lemma">tower_mul_fin</span></a> <span class="id" title="var">m</span> <span class="id" title="var">n</span> : <a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
-
-<br/>
-<span class="id" title="keyword">Lemma</span> <a name="tower_mul"><span class="id" title="lemma">tower_mul</span></a> <span class="id" title="var">n</span> : <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
 <span class="id" title="keyword">Lemma</span> <a name="tower_fun_fin"><span class="id" title="lemma">tower_fun_fin</span></a> <span class="id" title="var">m</span> <span class="id" title="var">n</span> : <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">(</span></a><a class="idref" href="types_not_equal.html#fin"><span class="id" title="definition">fin</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a><a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">)</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
 
 <br/>
-<span class="id" title="keyword">Fixpoint</span> <a name="norm"><span class="id" title="definition">norm</span></a> <span class="id" title="var">t</span> : <a class="idref" href="types_not_equal.html#nf"><span class="id" title="inductive">nf</span></a> :=<br/>
+</div>
+
+<div class="doc">
+(Though, going from <span class="inlinecode">⟦<span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">n</span>⟧</span> to <span class="inlinecode">⟦<span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">n</span>⟧</span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">(<span class="id" title="var">S</span></span> <span class="inlinecode"><span class="id" title="var">m</span>)</span>
+    <i>does</i> have an effect, since by putting <span class="inlinecode">⟦<span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">n</span>⟧</span> to the left of an
+    arrow we could potentially be building a bigger power tower.)
+
+<div class="paragraph"> </div>
+
+    In fact, even multiplying a tower by <span class="inlinecode"><span class="id" title="var">ℕ</span></span> doesn't change its size:
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a name="nat_mul_tower_eq_tower"><span class="id" title="lemma">nat_mul_tower_eq_tower</span></a> <span class="id" title="var">n</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Finally, if <span class="inlinecode"><span class="id" title="var">n</span></span> <span class="inlinecode">≥</span> <span class="inlinecode"><span class="id" title="var">m</span></span>, <span class="inlinecode">⟦<span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">n</span>⟧</span> is so much bigger than <span class="inlinecode">⟦<span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">m</span>⟧</span>
+    that adding or multiplying by <span class="inlinecode">⟦<span class="id" title="var">tower</span></span> <span class="inlinecode"><span class="id" title="var">m</span>⟧</span> has no effect: 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a name="add_towers"><span class="id" title="lemma">add_towers</span></a> <span class="id" title="var">n</span> <span class="id" title="var">m</span> : <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#max"><span class="id" title="abbreviation">max</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a>)<a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
+<span class="id" title="keyword">Lemma</span> <a name="mul_towers"><span class="id" title="lemma">mul_towers</span></a> <span class="id" title="var">n</span> <span class="id" title="var">m</span> : <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#max"><span class="id" title="abbreviation">max</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a>)<a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Now we're ready to derive the type normalizer.
+    It will be a function <span class="inlinecode"><span class="id" title="var">norm</span></span> that takes a <span class="inlinecode"><span class="id" title="keyword">type</span></span> and 
+    recursively reduces it to its normal form: 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Fixpoint</span> <a name="norm"><span class="id" title="definition">norm</span></a> (<span class="id" title="var">t</span> : <a class="idref" href="types_not_equal.html#type"><span class="id" title="inductive">type</span></a>) : <a class="idref" href="types_not_equal.html#nf"><span class="id" title="inductive">nf</span></a> :=<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="types_not_equal.html#t"><span class="id" title="variable">t</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;</div>
+
+<div class="doc">
+The base cases are easy: <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode"><span class="id" title="var">n</span></span> is a finite type with <span class="inlinecode"><span class="id" title="var">n</span></span> 
+      inhabitants, and <span class="inlinecode"><span class="id" title="var">ℕ</span></span> is a power tower of height <span class="inlinecode">0</span>. 
+</div>
+<div class="code">
+<br/>
 &nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Fin"><span class="id" title="constructor">Fin</span></a> <span class="id" title="var">n</span> ⇒ <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">n</span><br/>
 &nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Nat"><span class="id" title="constructor">Nat</span></a> ⇒ <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> 0<br/>
+&nbsp;&nbsp;</div>
+
+<div class="doc">
+To reduce <span class="inlinecode">⟦<span class="id" title="var">t1</span>⟧</span> <span class="inlinecode">+</span> <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span>, first recursively reduce <span class="inlinecode">⟦<span class="id" title="var">t1</span>⟧</span> and <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span>: 
+</div>
+<div class="code">
+<br/>
 &nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Add"><span class="id" title="constructor">Add</span></a> <span class="id" title="var">t1</span> <span class="id" title="var">t2</span> ⇒<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="types_not_equal.html#norm"><span class="id" title="definition">norm</span></a> <span class="id" title="var">t1</span>, <a class="idref" href="types_not_equal.html#norm"><span class="id" title="definition">norm</span></a> <span class="id" title="var">t2</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+If both <span class="inlinecode">⟦<span class="id" title="var">t1</span>⟧</span> and <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span> are finite, then their sum is finite too: 
+</div>
+<div class="code">
+<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">n</span>, <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">m</span> ⇒ <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> (<span class="id" title="var">n</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#0dacc1786c5ba797d47dd85006231633"><span class="id" title="notation">+</span></a> <span class="id" title="var">m</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+Otherwise, one of the two types is a power tower and the largest tower 
+        dominates: 
+</div>
+<div class="code">
+<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span>, <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">m</span> ⇒ <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#max"><span class="id" title="abbreviation">max</span></a> <span class="id" title="var">m</span> <span class="id" title="var">n</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span> | <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span>, <span class="id" title="var">_</span> ⇒ <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span>, <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">_</span> | <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">_</span>, <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span> ⇒ <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;</div>
+
+<div class="doc">
+To reduce <span class="inlinecode">⟦<span class="id" title="var">t1</span>⟧</span> <span class="inlinecode">×</span> <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span>, first recursively reduce <span class="inlinecode">⟦<span class="id" title="var">t1</span>⟧</span> and <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span>
+      just like in the <span class="inlinecode"><span class="id" title="keyword">Add</span></span> case: 
+</div>
+<div class="code">
+<br/>
 &nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Mul"><span class="id" title="constructor">Mul</span></a> <span class="id" title="var">t1</span> <span class="id" title="var">t2</span> ⇒<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="types_not_equal.html#norm"><span class="id" title="definition">norm</span></a> <span class="id" title="var">t1</span>, <a class="idref" href="types_not_equal.html#norm"><span class="id" title="definition">norm</span></a> <span class="id" title="var">t2</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+Products are slightly trickier than sums because there's
+        an edge case:
+        if <span class="inlinecode">⟦<span class="id" title="var">t1</span>⟧</span> is empty (that is, isomorphic to <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">0</span>) then
+        <span class="inlinecode">⟦<span class="id" title="var">t1</span>⟧</span> <span class="inlinecode">×</span> <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span> <span class="inlinecode">≅</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">0</span> <span class="inlinecode">×</span> <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span> <span class="inlinecode">≅</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">0</span> no <i>matter how big</i> <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span> <i>is</i>;
+        ditto if <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span> is empty. So, we first check if
+        either of the recursive calls produced an empty type, and return
+        the empty type if so: 
+</div>
+<div class="code">
+<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> 0, <span class="id" title="var">_</span> | <span class="id" title="var">_</span>, <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> 0 ⇒ <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> 0<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+The rest of this case is analogous to the <span class="inlinecode"><span class="id" title="keyword">Add</span></span> case:
+        if <span class="inlinecode">⟦<span class="id" title="var">t1</span>⟧</span> and <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span> are finite, then their product is too,
+        and if any of the types are infinite then the largest tower dominates: 
+</div>
+<div class="code">
+<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">n</span>, <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">m</span> ⇒ <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> (<span class="id" title="var">n</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#ea2ff3d561159081cea6fb2e8113cc54"><span class="id" title="notation">×</span></a> <span class="id" title="var">m</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span>, <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">m</span> ⇒ <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#max"><span class="id" title="abbreviation">max</span></a> <span class="id" title="var">m</span> <span class="id" title="var">n</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span> | <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span>, <span class="id" title="var">_</span> ⇒ <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span>, <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">_</span> | <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">_</span>, <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span> ⇒ <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;</div>
+
+<div class="doc">
+The <span class="inlinecode"><span class="id" title="var">Fun</span></span> case is where things get interesting.
+      As before, we first make recursive calls: 
+</div>
+<div class="code">
+<br/>
 &nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Fun"><span class="id" title="constructor">Fun</span></a> <span class="id" title="var">t1</span> <span class="id" title="var">t2</span> ⇒<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="types_not_equal.html#norm"><span class="id" title="definition">norm</span></a> <span class="id" title="var">t1</span>, <a class="idref" href="types_not_equal.html#norm"><span class="id" title="definition">norm</span></a> <span class="id" title="var">t2</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+This time there are two edge cases.
+
+<div class="paragraph"> </div>
+
+        First, there's exactly one function <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">0</span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">A</span></span>
+        and one function <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">1</span>, no matter how big <span class="inlinecode"><span class="id" title="var">A</span></span> is: 
+</div>
+<div class="code">
+<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> 0, <span class="id" title="var">_</span> | <span class="id" title="var">_</span>, <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> 1 ⇒ <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> 1<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> 0 ⇒ <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> 0<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+Second, if <span class="inlinecode"><span class="id" title="var">A</span></span> is inhabited then there are no functions
+        <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">0</span>.
+
+<div class="paragraph"> </div>
+
+        So if <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span> is empty
+        and <span class="inlinecode">⟦<span class="id" title="var">t1</span>⟧</span> is either a power tower or a finite type with nonzero 
+        cardinality, then <span class="inlinecode">⟦<span class="id" title="var">t1</span>⟧</span> <span class="inlinecode">→</span> <span class="inlinecode">⟦<span class="id" title="var">t2</span>⟧</span> is empty too: 
+</div>
+<div class="code">
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (<a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">_</span> | <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">_</span>)), <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> 0 ⇒ <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> 0<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+(Every <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">(<span class="id" title="var">S</span></span> <span class="inlinecode"><span class="id" title="var">n</span>)</span> and power tower is inhabited.) 
+</div>
+<div class="code">
+<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">m</span>, <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">n</span> ⇒ <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Nat.html#pow"><span class="id" title="definition">Nat.pow</span></a> <span class="id" title="var">n</span> <span class="id" title="var">m</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> <span class="id" title="var">_</span>, <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span> ⇒ <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> <span class="id" title="var">n</span>, <a class="idref" href="types_not_equal.html#Finite"><span class="id" title="constructor">Finite</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">_</span>)) ⇒ <a class="idref" href="types_not_equal.html#Tower"><span class="id" title="constructor">Tower</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#S"><span class="id" title="constructor">S</span></a> <span class="id" title="var">n</span>)<br/>
@@ -416,18 +603,20 @@ In other words, the following types are all isomorphic:
 &nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Lemma</span> <a name="add_leq_towers"><span class="id" title="lemma">add_leq_towers</span></a> <span class="id" title="var">n</span> <span class="id" title="var">m</span> : <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#cb53cf0ee22c036a03b4a9281c68b5a3"><span class="id" title="notation">≤</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
-<span class="id" title="keyword">Lemma</span> <a name="add_towers"><span class="id" title="lemma">add_towers</span></a> <span class="id" title="var">n</span> <span class="id" title="var">m</span> : <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#max"><span class="id" title="abbreviation">max</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a>)<a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
-<span class="id" title="keyword">Lemma</span> <a name="mul_leq_towers"><span class="id" title="lemma">mul_leq_towers</span></a> <span class="id" title="var">n</span> <span class="id" title="var">m</span> : <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#cb53cf0ee22c036a03b4a9281c68b5a3"><span class="id" title="notation">≤</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#1c93e43e07fbeaeb6a625cb6614beb5d"><span class="id" title="notation">→</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
-<span class="id" title="keyword">Lemma</span> <a name="mul_towers"><span class="id" title="lemma">mul_towers</span></a> <span class="id" title="var">n</span> <span class="id" title="var">m</span> : <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#max"><span class="id" title="abbreviation">max</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a>)<a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
-<span class="id" title="keyword">Lemma</span> <a name="nat_mul_tower_eq_tower"><span class="id" title="lemma">nat_mul_tower_eq_tower</span></a> <span class="id" title="var">n</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#nat"><span class="id" title="inductive">ℕ</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
-
-<br/>
-<span class="id" title="keyword">Lemma</span> <a name="tower_leq"><span class="id" title="lemma">tower_leq</span></a> {<span class="id" title="var">m</span> <span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#807cf07fc9b6e174a5f6d1ef141e1432"><span class="id" title="notation">⊑</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#4bfb4f2d0721ba668e3a802ab1b745a1"><span class="id" title="notation">↔</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Peano.html#cb53cf0ee22c036a03b4a9281c68b5a3"><span class="id" title="notation">≤</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a>.<br/>
-<span class="id" title="keyword">Lemma</span> <a name="tower_iso"><span class="id" title="lemma">tower_iso</span></a> {<span class="id" title="var">m</span> <span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#4bfb4f2d0721ba668e3a802ab1b745a1"><span class="id" title="notation">↔</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a>.<br/>
-
-<br/>
 <span class="id" title="keyword">Lemma</span> <a name="norm_spec"><span class="id" title="lemma">norm_spec</span></a> <span class="id" title="var">t</span> : <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#t"><span class="id" title="variable">t</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#nfD"><span class="id" title="definition">nfD</span></a> (<a class="idref" href="types_not_equal.html#norm"><span class="id" title="definition">norm</span></a> <a class="idref" href="types_not_equal.html#t"><span class="id" title="variable">t</span></a>)<a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Since <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">⊏</span> <span class="inlinecode">(<span class="id" title="var">A</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2)</span> and power towers are constructed
+    by repeatedly nesting types inside <span class="inlinecode">(<span class="id" title="var">_</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">fin</span></span> <span class="inlinecode">2)</span>, two towers are isomorphic
+    iff they have the same height: 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a name="tower_iso"><span class="id" title="lemma">tower_iso</span></a> {<span class="id" title="var">m</span> <span class="id" title="var">n</span>} : <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="types_not_equal.html#60c42238b744dea737e9468b1aa7882e"><span class="id" title="notation">≅</span></a> <a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟦</span></a><a class="idref" href="types_not_equal.html#tower"><span class="id" title="definition">tower</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a><a class="idref" href="types_not_equal.html#a28bfd0a35de9a5c69829697b021d0f5"><span class="id" title="notation">⟧</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#4bfb4f2d0721ba668e3a802ab1b745a1"><span class="id" title="notation">↔</span></a> <a class="idref" href="types_not_equal.html#n"><span class="id" title="variable">n</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="types_not_equal.html#m"><span class="id" title="variable">m</span></a>.<br/>
 
 <br/>
 <span class="id" title="keyword">Definition</span> <a name="nf_iso"><span class="id" title="definition">nf_iso</span></a> <span class="id" title="var">t1</span> <span class="id" title="var">t2</span> :=<br/>
