@@ -2,6 +2,9 @@
 (** printing exists %\exists% #∃# *)
 (** printing fun %\lambda% #λ# *)
 (** printing True %\top% #⊤# *)
+(** printing nat %\mathbb{N}% #ℕ# *)
+(** printing bool %\mathbb{B}% #𝔹# *)
+
 (** printing False %\bot% #⊥# *)
 
 (** * When are Coq types provably unequal? *)
