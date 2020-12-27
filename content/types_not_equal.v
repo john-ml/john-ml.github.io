@@ -904,17 +904,17 @@ Qed.
 
 Lemma PAnat_eq_PA {A} :
   inhabited A ->
-  A * nat ⊑ A ->
+  nat * A ⊑ A ->
   (A -> nat) ≅ (A -> fin 2).
 Proof.
   intros Hinh Hinf.
   split.
   - eapply leq_trans; [|eapply leq_fun1; [|apply Hinf]].
-    2: destruct Hinh as [arb _]; now exists (arb, 0).
+    2: destruct Hinh as [arb _]; now exists (0, arb).
     eapply leq_trans; [|apply (proj1 fun_uncurry)].
-    exists (fun f x y => if Nat.eqb (f x) y then inl I else inr (inl I)).
+    exists (fun f x y => if Nat.eqb (f y) x then inl I else inr (inl I)).
     intros f g Heq; apply functional_extensionality; intros x.
-    apply f_equal with (f := fun f => f x (g x)) in Heq.
+    apply f_equal with (f := fun f => f (g x) x) in Heq.
     rewrite PeanoNat.Nat.eqb_refl in Heq.
     destruct (Nat.eqb (f x) (g x)) eqn:Heqb; [|congruence].
     now apply PeanoNat.Nat.eqb_eq.
@@ -1076,24 +1076,87 @@ Proof.
   - simpl. destruct (card t1) as [n1|], (card t2) as [n2|].
     + eapply iso_trans; [apply iso_sum; eassumption|].
       apply fin_sum.
-    + split; [|split; [|split; [|split]]].
-      * destruct IHt2 as [[x _] _]. now exists (inr x).
-      * admit.
-      * admit.
-      * admit.
-      * admit.
-    + split; [|split; [|split; [|split]]].
-      * admit.
-      * admit.
-      * admit.
-      * admit.
-      * admit.
-    + split; [|split; [|split; [|split]]].
-      * admit.
-      * admit.
-      * admit.
-      * admit.
-      * admit.
+    + destruct IHt2 as [[inh _] [Hadd [Hmul [HaddN HmulN]]]].
+      split; [|split; [|split; [|split]]].
+      * now exists (inr inh).
+      * intros k.
+        eapply iso_trans; [symmetry; apply sum_assoc|].
+        eapply iso_trans; [apply iso_sum; [apply sum_comm|apply iso_refl]|].
+        now rewrite sum_assoc; eapply iso_trans; [apply iso_sum; [apply iso_refl|apply Hadd]|].
+      * intros k; split; [|exists (fun x => (inl I, x)); firstorder congruence].
+        eapply leq_iso1; [apply iso_prod; [apply iso_refl|apply iso_sum; [apply IHt1|apply iso_refl]]|].
+        change (True + fin k)%type with (fin (S k)).
+        eapply leq_iso1; [apply prod_sum_distr|].
+        eapply leq_iso1; [apply iso_sum; [apply fin_prod|apply iso_refl]|].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply Hmul]|].
+        eapply leq_iso1; [apply Hadd|].
+        exists inr; firstorder congruence.
+      * eapply iso_trans; [symmetry; apply sum_assoc|].
+        eapply iso_trans; [apply iso_sum; [apply sum_comm|apply iso_refl]|].
+        now rewrite sum_assoc; eapply iso_trans; [apply iso_sum; [apply iso_refl|apply HaddN]|].
+      * split; [|exists (fun x => (0, x)); firstorder congruence].
+        eapply leq_iso1; [apply iso_prod; [apply iso_refl|apply iso_sum; [apply IHt1|apply iso_refl]]|].
+        eapply leq_iso1; [apply prod_sum_distr|].
+        eapply leq_iso1; [apply iso_sum; [apply prod_comm|apply iso_refl]|].
+        destruct n1 as [|n1].
+        -- eapply leq_iso1; [apply iso_sum; [apply prod_False|apply iso_refl]|].
+           eapply leq_iso1; [apply sum_False|].
+           eapply leq_iso1; [apply HmulN|].
+           exists inr; firstorder congruence.
+        -- eapply leq_iso1; [apply iso_sum; [apply nat_fin_prod|apply iso_refl]|].
+           eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply HmulN]|].
+           eapply leq_iso1; [apply HaddN|].
+           exists inr; firstorder congruence.
+    + destruct IHt1 as [[inh _] [Hadd [Hmul [HaddN HmulN]]]].
+      split; [|split; [|split; [|split]]].
+      * now exists (inl inh).
+      * intros k.
+        eapply iso_trans; [symmetry; apply sum_assoc|].
+        now eapply iso_trans; [apply iso_sum; [apply Hadd|apply iso_refl]|].
+      * intros k; split; [|exists (fun x => (inl I, x)); firstorder congruence].
+        eapply leq_iso1; [apply iso_prod; [apply iso_refl|apply iso_sum; [apply iso_refl|apply IHt2]]|].
+        change (True + fin k)%type with (fin (S k)).
+        eapply leq_iso1; [apply prod_sum_distr|].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply fin_prod]|].
+        eapply leq_iso1; [apply iso_sum; [apply Hmul|apply iso_refl]|].
+        eapply leq_iso1; [apply sum_comm|].
+        eapply leq_iso1; [apply Hadd|].
+        exists inl; firstorder congruence.
+      * eapply iso_trans; [symmetry; apply sum_assoc|].
+        now eapply iso_trans; [apply iso_sum; [apply HaddN|apply iso_refl]|].
+      * split; [|exists (fun x => (0, x)); firstorder congruence].
+        eapply leq_iso1; [apply iso_prod; [apply iso_refl|apply iso_sum; [apply iso_refl|apply IHt2]]|].
+        eapply leq_iso1; [apply prod_sum_distr|].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply prod_comm]|].
+        destruct n2 as [|n2].
+        -- eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply prod_False]|].
+           eapply leq_iso1; [apply sum_comm|].
+           eapply leq_iso1; [apply sum_False|].
+           eapply leq_iso1; [apply HmulN|].
+           exists inl; firstorder congruence.
+        -- eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply nat_fin_prod]|].
+           eapply leq_iso1; [apply sum_comm|].
+           eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply HmulN]|].
+           eapply leq_iso1; [apply HaddN|].
+           exists inl; firstorder congruence.
+    + destruct IHt1 as [[inh1 _] [Hadd1 [Hmul1 [HaddN1 HmulN1]]]].
+      destruct IHt2 as [[inh2 _] [Hadd2 [Hmul2 [HaddN2 HmulN2]]]].
+      split; [|split; [|split; [|split]]].
+      * now exists (inl inh1).
+      * intros k.
+        eapply iso_trans; [symmetry; apply sum_assoc|].
+        eapply iso_trans; [apply iso_sum; [apply sum_comm|apply iso_refl]|].
+        now rewrite sum_assoc; eapply iso_trans; [apply iso_sum; [apply iso_refl|apply Hadd2]|].
+      * intros k.
+        eapply iso_trans; [apply prod_sum_distr|].
+        eapply iso_trans; [apply iso_sum; [apply iso_refl|apply Hmul2]|].
+        now eapply iso_trans; [apply iso_sum; [apply Hmul1|apply iso_refl]|].
+      * eapply iso_trans; [symmetry; apply sum_assoc|].
+        eapply iso_trans; [apply iso_sum; [apply sum_comm|apply iso_refl]|].
+        now rewrite sum_assoc; eapply iso_trans; [apply iso_sum; [apply iso_refl|apply HaddN2]|].
+      * eapply iso_trans; [apply prod_sum_distr|].
+        eapply iso_trans; [apply iso_sum; [apply HmulN1|apply iso_refl]|].
+        now eapply iso_trans; [apply iso_sum; [apply iso_refl|apply HmulN2]|].
   - simpl. destruct (card t1) as [[|n1]|], (card t2) as [[|n2]|].
     all: try match goal with
     | H : ?t ≅ fin 0 |- _ * ?t ≅ fin 0 =>
@@ -1110,27 +1173,116 @@ Proof.
     end.
     + eapply iso_trans; [apply iso_prod; eassumption|].
       apply fin_prod.
-    + split; [|split; [|split; [|split]]].
-      * (* both sides inhabited *) admit.
-      * (* k + t1 t2 = k + n t2 = n t2 = t2 ⊆ t1 t2 *)
-        admit.
-      * (* k t1 t2 = k n t2 = t2 ⊆ t1 t2 *)
-        admit.
-      * (* t1 t2 + n = (t1 + 1) t2 + n = t1 t2 + t2 + n = t1 t2 + t2 = (t1 + 1) t2 = t1 t2 *)
-        admit.
-      * admit.
-    + split; [|split; [|split; [|split]]].
-      * admit.
-      * admit.
-      * admit.
-      * admit.
-      * admit.
-    + split; [|split; [|split; [|split]]].
-      * admit.
-      * admit.
-      * admit.
-      * admit.
-      * admit.
+    + destruct IHt2 as [[inh _] [Hadd [Hmul [HaddN HmulN]]]].
+      split; [|split; [|split; [|split]]].
+      * eapply inhabited_iso; [apply iso_prod; [symmetry; apply IHt1|apply iso_refl]|].
+        now exists (inl I, inh).
+      * split; [|exists inr; firstorder congruence].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply iso_prod; [apply IHt1|apply iso_refl]]|].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply Hmul]|].
+        eapply leq_iso1; [apply Hadd|].
+        eapply leq_iso2; [apply iso_prod; [apply IHt1|apply iso_refl]|].
+        exists (fun x => (inl I, x)); firstorder congruence.
+      * split; [|exists (fun x => (inl I, x)); firstorder congruence].
+        eapply leq_iso1; [apply iso_prod; [apply iso_refl|apply iso_prod; [apply IHt1|apply iso_refl]]|].
+        eapply leq_iso1; [symmetry; apply prod_assoc|].
+        change (True + fin k)%type with (fin (S k)).
+        eapply leq_iso1; [apply iso_prod; [apply fin_prod|apply iso_refl]|].
+        eapply leq_iso1; [apply Hmul|].
+        eapply leq_iso2; [apply iso_prod; [apply IHt1|apply iso_refl]|].
+        exists (fun x => (inl I, x)); firstorder congruence.
+      * split; [|exists inr; firstorder congruence].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply iso_prod; [apply IHt1|apply iso_refl]]|].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply Hmul]|].
+        eapply leq_iso1; [apply HaddN|].
+        eapply leq_iso2; [apply iso_prod; [apply IHt1|apply iso_refl]|].
+        exists (fun x => (inl I, x)); firstorder congruence.
+      * split; [|exists (fun x => (0, x)); firstorder congruence].
+        eapply leq_iso1; [apply iso_prod; [apply iso_refl|apply iso_prod; [apply IHt1|apply iso_refl]]|].
+        eapply leq_iso1; [symmetry; apply prod_assoc|].
+        eapply leq_iso1; [apply iso_prod; [apply prod_comm|apply iso_refl]|].
+        eapply leq_iso1; [apply iso_prod; [apply nat_fin_prod|apply iso_refl]|].
+        eapply leq_iso1; [apply HmulN|].
+        eapply leq_iso2; [apply iso_prod; [apply IHt1|apply iso_refl]|].
+        exists (fun x => (inl I, x)); firstorder congruence.
+    + destruct IHt1 as [[inh _] [Hadd [Hmul [HaddN HmulN]]]].
+      split; [|split; [|split; [|split]]].
+      * eapply inhabited_iso; [apply iso_prod; [apply iso_refl|symmetry; apply IHt2]|].
+        now exists (inh, inl I).
+      * split; [|exists inr; firstorder congruence].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply iso_prod; [apply iso_refl|apply IHt2]]|].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply prod_comm]|].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply Hmul]|].
+        eapply leq_iso1; [apply Hadd|].
+        eapply leq_iso2; [apply iso_prod; [apply iso_refl|apply IHt2]|].
+        exists (fun x => (x, inl I)); firstorder congruence.
+      * split; [|exists (fun x => (inl I, x)); firstorder congruence].
+        eapply leq_iso1; [apply iso_prod; [apply iso_refl|apply iso_prod; [apply iso_refl|apply IHt2]]|].
+        eapply leq_iso1; [apply iso_prod; [apply iso_refl|apply prod_comm]|].
+        eapply leq_iso1; [symmetry; apply prod_assoc|].
+        change (True + fin k)%type with (fin (S k)).
+        eapply leq_iso1; [apply iso_prod; [apply fin_prod|apply iso_refl]|].
+        eapply leq_iso1; [apply Hmul|].
+        eapply leq_iso2; [apply iso_prod; [apply iso_refl|apply IHt2]|].
+        exists (fun x => (x, inl I)); firstorder congruence.
+      * split; [|exists inr; firstorder congruence].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply iso_prod; [apply iso_refl|apply IHt2]]|].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply prod_comm]|].
+        eapply leq_iso1; [apply iso_sum; [apply iso_refl|apply Hmul]|].
+        eapply leq_iso1; [apply HaddN|].
+        eapply leq_iso2; [apply iso_prod; [apply iso_refl|apply IHt2]|].
+        exists (fun x => (x, inl I)); firstorder congruence.
+      * split; [|exists (fun x => (0, x)); firstorder congruence].
+        eapply leq_iso1; [apply iso_prod; [apply iso_refl|apply iso_prod; [apply iso_refl|apply IHt2]]|].
+        eapply leq_iso1; [apply iso_prod; [apply iso_refl|apply prod_comm]|].
+        eapply leq_iso1; [symmetry; apply prod_assoc|].
+        eapply leq_iso1; [apply iso_prod; [apply prod_comm|apply iso_refl]|].
+        eapply leq_iso1; [apply iso_prod; [apply nat_fin_prod|apply iso_refl]|].
+        eapply leq_iso1; [apply HmulN|].
+        eapply leq_iso2; [apply iso_prod; [apply iso_refl|apply IHt2]|].
+        exists (fun x => (x, inl I)); firstorder congruence.
+    + destruct IHt1 as [[inh1 _] [Hadd1 [Hmul1 [HaddN1 HmulN1]]]].
+      destruct IHt2 as [[inh2 _] [Hadd2 [Hmul2 [HaddN2 HmulN2]]]].
+      split; [|split; [|split; [|split]]].
+      * now exists (inh1, inh2).
+      * intros k.
+        eapply iso_trans;
+          [apply iso_sum; [apply iso_refl|apply iso_prod; [apply iso_refl|symmetry; apply (Hadd2 1)]]|].
+        eapply iso_trans; [apply iso_sum; [apply iso_refl|apply prod_sum_distr]|].
+        eapply iso_trans; [apply iso_sum; [apply iso_refl|apply iso_sum; [apply prod_comm|apply iso_refl]]|].
+        eapply iso_trans; [apply iso_sum;
+                          [apply iso_refl|apply iso_sum;
+                                          [apply iso_prod;
+                                           [symmetry; apply fin_True|apply iso_refl]|apply iso_refl]]|].
+        eapply iso_trans; [apply iso_sum; [apply iso_refl|apply iso_sum; [apply prod_True|apply iso_refl]]|].
+        eapply iso_trans; [symmetry; apply sum_assoc|].
+        eapply iso_trans; [apply iso_sum; [apply Hadd1|apply iso_refl]|].
+        eapply iso_trans; [apply iso_sum; [symmetry; apply prod_True|apply iso_refl]|].
+        eapply iso_trans; [apply iso_sum; [apply iso_prod; [apply fin_True|apply iso_refl]|apply iso_refl]|].
+        eapply iso_trans; [apply iso_sum; [apply prod_comm|apply iso_refl]|].
+        eapply iso_trans; [symmetry; apply prod_sum_distr|].
+        now eapply iso_trans; [apply iso_prod; [apply iso_refl|apply Hadd2]|].
+      * intros k.
+        eapply iso_trans; [symmetry; apply prod_assoc|].
+        now eapply iso_trans; [apply iso_prod; [apply Hmul1|apply iso_refl]|].
+      * eapply iso_trans;
+          [apply iso_sum; [apply iso_refl|apply iso_prod; [apply iso_refl|symmetry; apply (Hadd2 1)]]|].
+        eapply iso_trans; [apply iso_sum; [apply iso_refl|apply prod_sum_distr]|].
+        eapply iso_trans; [apply iso_sum; [apply iso_refl|apply iso_sum; [apply prod_comm|apply iso_refl]]|].
+        eapply iso_trans; [apply iso_sum;
+                          [apply iso_refl|apply iso_sum;
+                                          [apply iso_prod;
+                                           [symmetry; apply fin_True|apply iso_refl]|apply iso_refl]]|].
+        eapply iso_trans; [apply iso_sum; [apply iso_refl|apply iso_sum; [apply prod_True|apply iso_refl]]|].
+        eapply iso_trans; [symmetry; apply sum_assoc|].
+        eapply iso_trans; [apply iso_sum; [apply HaddN1|apply iso_refl]|].
+        eapply iso_trans; [apply iso_sum; [symmetry; apply prod_True|apply iso_refl]|].
+        eapply iso_trans; [apply iso_sum; [apply iso_prod; [apply fin_True|apply iso_refl]|apply iso_refl]|].
+        eapply iso_trans; [apply iso_sum; [apply prod_comm|apply iso_refl]|].
+        eapply iso_trans; [symmetry; apply prod_sum_distr|].
+        now eapply iso_trans; [apply iso_prod; [apply iso_refl|apply Hadd2]|].
+      * eapply iso_trans; [symmetry; apply prod_assoc|].
+        now eapply iso_trans; [apply iso_prod; [apply HmulN1|apply iso_refl]|].
   - simpl. destruct (card t1) as [[|n1]|], (card t2) as [[|[|n2]]|].
     all: try match goal with
     | Hs : ?s ≅ fin _, Ht : ?t ≅ fin _ |- (?s -> ?t) ≅ fin _ =>
@@ -1176,10 +1328,50 @@ Proof.
         eapply leq_iso1; [eapply iso_fun2, fin_sum|].
         replace (k + S (S n2)) with (S (S (k + n2))) by lia.
         apply PA2n_eq_PA; tauto.
-      * (* k (t1 -> t2) ⊆ t1 -> k t2 = t1 -> t2 (last step by PA2n_eq_PA) TODO *) admit.
-      * (* (t1 -> t2) = (t1 + N -> bool + t2) 
-           then construct injection ((t1 -> t2) + N) ⊑ (t1 + N -> bool + t2) *) admit.
-      * (* (t1 -> t2) N ⊆ (t1 -> t2 N) = (t1 -> N) = (t1 -> 2) (by PAn_eq_PA) ⊆ (t1 -> t2) *) admit.
+      * intros k; split; [|exists (fun x => (inl I, x)); firstorder congruence].
+        eapply leq_iso2; [eapply iso_fun2, IHt2|].
+        eapply leq_iso2; [apply PA2n_eq_PA; tauto|].
+        eapply leq_trans; [apply prod_fun_leq_fun_prod; tauto|].
+        eapply leq_iso1; [eapply iso_fun2, iso_prod; [apply iso_refl|apply IHt2]|].
+        change (True + fin k)%type with (fin (S k)).
+        eapply leq_iso1; [eapply iso_fun2, fin_prod|].
+        apply PA2n_eq_PA; tauto.
+      * split; [|exists inr; firstorder congruence].
+        assert (Hiso : (⟦t1⟧ -> ⟦t2⟧) ≅ (⟦t1⟧ + nat -> bool + ⟦t2⟧)).
+        { eapply iso_trans; [eapply iso_fun2, IHt2|].
+          eapply iso_trans; [apply PA2n_eq_PA; tauto|].
+          eapply iso_trans; [symmetry; apply (@PA2n_eq_PA _ (S (S n2))); try tauto|].
+          eapply iso_trans; [eapply iso_fun2; symmetry; apply fin_sum|].
+          eapply iso_trans; [eapply iso_fun2, iso_sum; [symmetry; apply fin_bool|apply iso_refl]|].
+          eapply iso_trans; [eapply iso_fun2, iso_sum; [apply iso_refl|symmetry; apply IHt2]|].
+          apply iso_fun1.
+          rewrite sum_comm; symmetry; tauto. }
+        eapply leq_iso2; [apply Hiso|].
+        exists (fun x =>
+             match x with
+             | inl n => fun m => match m with inl _ => inl false | inr m => inl (Nat.eqb n m) end
+             | inr f => fun m => match m with inl x => inr (f x) | inr m => inl false end
+             end).
+        intros [m1|f1] [m2|f2] Heq.
+        -- apply f_equal with (f := fun f => f (inr m1)) in Heq.
+           rewrite PeanoNat.Nat.eqb_refl in Heq; inversion Heq as [Heq'].
+           symmetry in Heq'; apply PeanoNat.Nat.eqb_eq in Heq'; congruence.
+        -- apply f_equal with (f := fun f => f (inr m1)) in Heq.
+           now rewrite PeanoNat.Nat.eqb_refl in Heq.
+        -- apply f_equal with (f := fun f => f (inr m2)) in Heq.
+           now rewrite PeanoNat.Nat.eqb_refl in Heq.
+        -- f_equal; apply functional_extensionality; intros x.
+           apply f_equal with (f := fun f => f (inl x)) in Heq; congruence.
+      * destruct IHt1 as [Hinh [Hadd [Hmul [HaddN HmulN]]]].
+        split; [|exists (fun x => (0, x)); firstorder congruence].
+        eapply leq_trans; [apply prod_fun_leq_fun_prod; tauto|].
+        eapply leq_iso1; [eapply iso_fun2; apply prod_comm|].
+        eapply leq_iso1; [eapply iso_fun2, iso_prod; [apply IHt2|apply iso_refl]|].
+        eapply leq_iso1; [eapply iso_fun2, nat_fin_prod|].
+        eapply leq_iso1; [apply PAnat_eq_PA; destruct HmulN; tauto|].
+        eapply leq_iso1; [symmetry; eapply (@PA2n_eq_PA _ n2); tauto|].
+        eapply leq_iso1; [eapply iso_fun2; symmetry; apply IHt2|].
+        apply leq_refl.
     + destruct IHt1 as [Hinh1 _].
       destruct IHt2 as [Hinh [Hadd [Hmul [HaddN HmulN]]]].
       split; [|split; [|split; [|split]]].
@@ -1196,7 +1388,7 @@ Proof.
       * split; [|exists (fun x => (0, x)); clear; firstorder congruence].
         eapply leq_iso2; [eapply iso_fun2; symmetry; apply HmulN|].
         apply prod_fun_leq_fun_prod; auto.
-Abort.
+Qed.
 
 (*
 Lemma finite_fin {t} :
