@@ -79,16 +79,18 @@ Definition injective {A B} (f : A -> B) := forall x y, f x = f y -> x = y.
 
 Definition leq A B := exists f : A -> B, injective f.
 Infix "⊑" := leq (at level 70, no associativity).
-
+(* begin hide *)
 Lemma leq_refl {A} : A ⊑ A. Proof. exists (fun x =>  x); firstorder. Qed.
+(* end hide *)
 
 (** Then, two types are isomorphic if they're less than or equal to each other: *)
 
 Definition iso A B := A ⊑ B /\ B ⊑ A.
 Infix "≅" := iso (at level 70, no associativity).
 Notation "a '≇' b" := (~ (a ≅ b)) (at level 70, no associativity).
-
+(* begin hide *)
 Lemma iso_refl {A} : A ≅ A. Proof. split; apply leq_refl. Qed.
+(* end hide *)
 
 (** To show two types unequal, it's sufficient to show that they aren't isomorphic: *)
 
@@ -123,8 +125,7 @@ Qed.
 (** I thought it'd be fun to automate this kind of reasoning for more complicated 
     types, using 
     #<a href="http://adam.chlipala.net/cpdt/html/Reflection.html">reflection</a>#.
-    To do so, we'll first need a bunch of helper definitions and lemmas
-    about [(⊑)] and [(≅)]. 
+    To do so, we'll first need a bunch of helper definitions and lemmas.
 
     A type is inhabited if we can construct a value of that type: *)
 
@@ -456,7 +457,7 @@ Qed.
     a sum [True + (True + (.. + False))]:
 *)
 
-Definition fin n : Type := Nat.iter n (sum True) False.
+Definition fin n := Nat.iter n (sum True) False.
 
 (** For example, [bool] is a finite type with 2 inhabitants: *)
 
