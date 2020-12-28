@@ -1483,8 +1483,10 @@ Definition f (H : bool <> nat) (x : T nat) : unit :=
 (** Typeclass resolution can then be used to reify any simple type.
     For example, to reify [nat -> fin 5 -> (nat -> bool) -> bool]: *)
 
-  (* begin show *)
+  (* begin hide *)
   Goal True.
+  (* end hide *)
+  (* begin show *)
     evar (t : type);
     assert (Ht : Reifies (nat -> fin 5 -> (nat -> bool) -> bool) t)
       by (subst t; typeclasses eauto).
@@ -1496,8 +1498,10 @@ Definition f (H : bool <> nat) (x : T nat) : unit :=
   True]]
     Typeclass resolution has found a suitable [type] and
     proved that its denotation really is isomorphic to the type we want. *)
+  (* end show*)
+  (* begin hide *)
   Abort.
-  (* end show *)
+  (* end hide *)
 
 (** With this we can write a tactic [dec_ne] for solving goals of the form [A <> B]
     as follows:
