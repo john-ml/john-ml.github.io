@@ -55,6 +55,7 @@ Definition f (H : bool <> nat) (x : T nat) : unit :=
   end eq_refl.
 
 *)
+
 (** How does one prove in Coq that [nat <> bool]?
     The usual tactics for proving things unequal
     ([discriminate], [inversion], etc.) don't work because

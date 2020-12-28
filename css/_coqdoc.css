@@ -24,7 +24,7 @@
 /* Contents */
 
 #main{ display: block;
-       /* padding: 10px; */
+       padding: 10px;
        font-family: sans-serif;
        font-size: 100%;
        line-height: 100% }
@@ -46,7 +46,7 @@
 
 .section { 
   padding-top: 13px; 
-  padding-bottom: 13px; 
+  /* padding-bottom: 13px; */ 
   padding-left: 0px; 
   margin-top: 5px;
   margin-bottom: 5px;
