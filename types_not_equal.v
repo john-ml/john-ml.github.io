@@ -1023,17 +1023,17 @@ Definition f (H : bool <> nat) (x : T nat) : unit :=
   where "'⟦' t '⟧'" := (typeD t).
 
 (** A power tower of height [n] is the type [nat] nested under [(_ -> fin 2)],
-    [n] times.
-
-    Since [A ⊏ (A -> fin 2)] and power towers are constructed
-    by repeatedly nesting types inside [(_ -> fin 2)], two towers are isomorphic
-    iff they have the same height. *)
+    [n] times. *)
 
   Fixpoint tower n : Type :=
     match n with
     | 0 => nat
     | S n => tower n -> fin 2
     end.
+
+(** Since [A ⊏ (A -> fin 2)] and power towers are constructed
+    by repeatedly nesting types inside [(_ -> fin 2)], two towers are isomorphic
+    iff they have the same height. *)
   
   (* begin hide *)
   Lemma tower_inhabited n : inhabited (tower n).
