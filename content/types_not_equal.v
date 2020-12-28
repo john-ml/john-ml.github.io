@@ -287,6 +287,12 @@ Proof.
   try now (apply HfA + apply HfB + apply HgA + apply HgB).
 Qed.
 
+Lemma iso_sum1 {A A' B} : A ≅ A' -> A + B ≅ A' + B.
+Proof. intros HA; apply iso_sum; [auto|apply iso_refl]. Qed.
+
+Lemma iso_sum2 {A B B'} : B ≅ B' -> A + B ≅ A + B'.
+Proof. intros HB; apply iso_sum; [apply iso_refl|auto]. Qed.
+
 Add Parametric Morphism : @prod with
   signature iso ==> iso ==> iso as iso_prod.
 Proof.
@@ -295,6 +301,12 @@ Proof.
   intros [x1 y1] [x2 y2] Heq; inversion Heq; subst; f_equal;
   try now (apply HfA + apply HfB + apply HgA + apply HgB).
 Qed.
+
+Lemma iso_prod1 {A A' B} : A ≅ A' -> A * B ≅ A' * B.
+Proof. intros HA; apply iso_prod; [auto|apply iso_refl]. Qed.
+
+Lemma iso_prod2 {A B B'} : B ≅ B' -> A * B ≅ A * B'.
+Proof. intros HB; apply iso_prod; [apply iso_refl|auto]. Qed.
 
 Lemma iso_fun1 {A B C} : A ≅ B -> (A -> C) ≅ (B -> C).
 Proof.
@@ -511,7 +523,7 @@ Lemma nat_fin_sum {n} : fin n + nat ≅ nat.
 Proof.
   induction n; cbn; [now rewrite sum_False|].
   rewrite sum_assoc.
-  eapply iso_trans; [apply iso_sum; [reflexivity|apply IHn]|]; clear.
+  eapply iso_trans; [eapply iso_sum2; apply IHn|]; clear.
   split; [exists (fun xn => match xn with inl _ => 0 | inr n => S n end)|exists inr];
   [intros [[]|m] [[]|n]|intros m n]; congruence.
 Qed.
@@ -543,14 +555,14 @@ Proof.
 Qed.
 Lemma nat_fin_prod {n} : fin (S n) * nat ≅ nat.
 Proof.
-  Fail induction n; cbn; [rewrite sum_comm|]. (* TODO: why setoid failures? *)
+  Fail induction n; cbn; [setoid_rewrite sum_comm|]. (* TODO: why setoid failures? *)
   induction n; cbn.
-  - eapply iso_trans; [apply iso_prod; [rewrite sum_comm, sum_False|]; apply iso_refl|].
+  - eapply iso_trans; [eapply iso_prod1; rewrite sum_comm; apply sum_False|].
     now rewrite prod_True.
   - change (True + fin n)%type with (fin (S n)).
     rewrite prod_comm, prod_sum_distr.
-    eapply iso_trans; [apply iso_sum; [rewrite prod_comm, prod_True; apply iso_refl|apply prod_comm]|].
-    eapply iso_trans; [apply iso_sum; [apply iso_refl|apply IHn]|].
+    eapply iso_trans; [apply iso_sum; [now rewrite prod_comm, prod_True|apply prod_comm]|].
+    eapply iso_trans; [eapply iso_sum2; apply IHn|].
     clear.
     split;
       [exists (fun mn => match mn with inl m => 2*m | inr m => 2*m + 1 end)
@@ -1127,8 +1139,8 @@ Proof.
     split; [|exists inr; firstorder congruence].
     eapply leq_iso2; [eapply iso_fun1; symmetry; apply IHn|].
     eapply leq_iso2; [apply fun_sum_distr|].
-    eapply leq_iso2; [apply iso_prod; [apply fun_True1|apply iso_refl]|].
-    eapply leq_iso2; [apply iso_prod; [symmetry; apply fin_bool|apply iso_refl]|].
+    eapply leq_iso2; [eapply iso_prod1; apply fun_True1|].
+    eapply leq_iso2; [eapply iso_prod1; symmetry; apply fin_bool|].
     exists (fun x => match x with inl I => (true, fun _ => inl I) | inr f => (false, f) end).
     intros [[]|f] [[]|g] Heq; congruence.
 Qed.
@@ -1138,7 +1150,7 @@ Proof.
   induction m.
   - apply sum_False.
   - simpl; rewrite sum_assoc.
-    eapply iso_trans; [apply iso_sum; [apply iso_refl|apply IHm]|].
+    eapply iso_trans; [eapply iso_sum2; apply IHm|].
     apply tower_succ.
 Qed.
 (* begin hide *)
@@ -1150,8 +1162,8 @@ Proof.
     { simpl. rewrite prod_comm, prod_sum_distr.
       apply iso_sum; [rewrite prod_comm, prod_True; easy|].
       rewrite prod_sum_distr, sum_comm.
-      eapply iso_trans; [|apply iso_sum; [apply prod_comm|apply iso_refl]].
-      eapply iso_trans; [|apply iso_sum; [symmetry; apply prod_False|apply iso_refl]].
+      eapply iso_trans; [|eapply iso_sum1; apply prod_comm].
+      eapply iso_trans; [|eapply iso_sum1; symmetry; apply prod_False].
       now rewrite sum_False, prod_comm, prod_True. }
     eapply iso_trans; [apply Hdub|].
     apply nat_fin_prod.
@@ -1171,7 +1183,7 @@ Qed.
 Lemma tower_mul_fin m n : fin (S m) * tower n ≅ tower n.
 Proof.
   induction m.
-  - eapply iso_trans; [apply iso_prod; [symmetry; apply fin_True|apply iso_refl]|].
+  - eapply iso_trans; [eapply iso_prod1; symmetry; apply fin_True|].
     apply prod_True.
   - change (fin (S (S m))) with (True + fin (S m))%type.
     rewrite prod_comm, prod_sum_distr.
@@ -1244,9 +1256,9 @@ Lemma nat_mul_tower_eq_tower n : nat * tower n ≅ tower n.
 Proof.
   induction n.
   - apply (tower_mul 0).
-  - eapply iso_trans; [apply iso_prod; [apply iso_refl|symmetry; apply (mul_leq_towers n (S n)); lia]|].
+  - eapply iso_trans; [eapply iso_prod2; symmetry; apply (mul_leq_towers n (S n)); lia|].
     eapply iso_trans; [symmetry; apply prod_assoc|].
-    eapply iso_trans; [apply iso_prod; [apply IHn|apply iso_refl]|].
+    eapply iso_trans; [eapply iso_prod2; apply iso_refl|].
     apply mul_leq_towers; lia.
 Qed.
 
