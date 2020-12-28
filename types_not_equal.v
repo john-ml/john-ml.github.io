@@ -1503,29 +1503,29 @@ Definition f (H : bool <> nat) (x : T nat) : unit :=
   Abort.
   (* end hide *)
 
-(** With this we can write a tactic [dec_ne] for solving goals of the form [A <> B]
-    as follows:
+(** The following tactic automates this process: *)
+
+(* begin show *)
+  Ltac reify A k :=
+    let t := fresh "t" with Ht := fresh "Ht" in
+    evar (t : type);
+    (assert (Ht : Reifies A t) by (subst t; typeclasses eauto));
+    subst t;
+    lazymatch type of Ht with
+    | Reifies _ ?t' =>
+      unfold Reifies in Ht; k Ht t'
+    end.
+(* end show *)
+
+(** Now we can solve goals of the form [A <> B] as follows:
     - Reify [A] into [s] and [B] into [t].
     - Use [isob] to check whether [s] and [t] have equal normal forms.
     - If they don't, then [⟦s⟧ ≇ ⟦t⟧]. Use this fact to prove [A <> B].
     - Otherwise, fail with a message that says the two types are isomorphic. 
 
-    I won't show [dec_ne] here because, like most Ltac, it's pretty ugly. 
-    But, here are some examples of it in action: *)
-
-  (* begin hide *)
-  Ltac reify A k :=
-    let t := fresh "t" in
-    evar (t : type);
-    let Ht := fresh "Ht" in
-    (assert (Ht : Reifies A t) by (subst t; typeclasses eauto));
-    subst t;
-    lazymatch type of Ht with
-    | Reifies _ ?t' =>
-      unfold Reifies in Ht;
-      k Ht t'
-    end.
+    As a tactic: *)
   
+(* begin show *)
   Ltac dec_ne :=
     lazymatch goal with
     | |- ?A <> ?B =>
@@ -1533,7 +1533,6 @@ Definition f (H : bool <> nat) (x : T nat) : unit :=
       reify B ltac:(fun HB t =>
       let b := eval cbv in (isob s t) in
       lazymatch b with
-      | true => fail "Types are isomorphic"
       | false =>
         assert (isob s t = b) by reflexivity;
         let Hne := fresh "Hne" in
@@ -1544,7 +1543,10 @@ Definition f (H : bool <> nat) (x : T nat) : unit :=
         [symmetry; apply HA|apply HB]
       end))
     end.
-  (* end hide *)
+(* end show *)
+
+(** Here are some examples of [dec_ne] in action: *)
+
   (* begin show *)
   Lemma example1 : nat <> bool. Proof. dec_ne. Qed.
   Lemma example2 : nat <> (nat -> nat). Proof. dec_ne. Qed.

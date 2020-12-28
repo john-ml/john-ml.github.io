@@ -785,8 +785,26 @@ Typeclass resolution can then be used to reify any simple type.
 </div>
 
 <div class="doc">
-With this we can write a tactic <span class="inlinecode"><span class="id" title="var">dec_ne</span></span> for solving goals of the form <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span>
-    as follows:
+The following tactic automates this process: 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Ltac</span> <span class="id" title="var">reify</span> <span class="id" title="var">A</span> <span class="id" title="var">k</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">t</span> := <span class="id" title="tactic">fresh</span> "t" <span class="id" title="keyword">with</span> <span class="id" title="var">Ht</span> := <span class="id" title="tactic">fresh</span> "Ht" <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">evar</span> (<span class="id" title="var">t</span> : <a class="idref" href="types_not_equal.html#type"><span class="id" title="inductive">type</span></a>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="tactic">assert</span> (<span class="id" title="var">Ht</span> : <a class="idref" href="types_not_equal.html#Reifies"><span class="id" title="class">Reifies</span></a> <span class="id" title="var">A</span> <span class="id" title="var">t</span>) <span class="id" title="tactic">by</span> (<span class="id" title="tactic">subst</span> <span class="id" title="var">t</span>; <span class="id" title="var">typeclasses</span> <span class="id" title="tactic">eauto</span>));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">subst</span> <span class="id" title="var">t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">lazymatch</span> <span class="id" title="keyword">type</span> <span class="id" title="keyword">of</span> <span class="id" title="var">Ht</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="types_not_equal.html#Reifies"><span class="id" title="class">Reifies</span></a> <span class="id" title="var">_</span> ?<span class="id" title="var">t'</span> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">unfold</span> <a class="idref" href="types_not_equal.html#Reifies"><span class="id" title="class">Reifies</span></a> <span class="id" title="tactic">in</span> <span class="id" title="var">Ht</span>; <span class="id" title="var">k</span> <span class="id" title="var">Ht</span> <span class="id" title="var">t'</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Now we can solve goals of the form <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode">≠</span> <span class="inlinecode"><span class="id" title="var">B</span></span> as follows:
 <ul class="doclist">
 <li> Reify <span class="inlinecode"><span class="id" title="var">A</span></span> into <span class="inlinecode"><span class="id" title="var">s</span></span> and <span class="inlinecode"><span class="id" title="var">B</span></span> into <span class="inlinecode"><span class="id" title="var">t</span></span>.
 
@@ -804,8 +822,34 @@ With this we can write a tactic <span class="inlinecode"><span class="id" title=
 
 <div class="paragraph"> </div>
 
-    I won't show <span class="inlinecode"><span class="id" title="var">dec_ne</span></span> here because, like most Ltac, it's pretty ugly. 
-    But, here are some examples of it in action: 
+    As a tactic: 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Ltac</span> <span class="id" title="var">dec_ne</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">lazymatch</span> <span class="id" title="keyword">goal</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- ?<span class="id" title="var">A</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#a0a5068f83a704fcfbda8cd473a6cfea"><span class="id" title="notation">≠</span></a> ?<span class="id" title="var">B</span> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">reify</span> <span class="id" title="var">A</span> <span class="id" title="keyword">ltac</span>:(<span class="id" title="keyword">λ</span> <span class="id" title="var">HA</span> <span class="id" title="var">s</span> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">reify</span> <span class="id" title="var">B</span> <span class="id" title="keyword">ltac</span>:(<span class="id" title="keyword">λ</span> <span class="id" title="var">HB</span> <span class="id" title="var">t</span> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">b</span> := <span class="id" title="tactic">eval</span> <span class="id" title="tactic">cbv</span> <span class="id" title="tactic">in</span> (<a class="idref" href="types_not_equal.html#isob"><span class="id" title="definition">isob</span></a> <span class="id" title="var">s</span> <span class="id" title="var">t</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">lazymatch</span> <span class="id" title="var">b</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Datatypes.html#false"><span class="id" title="constructor">false</span></a> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">assert</span> (<a class="idref" href="types_not_equal.html#isob"><span class="id" title="definition">isob</span></a> <span class="id" title="var">s</span> <span class="id" title="var">t</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.11.1/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="var">b</span>) <span class="id" title="tactic">by</span> <span class="id" title="tactic">reflexivity</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">Hne</span> := <span class="id" title="tactic">fresh</span> "Hne" <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> (<a class="idref" href="types_not_equal.html#isob_ok"><span class="id" title="lemma">isob_ok</span></a> <span class="id" title="var">s</span> <span class="id" title="var">t</span>) <span class="id" title="keyword">as</span> [|<span class="id" title="var">Hne</span>]; [<span class="id" title="tactic">discriminate</span>|];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">Hiso</span> := <span class="id" title="tactic">fresh</span> "Hiso" <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="types_not_equal.html#iso_ne"><span class="id" title="lemma">iso_ne</span></a>; <span class="id" title="tactic">intro</span> <span class="id" title="var">Hiso</span>; <span class="id" title="tactic">apply</span> <span class="id" title="var">Hne</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">eapply</span> <a class="idref" href="types_not_equal.html#iso_trans"><span class="id" title="lemma">iso_trans</span></a>; [|<span class="id" title="tactic">eapply</span> <a class="idref" href="types_not_equal.html#iso_trans"><span class="id" title="lemma">iso_trans</span></a>; [<span class="id" title="tactic">apply</span> <span class="id" title="var">Hiso</span>|]];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="tactic">symmetry</span>; <span class="id" title="tactic">apply</span> <span class="id" title="var">HA</span>|<span class="id" title="tactic">apply</span> <span class="id" title="var">HB</span>]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Here are some examples of <span class="inlinecode"><span class="id" title="var">dec_ne</span></span> in action: 
 </div>
 <div class="code">
 
