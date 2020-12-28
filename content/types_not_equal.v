@@ -1521,7 +1521,6 @@ Definition f (H : bool <> nat) (x : T nat) : unit :=
     - Reify [A] into [s] and [B] into [t].
     - Use [isob] to check whether [s] and [t] have equal normal forms.
     - If they don't, then [⟦s⟧ ≇ ⟦t⟧]. Use this fact to prove [A <> B].
-    - Otherwise, fail with a message that says the two types are isomorphic. 
 
     As a tactic: *)
   
