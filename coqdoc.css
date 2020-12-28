@@ -23,11 +23,12 @@
 
 /* Contents */
 
-#main{ display: block;
-       padding: 10px;
-       font-family: sans-serif;
-       font-size: 100%;
-       line-height: 100% }
+#main{ 
+  display: block;
+  padding: 10px;
+  font-family: sans-serif;
+  font-size: 100%;
+  line-height: 100% }
 
 #main  h1 { line-height: 95% } /* allow for multi-line headers */
 
@@ -152,8 +153,9 @@ tr.infrulemiddle hr {
 
 /* Pied de page */
 
-#footer { font-size: 65%;
-          font-family: sans-serif; }
+#footer { 
+  font-size: 65%;
+  font-family: sans-serif; }
 
 /* Identifiers: <span class="id" title="...">) */
 
