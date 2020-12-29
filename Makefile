@@ -7,6 +7,7 @@ clean:
 
 index.html: index.md.html
 	cp index.md.html index.html
+	python3 patch_index_html.py index.html
 
 %.md.html: content/%.md
 	pandoc -s -o $@ $<
