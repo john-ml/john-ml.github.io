@@ -1,0 +1,196 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>Probabilistic programming in OCaml</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" type="text/css" href="css/main.css" />
+  <script type="text/javascript" async
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+  </script>
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+        processEscapes: true
+      }
+    });
+  </script>
+</head>
+<body>
+<div id="header">
+<h1 class="title">Probabilistic programming in OCaml</h1>
+</div>
+<p>Here's a classic kind of word problem you might have seen before:</p>
+<blockquote>
+<p>There's a 1% chance of catching a deadly illness and you test positive. The test is correct 99% of the time. Should you be worried?</p>
+</blockquote>
+<p>At some point I learned how to solve problems like these by translating the problem from English into probability theory and then performing the proper calculations. But I haven't studied probability in a while, and calculations are easy to get wrong. Meanwhile, I write programs all the time and computers are great at calculating. So why not have a program find the answer for me? The following OCaml code does just that:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="co">(* Let the random variable X be true iff I&#39;m sick.</span>
+<span class="co">   d will be the distribution of X given that I tested positive. *)</span>
+<span class="kw">let</span> d : <span class="dt">bool</span> -&gt; <span class="dt">float</span> =
+  pdf OBool.<span class="dt">compare</span> (
+    <span class="co">(* Flip a coin with 1% chance of heads. If heads, I&#39;m infected. *)</span>
+    <span class="kw">let</span>* infected : <span class="dt">bool</span> = coin <span class="fl">0.01</span> <span class="kw">in</span>
+    <span class="kw">let</span> accuracy = <span class="fl">0.99</span> <span class="kw">in</span>
+    <span class="co">(* Get tested. *)</span>
+    <span class="kw">let</span>* test_result =
+      <span class="kw">if</span> infected
+      <span class="kw">then</span> coin accuracy
+      <span class="kw">else</span> coin (<span class="fl">1.0</span> -. accuracy)
+    <span class="kw">in</span>
+    <span class="co">(* Assume the test came back positive. *)</span>
+    guard test_result (
+    pure infected))
+<span class="kw">in</span> 
+<span class="co">(* What&#39;s the probability that I&#39;m sick? *)</span>
+d <span class="kw">true</span>
+<span class="co">(* ==&gt; 0.5 *)</span></code></pre></div>
+<p>Indeed, the probability that I'm sick given that I tested positive is 50%, by Bayes' rule.</p>
+<p>This is called <a href="https://en.wikipedia.org/wiki/Probabilistic_programming">probabilistic programming</a>. In regular programming, you write a program and then run it to get a result. The program you write could use (pseudo)randomness in it (e.g. simulated dice rolls), but at the end of the run you still only get a single value. In probabilistic programming, you write a program and then run an <em>inferencer</em> that computes a distribution over output values. In the above example, the inferencer is <code>pdf OBool.compare</code>. It's argument is a program that simulates the process of getting tested and receiving a positive result:</p>
+<ul>
+<li><code>guard test_result</code> is like <code>assert test_result</code>; it only allows the program to continue past that point if <code>test_result</code> is <code>true</code>.</li>
+<li>The program returns whether the simulated person is actually sick.</li>
+</ul>
+<p>A normal execution of this program would either (1) fail because <code>test_result</code> was false or (2) succeed and return whether or not the simulated person was infected. The inferencer instead computes a distribution over the output values the program can succeed with (<code>true</code> and <code>false</code> in this case); the probability of succeeding with <code>true</code> corresponds to the probability I'm actually sick given a positive test result.</p>
+<p>You can find a lot of papers online about writing efficient inferencers. Rather than reading them, I decided to roll my own inferencer and try it out on some simple problems. This post describes how it works.</p>
+<h2 id="modelling-random-computations">Modelling random computations</h2>
+<p>Before we implement an inferencer, we need to be able to represent probabilistic programs. We can do this with the following signature:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> <span class="kw">type</span> RAND = <span class="kw">sig</span>
+  <span class="kw">type</span> &#39;a t
+  <span class="kw">val</span> pure : &#39;a -&gt; &#39;a t
+  <span class="kw">val</span> fail : &#39;a t
+  <span class="kw">val</span> coin : <span class="dt">float</span> -&gt; <span class="dt">bool</span> t
+  <span class="kw">val</span> ( <span class="kw">let</span>* ) : &#39;a t -&gt; (&#39;a -&gt; &#39;b t) -&gt; &#39;b t
+<span class="kw">end</span></code></pre></div>
+<ul>
+<li>A value of type <code>'a t</code> represents a probabilistic program that produces a value of type <code>'a</code> if successful.</li>
+<li>The program <code>pure x</code> always succeeds with value <code>x</code>.</li>
+<li>The program <code>fail</code> always fails.</li>
+<li>The program <code>coin p</code> always succeeds; it yields <code>true</code> with probability $p$ and <code>false</code> with probability $1-p$.</li>
+<li>The program <code>(let*) e1 (fun x -&gt; e2)</code> is a &quot;probabilistic let binding.&quot; It first runs <code>e1</code> and binds the result to <code>x</code>; then, it runs <code>e2</code> with <code>x</code> in scope. OCaml's <a href="https://caml.inria.fr/pub/docs/manual-ocaml/bindingops.html">binding operators</a> let us write <code>(let*) e1 (fun x -&gt; e2)</code> as <code>let* x = e1 in e2</code>.</li>
+</ul>
+<p>A module that implements this signature corresponds to an interpretation of probabilistic programs. For example, the standard way to interpret probabilistic programs is to run them, using the builtin <code>Random</code> module for random number generation:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> Execute : RAND = <span class="kw">sig</span>
+  <span class="kw">type</span> &#39;a t = &#39;a
+  <span class="kw">let</span> pure x = x
+  <span class="kw">exception</span> Fail
+  <span class="kw">let</span> fail = <span class="dt">raise</span> Fail
+  <span class="kw">let</span> coin p = <span class="dt">Random</span>.<span class="dt">float</span> <span class="fl">1.0</span> &lt;= p
+  <span class="kw">let</span> ( <span class="kw">let</span>* ) x k = k x
+<span class="kw">end</span></code></pre></div>
+<p>We can implement an inferencer by giving an alternative interpretation to probabilistic programs: rather than trying to compute a single result value, the inferencer tries to compute an entire distribution.</p>
+<p>To support inference, we need to add one more declaration to the <code>RAND</code> signature:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> Dist&#39; : <span class="kw">functor</span> (A : <span class="dt">Map</span>.OrderedType) -&gt; <span class="kw">sig</span> <span class="kw">val</span> f : A.t t -&gt; <span class="dt">float</span> <span class="dt">Map</span>.Make(A).t <span class="kw">end</span></code></pre></div>
+<p>The verbosity is due to a lack of typeclasses; in Haskell, this would be written</p>
+<div class="sourceCode"><pre class="sourceCode hs"><code class="sourceCode haskell"><span class="ot">dist&#39; ::</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> t a <span class="ot">-&gt;</span> <span class="dt">Map</span> a <span class="dt">Float</span></code></pre></div>
+<p>Given a probabilistic program of type <code>'a</code>, this function computes a discrete probability distribution over its output values. The functor is there because the distribution is represented by a finite map, which requires that <code>'a</code> be comparable.</p>
+<p>Given any implementation of this core signature, we can implement the following extended signature:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> <span class="kw">type</span> RAND_EXT = <span class="kw">sig</span>
+  <span class="kw">include</span> RAND
+  <span class="kw">val</span> pdf : (&#39;a -&gt; &#39;a -&gt; <span class="dt">int</span>) -&gt; &#39;a t -&gt; (&#39;a -&gt; <span class="dt">float</span>)
+  <span class="kw">val</span> dist : (&#39;a -&gt; &#39;a -&gt; <span class="dt">int</span>) -&gt; &#39;a t -&gt; (&#39;a * <span class="dt">float</span>) <span class="dt">list</span>
+  <span class="kw">val</span> guard : <span class="dt">bool</span> -&gt; &#39;a t -&gt; &#39;a t
+<span class="kw">end</span></code></pre></div>
+<ul>
+<li>Given a probabilistic program of type <code>'a t</code>, <code>pdf</code> returns a probability density function <code>'a -&gt; float</code> for easy log-time lookup. The comparison function <code>'a -&gt; 'a -&gt; int</code> is needed to instantiate <code>Dist'</code> properly.</li>
+<li>Similarly, <code>dist</code> returns the distribution as a list of value-probability pairs, for easy iteration.</li>
+<li><p><code>guard p m</code> is a probabilistic program which checks that <code>p</code> holds before continuing with <code>m</code>. It's easy to define:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">guard p m = <span class="kw">if</span> p <span class="kw">then</span> m <span class="kw">else</span> fail</code></pre></div></li>
+</ul>
+<p>Thanks to this, we never have to work directly with <code>Dist'</code>. The extension from <code>RAND</code> to <code>RAND_EXT</code> can be done once and for all, with a functor:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> RandExt (R : RAND) : RAND_EXT = <span class="kw">struct</span> .. <span class="kw">end</span></code></pre></div>
+<p>Now all we have to do is implement <code>RAND</code> in a way that performs inference.</p>
+<h2 id="monte-carlo-simulation">Monte Carlo simulation</h2>
+<p>The most basic inferencer just runs the given probabilistic program a bunch of times and uses the results of successful runs to estimate the distribution of output values:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> MonteCarlo (S : <span class="kw">sig</span> <span class="kw">val</span> samples : <span class="dt">int</span> <span class="kw">end</span>) : RAND = <span class="kw">struct</span> .. <span class="kw">end</span></code></pre></div>
+<p>Since this method needs to run the same program many times over, we'll represent such programs as thunks <code>unit -&gt; 'a</code>:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> &#39;a t = <span class="dt">unit</span> -&gt; &#39;a</code></pre></div>
+<p>The definitions for <code>pure</code>, <code>fail</code>, <code>coin</code>, and <code>let*</code> are almost identical to their standard interpretations, just with some extra lambdas and <code>()</code>s in certain places:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> pure x = <span class="kw">fun</span> _ -&gt; x
+<span class="kw">let</span> ( <span class="kw">let</span>* ) m k = <span class="kw">fun</span> _ -&gt; k (m ()) ()
+<span class="kw">exception</span> Fail
+<span class="kw">let</span> fail = <span class="kw">fun</span> _ -&gt; <span class="dt">raise</span> Fail
+<span class="kw">let</span> coin p = <span class="kw">fun</span> _ -&gt; <span class="dt">Random</span>.<span class="dt">float</span> <span class="fl">1.0</span> &lt;= p</code></pre></div>
+<p>The implementation of <code>Dist'</code> is a bit trickier. We have to write a function <code>f</code> that takes in a probabilistic program <code>(m : A.t t)</code> and returns a finite map from <code>A.t</code>s to <code>float</code>s:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> Dist&#39; (A : <span class="dt">Map</span>.OrderedType) = <span class="kw">struct</span>
+  <span class="kw">module</span> M = <span class="dt">Map</span>.Make(A)
+  <span class="kw">let</span> f (m : A.t t) : <span class="dt">float</span> M.t = ..
+<span class="kw">end</span></code></pre></div>
+<p>The program <code>m</code> is represented by a thunk <code>unit -&gt; A.t</code>. When called, it will either yield a value of type <code>A.t</code> or raise <code>Fail</code>. We can write a function that repeatedly runs <code>m</code> until it succeeds with a value of type <code>A.t</code>:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> <span class="kw">rec</span> sample m = <span class="kw">try</span> m () <span class="kw">with</span> Fail -&gt; sample m <span class="kw">in</span></code></pre></div>
+<p>Now we can run <code>sample m</code> repeatedly to collect <code>S.samples</code> samples into a finite map <code>samples</code> which associates each <code>A.t</code> with the number of times it was returned by <code>m ()</code>:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> <span class="kw">rec</span> go n samples =
+  <span class="kw">if</span> n = <span class="dv">0</span> <span class="kw">then</span> samples <span class="kw">else</span>
+  <span class="kw">let</span> inc = <span class="kw">function</span>
+    | <span class="dt">None</span> -&gt; <span class="dt">Some</span> <span class="dv">1</span>
+    | <span class="dt">Some</span> k -&gt; <span class="dt">Some</span> (k + <span class="dv">1</span>)
+  <span class="kw">in</span>
+  go (n - <span class="dv">1</span>) (M.update (sample m) inc samples)
+<span class="kw">in</span>
+<span class="kw">let</span> samples = go S.samples M.empty <span class="kw">in</span>
+M.map (<span class="kw">fun</span> p -&gt; <span class="dt">float_of_int</span> p /. S.samples) samples</code></pre></div>
+<p>Finally, normalizing each of the counts in <code>samples</code> by the total number of samples yields a finite map that associates each <code>A.t</code> to the frequency with which it occurred.</p>
+<p>This inferencer isn't great: even for simple probabilistic programs, it takes a large number of samples to converge on the true distribution of output values. For example, running the inferencer with 10000 samples on the example program in the introduction yields the following distribution:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">- : (<span class="dt">bool</span> * <span class="dt">float</span>) <span class="dt">list</span> = [(<span class="kw">true</span>, <span class="fl">0.492</span>); (<span class="kw">false</span>, <span class="fl">0.508</span>)]</code></pre></div>
+<p>It also has a major weakness: because the sampling function has to keep retrying <code>m ()</code> until it successfully produces a result value, it takes forever to collect a sufficiently large number of samples if <code>m</code> doesn't succeed very often.</p>
+<p>Here's an example: the following program flips three fair coins and computes the number of heads:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> flip3 =
+  <span class="kw">let</span> ind p = <span class="kw">if</span> p <span class="kw">then</span> <span class="dv">1</span> <span class="kw">else</span> <span class="dv">0</span> <span class="kw">in</span>
+  <span class="kw">let</span>* c1 = coin <span class="fl">0.5</span> <span class="kw">in</span>
+  <span class="kw">let</span>* c2 = coin <span class="fl">0.5</span> <span class="kw">in</span>
+  <span class="kw">let</span>* c3 = coin <span class="fl">0.5</span> <span class="kw">in</span>
+  pure (ind c1 + ind c2 + ind c3)</code></pre></div>
+<p>Running the inferencer on <code>flip3</code> with 10000 samples yields a reasonable-looking distribution:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">val</span> - : (<span class="dt">int</span> * <span class="dt">float</span>) <span class="dt">list</span> = 
+  [(<span class="dv">0</span>, <span class="fl">0.1311</span>); (<span class="dv">1</span>, <span class="fl">0.3765</span>); (<span class="dv">2</span>, <span class="fl">0.3704</span>); (<span class="dv">3</span>, <span class="fl">0.122</span>)]</code></pre></div>
+<p>(For reference, the true probabilities are 1/8, 3/8, 3/8, and 1/8 respectively.)</p>
+<p>Now, here's a program that fails 99.99% of the time, but behaves just like <code>flip3</code> when it succeeds:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> flip3&#39; =
+  <span class="kw">let</span>* b = coin <span class="fl">0.0001</span> <span class="kw">in</span>
+  guard b flip3</code></pre></div>
+<p>This program should have the exact same distribution of output values as <code>flip3</code>. However, it'll take 10000 times as long for our inferencer to figure that out, because only one out of every 10000 runs is successful!</p>
+<h2 id="enumerating-all-possibilities">Enumerating all possibilities</h2>
+<p>Instead of randomly sampling, we could run through every code path of the program to analyze.</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> NaiveEnum (S : <span class="kw">sig</span> <span class="kw">val</span> samples : <span class="dt">int</span> <span class="kw">end</span>) : RAND = <span class="kw">struct</span> .. <span class="kw">end</span></code></pre></div>
+</body>
+</html>
