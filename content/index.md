@@ -8,8 +8,8 @@ header-includes: |
   <link rel="stylesheet" type="text/css" href="css/main.css" />
 ---
 
-I'm a master's student at Princeton University, interested in interactive theorem proving, program
-synthesis, and compilers. 
+I'm a master's student at Princeton University, interested in interactive theorem proving,
+metaprogramming, and compilers.
 I'm currently working with Prof. [Andrew Appel](https://www.cs.princeton.edu/~appel/) 
 on [CertiCoq](https://www.cs.princeton.edu/~appel/certicoq/).
 
