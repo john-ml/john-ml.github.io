@@ -9,7 +9,7 @@ header-includes: |
 ---
 
 I'm a master's student at Princeton University, interested in interactive theorem proving,
-metaprogramming, and compilers.
+compilers, metaprogramming, and program synthesis.
 I'm currently working with Prof. [Andrew Appel](https://www.cs.princeton.edu/~appel/) 
 on [CertiCoq](https://www.cs.princeton.edu/~appel/certicoq/).
 
