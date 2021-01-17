@@ -92,7 +92,7 @@ d <span class="kw">true</span>
 <li>The program returns whether the simulated person is actually sick.</li>
 </ul>
 <p>A normal execution of this program would either (1) fail because <code>test_result</code> was false or (2) succeed and return whether or not the simulated person was infected. The inferencer instead computes a distribution over the output values the program can succeed with (<code>true</code> and <code>false</code> in this case); the probability of succeeding with <code>true</code> corresponds to the probability I'm actually sick given a positive test result.</p>
-<p>You can find a lot of papers online about writing efficient inferencers. Rather than reading them, I decided to roll my own inferencer and try it out on some simple problems. This post describes how it works.</p>
+<p>You can find a lot of papers online about writing efficient inferencers. Rather than reading them, I decided to roll my own inferencers and try them out on some simple problems. This post describes how it works.</p>
 <h2 id="modelling-random-computations">Modelling random computations</h2>
 <p>Before we implement an inferencer, we need to be able to represent probabilistic programs. We can do this with the following signature:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> <span class="kw">type</span> RAND = <span class="kw">sig</span>
@@ -111,12 +111,12 @@ d <span class="kw">true</span>
 </ul>
 <p>A module that implements this signature corresponds to an interpretation of probabilistic programs. For example, the standard way to interpret probabilistic programs is to run them, using the builtin <code>Random</code> module for random number generation:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> Execute : RAND = <span class="kw">sig</span>
-  <span class="kw">type</span> &#39;a t = &#39;a
-  <span class="kw">let</span> pure x = x
+  <span class="kw">type</span> &#39;a t = <span class="dt">unit</span> -&gt; &#39;a
+  <span class="kw">let</span> pure x = <span class="kw">fun</span> _ -&gt; x
   <span class="kw">exception</span> Fail
-  <span class="kw">let</span> fail = <span class="dt">raise</span> Fail
-  <span class="kw">let</span> coin p = <span class="dt">Random</span>.<span class="dt">float</span> <span class="fl">1.0</span> &lt;= p
-  <span class="kw">let</span> ( <span class="kw">let</span>* ) x k = k x
+  <span class="kw">let</span> fail = <span class="kw">fun</span> _ -&gt; <span class="dt">raise</span> Fail
+  <span class="kw">let</span> coin p = <span class="kw">fun</span> _ -&gt; <span class="dt">Random</span>.<span class="dt">float</span> <span class="fl">1.0</span> &lt;= p
+  <span class="kw">let</span> ( <span class="kw">let</span>* ) x k = <span class="kw">fun</span> _ -&gt; k (x ()) ()
 <span class="kw">end</span></code></pre></div>
 <p>We can implement an inferencer by giving an alternative interpretation to probabilistic programs: rather than trying to compute a single result value, the inferencer tries to compute an entire distribution.</p>
 <p>To support inference, we need to add one more declaration to the <code>RAND</code> signature:</p>
@@ -137,20 +137,20 @@ d <span class="kw">true</span>
 <li><p><code>guard p m</code> is a probabilistic program which checks that <code>p</code> holds before continuing with <code>m</code>. It's easy to define:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">guard p m = <span class="kw">if</span> p <span class="kw">then</span> m <span class="kw">else</span> fail</code></pre></div></li>
 </ul>
-<p>Thanks to this, we never have to work directly with <code>Dist'</code>. The extension from <code>RAND</code> to <code>RAND_EXT</code> can be done once and for all, with a functor:</p>
+<p>The extension from <code>RAND</code> to <code>RAND_EXT</code> can be done once and for all, with a functor:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> RandExt (R : RAND) : RAND_EXT = <span class="kw">struct</span> .. <span class="kw">end</span></code></pre></div>
-<p>Now all we have to do is implement <code>RAND</code> in a way that performs inference.</p>
+<p>Thanks to this, we never have to work directly with <code>Dist'</code>. Now all we have to do is implement <code>RAND</code> in a way that performs inference.</p>
 <h2 id="monte-carlo-simulation">Monte Carlo simulation</h2>
 <p>The most basic inferencer just runs the given probabilistic program a bunch of times and uses the results of successful runs to estimate the distribution of output values:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> MonteCarlo (S : <span class="kw">sig</span> <span class="kw">val</span> samples : <span class="dt">int</span> <span class="kw">end</span>) : RAND = <span class="kw">struct</span> .. <span class="kw">end</span></code></pre></div>
-<p>Since this method needs to run the same program many times over, we'll represent such programs as thunks <code>unit -&gt; 'a</code>:</p>
+<p>Just like in <code>Execute</code>, we'll represent programs as thunks <code>unit -&gt; 'a</code>:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> &#39;a t = <span class="dt">unit</span> -&gt; &#39;a</code></pre></div>
-<p>The definitions for <code>pure</code>, <code>fail</code>, <code>coin</code>, and <code>let*</code> are almost identical to their standard interpretations, just with some extra lambdas and <code>()</code>s in certain places:</p>
+<p>The definitions for <code>pure</code>, <code>fail</code>, <code>coin</code>, and <code>let*</code> are identical to their standard interpretations:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> pure x = <span class="kw">fun</span> _ -&gt; x
-<span class="kw">let</span> ( <span class="kw">let</span>* ) m k = <span class="kw">fun</span> _ -&gt; k (m ()) ()
 <span class="kw">exception</span> Fail
 <span class="kw">let</span> fail = <span class="kw">fun</span> _ -&gt; <span class="dt">raise</span> Fail
-<span class="kw">let</span> coin p = <span class="kw">fun</span> _ -&gt; <span class="dt">Random</span>.<span class="dt">float</span> <span class="fl">1.0</span> &lt;= p</code></pre></div>
+<span class="kw">let</span> coin p = <span class="kw">fun</span> _ -&gt; <span class="dt">Random</span>.<span class="dt">float</span> <span class="fl">1.0</span> &lt;= p
+<span class="kw">let</span> ( <span class="kw">let</span>* ) x k = <span class="kw">fun</span> _ -&gt; k (x ()) ()</code></pre></div>
 <p>The implementation of <code>Dist'</code> is a bit trickier. We have to write a function <code>f</code> that takes in a probabilistic program <code>(m : A.t t)</code> and returns a finite map from <code>A.t</code>s to <code>float</code>s:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> Dist&#39; (A : <span class="dt">Map</span>.OrderedType) = <span class="kw">struct</span>
   <span class="kw">module</span> M = <span class="dt">Map</span>.Make(A)
@@ -158,7 +158,7 @@ d <span class="kw">true</span>
 <span class="kw">end</span></code></pre></div>
 <p>The program <code>m</code> is represented by a thunk <code>unit -&gt; A.t</code>. When called, it will either yield a value of type <code>A.t</code> or raise <code>Fail</code>. We can write a function that repeatedly runs <code>m</code> until it succeeds with a value of type <code>A.t</code>:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> <span class="kw">rec</span> sample m = <span class="kw">try</span> m () <span class="kw">with</span> Fail -&gt; sample m <span class="kw">in</span></code></pre></div>
-<p>Now we can run <code>sample m</code> repeatedly to collect <code>S.samples</code> samples into a finite map <code>samples</code> which associates each <code>A.t</code> with the number of times it was returned by <code>m ()</code>:</p>
+<p>Now we can run <code>sample m</code> repeatedly to collect <code>S.samples</code> samples into a finite map <code>samples</code> which associates each <code>A.t</code> with the number of times it was returned by <code>m ()</code>. Then, normalizing each of the counts in <code>samples</code> by the total number of samples yields a finite map that associates each <code>A.t</code> to the frequency with which it occurred:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> <span class="kw">rec</span> go n samples =
   <span class="kw">if</span> n = <span class="dv">0</span> <span class="kw">then</span> samples <span class="kw">else</span>
   <span class="kw">let</span> inc = <span class="kw">function</span>
@@ -169,7 +169,6 @@ d <span class="kw">true</span>
 <span class="kw">in</span>
 <span class="kw">let</span> samples = go S.samples M.empty <span class="kw">in</span>
 M.map (<span class="kw">fun</span> p -&gt; <span class="dt">float_of_int</span> p /. S.samples) samples</code></pre></div>
-<p>Finally, normalizing each of the counts in <code>samples</code> by the total number of samples yields a finite map that associates each <code>A.t</code> to the frequency with which it occurred.</p>
 <p>This inferencer isn't great: even for simple probabilistic programs, it takes a large number of samples to converge on the true distribution of output values. For example, running the inferencer with 10000 samples on the example program in the introduction yields the following distribution:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">- : (<span class="dt">bool</span> * <span class="dt">float</span>) <span class="dt">list</span> = [(<span class="kw">true</span>, <span class="fl">0.492</span>); (<span class="kw">false</span>, <span class="fl">0.508</span>)]</code></pre></div>
 <p>It also has a major weakness: because the sampling function has to keep retrying <code>m ()</code> until it successfully produces a result value, it takes forever to collect a sufficiently large number of samples if <code>m</code> doesn't succeed very often.</p>
@@ -192,5 +191,77 @@ M.map (<span class="kw">fun</span> p -&gt; <span class="dt">float_of_int</span> 
 <h2 id="enumerating-all-possibilities">Enumerating all possibilities</h2>
 <p>Instead of randomly sampling, we could run through every code path of the program to analyze.</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> NaiveEnum (S : <span class="kw">sig</span> <span class="kw">val</span> samples : <span class="dt">int</span> <span class="kw">end</span>) : RAND = <span class="kw">struct</span> .. <span class="kw">end</span></code></pre></div>
+<p>This method works by interpreting a probabilistic program as its distribution of output values, represented as a list of value-weight pairs:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> &#39;a t = (&#39;a * <span class="dt">float</span>) <span class="dt">list</span></code></pre></div>
+<p>The program <code>pure x</code> produces the value <code>x</code> with weight <code>1</code>:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> pure x = [(x, <span class="fl">1.0</span>)]</code></pre></div>
+<p>The program <code>fail</code> never produces any values:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> fail = []</code></pre></div>
+<p>The program <code>coin p</code> produces <code>true</code> with weight <code>p</code> and <code>false</code> with weight <code>1.0 -. p</code>:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> coin p = [(<span class="kw">true</span>, p); (<span class="kw">false</span>, <span class="fl">1.0</span> -. p)]</code></pre></div>
+<p>To interpret a let-binding <code>(let*) m k</code>:</p>
+<ul>
+<li><code>m</code> is a list <code>[(x, p); ..]</code>.</li>
+<li>Apply <code>k</code> to each <code>x</code> in this list; this yields a nested structure of the form <code>[([(y, q); ..], p); ..]</code>.</li>
+<li>Multiply each nested <code>q</code> by its corresponding <code>p</code> to get <code>[[(y, q *. p); ..]; ..]</code>.</li>
+<li>Finally, flatten the nested lists to get <code>[(y, q *. p); ..]</code>.</li>
+</ul>
+<p>In OCaml:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> ( <span class="kw">let</span>* ) xps k = 
+  <span class="kw">let</span> ( <span class="kw">let</span>* ) x k = <span class="dt">List</span>.concat_map k x <span class="kw">in</span>
+  <span class="kw">let</span>* (x, p) = xps <span class="kw">in</span>
+  <span class="dt">List</span>.map (<span class="kw">fun</span> (y, q) -&gt; (y, p *. q)) (k x)</code></pre></div>
+<p>To convert a list of weighted values into a distribution represented as a finite map, simply fold over the list and add up weights. Then, dividing by the sum of all the weights yields a proper probability distribution:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> Dist&#39; (A : <span class="dt">Map</span>.OrderedType) = <span class="kw">struct</span>
+  <span class="kw">module</span> M = <span class="dt">Map</span>.Make(A)
+  <span class="kw">let</span> f (m : A.t t) : <span class="dt">float</span> M.t =
+    <span class="kw">let</span> inc p = <span class="kw">function</span>
+      | <span class="dt">None</span> -&gt; <span class="dt">Some</span> p
+      | <span class="dt">Some</span> q -&gt; <span class="dt">Some</span> (p +. q)
+    <span class="kw">in</span>
+    <span class="kw">let</span> (total, samples) = 
+      <span class="dt">List</span>.fold_left 
+        (<span class="kw">fun</span> (total, samples) (x, p) -&gt; 
+          (total +. p, M.update x (inc p) samples))
+        (<span class="fl">0.0</span>, M.empty) m 
+    <span class="kw">in</span>
+    M.map (<span class="kw">fun</span> p -&gt; p /. total) samples
+<span class="kw">end</span></code></pre></div>
+<p><code>NaiveEnum</code> produces much more accurate distributions than <code>MonteCarlo</code>. In fact, it would produce exact probabilities if we used exact arithmetic. Running it on the example program in the introduction yields:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">- : (<span class="dt">bool</span> * <span class="dt">float</span>) <span class="dt">list</span> =
+  [(<span class="kw">false</span>, <span class="fl">0.500000000000000222</span>); (<span class="kw">true</span>, <span class="fl">0.499999999999999722</span>)]</code></pre></div>
+<p>Unlike random sampling, <code>NaiveEnum</code> works just as well when the success probability is very low. For example, it infers the following distribution for <code>flip3'</code> near-instantly:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">- : (<span class="dt">int</span> * <span class="dt">float</span>) <span class="dt">list</span> =
+  [(<span class="dv">0</span>, <span class="fl">0.124999999999999986</span>); (<span class="dv">1</span>, <span class="fl">0.374999999999999944</span>);
+   (<span class="dv">2</span>, <span class="fl">0.374999999999999944</span>); (<span class="dv">3</span>, <span class="fl">0.124999999999999986</span>)]</code></pre></div>
+<p>This is because <code>NaiveEnum</code> considers every code path of the program it analyzes, not just the paths that happen to be randomly sampled. So it doesn't matter how unlikely <code>flip3'</code> is to run <code>flip3</code>.</p>
+<p>But <code>NaiveEnum</code> has lots of problems of its own. Exhaustive analysis can easily lead to exponential blowups. For example, <code>bin p n</code> is a binomial random variable $n$ trials and success probability $p$:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> bin p n =
+  <span class="kw">let</span> <span class="kw">rec</span> go n acc =
+    <span class="kw">if</span> n = <span class="dv">0</span> <span class="kw">then</span> pure acc <span class="kw">else</span>
+    <span class="kw">let</span>* b = coin p <span class="kw">in</span>
+    go (n - <span class="dv">1</span>) (<span class="kw">if</span> b <span class="kw">then</span> acc + <span class="dv">1</span> <span class="kw">else</span> acc)
+  <span class="kw">in</span> go n <span class="dv">0</span></code></pre></div>
+<p>We can use <code>MonteCarlo</code> to estimate <code>bin 0.5 20</code> just fine, albeit very roughly:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">- : (<span class="dt">int</span> * <span class="dt">float</span>) <span class="dt">list</span> =
+  [(<span class="dv">1</span>, <span class="fl">3e-05</span>); (<span class="dv">2</span>, <span class="fl">0.00019</span>); (<span class="dv">3</span>, <span class="fl">0.00096</span>); (<span class="dv">4</span>, <span class="fl">0.00477</span>); (<span class="dv">5</span>, <span class="fl">0.01543</span>);
+   (<span class="dv">6</span>, <span class="fl">0.03737</span>); (<span class="dv">7</span>, <span class="fl">0.07254</span>); (<span class="dv">8</span>, <span class="fl">0.12179</span>); (<span class="dv">9</span>, <span class="fl">0.16057</span>); (<span class="dv">10</span>, <span class="fl">0.17396</span>);
+   (<span class="dv">11</span>, <span class="fl">0.15959</span>); (<span class="dv">12</span>, <span class="fl">0.1207</span>); (<span class="dv">13</span>, <span class="fl">0.07392</span>); (<span class="dv">14</span>, <span class="fl">0.03716</span>); (<span class="dv">15</span>, <span class="fl">0.01518</span>);
+   (<span class="dv">16</span>, <span class="fl">0.00432</span>); (<span class="dv">17</span>, <span class="fl">0.00126</span>); (<span class="dv">18</span>, <span class="fl">0.00023</span>); (<span class="dv">19</span>, <span class="fl">2e-05</span>); (<span class="dv">20</span>, <span class="fl">1e-05</span>)]</code></pre></div>
+<p>But using <code>NaiveEnum</code> to estimate <code>bin 0.5 20</code> will just produce a stack overflow. This is because <code>bin 0.5 20</code> performs $20$ coin flips, and so has $2^{20}$ code paths; <code>NaiveEnum</code> tries to construct an enormous list with one entry for each such path, and overflows the stack while doing so.</p>
+<p><code>NaiveEnum</code> also can't handle unbounded random variables. For example, <code>geo p</code> is a geometric random variable with success probability <code>p</code>:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> geo p =
+  <span class="kw">let</span> <span class="kw">rec</span> go n =
+    <span class="kw">let</span>* b = coin p <span class="kw">in</span>
+    <span class="kw">if</span> b <span class="kw">then</span> pure n <span class="kw">else</span> go (n + <span class="dv">1</span>)
+  <span class="kw">in</span> go <span class="dv">0</span></code></pre></div>
+<p>Once again, <code>MonteCarlo</code> can estimate <code>geo 0.5</code> just fine:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">- : (<span class="dt">int</span> * <span class="dt">float</span>) <span class="dt">list</span> =
+  [(<span class="dv">0</span>, <span class="fl">0.5034</span>); (<span class="dv">1</span>, <span class="fl">0.2524</span>); (<span class="dv">2</span>, <span class="fl">0.1258</span>); (<span class="dv">3</span>, <span class="fl">0.0561</span>); (<span class="dv">4</span>, <span class="fl">0.0309</span>);
+   (<span class="dv">5</span>, <span class="fl">0.0158</span>); (<span class="dv">6</span>, <span class="fl">0.0077</span>); (<span class="dv">7</span>, <span class="fl">0.0033</span>); (<span class="dv">8</span>, <span class="fl">0.0024</span>); (<span class="dv">9</span>, <span class="fl">0.0011</span>);
+   (<span class="dv">10</span>, <span class="fl">0.0005</span>); (<span class="dv">11</span>, <span class="fl">0.0004</span>); (<span class="dv">14</span>, <span class="fl">0.0002</span>)]</code></pre></div>
+<p><code>NaiveEnum</code> overflows the stack because <code>geo 0.5</code> has an unbounded number of code paths.</p>
+<p>Finally, <code>NaiveEnum</code> produces many intermediate lists; these can take up an enormous amount of space if the branching tree of possibilities is large.</p>
+<h2 id="removing-intermediate-lists">Removing intermediate lists</h2>
 </body>
 </html>
