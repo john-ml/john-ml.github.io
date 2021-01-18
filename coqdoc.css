@@ -1,14 +1,11 @@
 * { 
-  margin: 0px 0px;
+  margin: 0px auto;
   padding: 0px 0px;
-  line-height: 1.6;
-}
+  line-height: 2.0 }
 
 body {
-  max-width: 40%;
-  width: 40%;
-  margin-left: 30%;
-}
+  max-width: 850px;
+  width: 100% }
 
 ul { padding-left: 25px }
 

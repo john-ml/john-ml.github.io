@@ -1,13 +1,13 @@
 * { 
-  font-family: sans-serif;
   margin: 0px 0px;
   padding: 0px 0px;
-  line-height: 1.6 }
+  line-height: 2.0 }
 
 body { 
+  font-family: sans-serif;
   margin: 0px auto;
   max-width: 850px;
-  width: auto }
+  width: 100% }
 
 p {
   padding-bottom: 0.75em;

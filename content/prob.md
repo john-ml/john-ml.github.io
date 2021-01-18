@@ -2,18 +2,23 @@
 title: Probabilistic programming in OCaml
 header-includes: |
   <link rel="stylesheet" type="text/css" href="css/main.css" />
-  <script type="text/javascript" async
-    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
-  </script>
-  <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-        processEscapes: true
-      }
-    });
-  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0-beta/katex.min.css" integrity="sha384-L/SNYu0HM7XECWBeshTGLluQO9uVI1tvkCtunuoUbCHHoTH76cDyXty69Bb9I0qZ" crossorigin="anonymous">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0-beta/katex.min.js" integrity="sha384-ad+n9lzhJjYgO67lARKETJH6WuQVDDlRfj81AJJSswMyMkXTD49wBj5EP004WOY6" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/contrib/auto-render.min.js" integrity="sha384-mll67QQFJfxn0IYznZYonOWZ644AWYC+Pt2cHqMaRhXVrursRwvLnLaebdGIlYNa" crossorigin="anonymous" 
+  onload="renderMathInElement(document.body);"></script>
 ---
+
+<!-- <script type="text/javascript" async -->
+<!--   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"> -->
+<!-- </script> -->
+<!-- <script type="text/x-mathjax-config"> -->
+<!--   MathJax.Hub.Config({ -->
+<!--     tex2jax: { -->
+<!--       inlineMath: [ ['$','$'], ["\\(","\\)"] ], -->
+<!--       processEscapes: true -->
+<!--     } -->
+<!--   }); -->
+<!-- </script> -->
 
 Here's a classic kind of word problem you might have seen before:
 
@@ -101,8 +106,8 @@ end
   produces a value of type `'a` if successful.
 - The program `pure x` always succeeds with value `x`.
 - The program `fail` always fails.
-- The program `coin p` always succeeds; it yields `true` with probability \$p\$ and `false` with
-    probability \$1-p\$.
+- The program `coin p` always succeeds; it yields `true` with probability \\(p\\) and `false` with
+    probability \\(1-p\\).
 - The program `(let*) e1 (fun x -> e2)` is a "probabilistic let binding."
   It first runs `e1` and binds the result to `x`; then, it runs `e2` with `x` in scope.
   OCaml's [binding operators](https://caml.inria.fr/pub/docs/manual-ocaml/bindingops.html) 
@@ -379,7 +384,7 @@ So it doesn't matter how unlikely `flip3'` is to run `flip3`.
 But `NaiveEnum` has lots of problems of its own.
 Exhaustive analysis can easily lead to exponential blowups.
 For example, `bin p n` is a binomial random variable with
-\$n\$ trials and success probability \$p\$:
+\\(n\\) trials and success probability \\(p\\):
 ```ocaml
 let bin p n =
   let rec go n acc =
@@ -400,8 +405,8 @@ We can use `MonteCarlo` to estimate `bin 0.5 20` just fine, albeit very roughly:
 ```
 
 But using `NaiveEnum` to estimate `bin 0.5 20` will just produce a stack overflow.
-This is because `bin 0.5 20` performs \$20\$ coin flips, and so has
-\$2^{20}\$ code paths; `NaiveEnum` tries to construct an enormous list
+This is because `bin 0.5 20` performs \\(20\\) coin flips, and so has
+\\(2^{20}\\) code paths; `NaiveEnum` tries to construct an enormous list
 with one entry for each such path, and overflows the stack while doing so.
 
 `NaiveEnum` also can't handle unbounded random variables.
@@ -442,8 +447,8 @@ type 'a t
 - `Done x` is a leaf with one value, representing a successful run with output `x`.
 - `Fail` is a leaf with no values, representing a failed run;
 - `Branch (p, l, r)` is a tree representing a random choice between subtrees `l` and `r`.
-    Subtree `l` is chosen with probability \$p\$, and `r` with probability
-    \$1-p\$.
+    Subtree `l` is chosen with probability \\(p\\), and `r` with probability
+    \\(1-p\\).
 
 It's easy to interpret `pure`, `fail`, and `coin` as trees:
 
@@ -503,7 +508,7 @@ Note that the stack usages of `go` and the interpretation for `(let*)`
 are proportional to the depth of the tree being traversed.
 This means `TreeEnum` is actually able to infer the distribution for
 `bin 0.5 20` without overflowing the stack: even though the resulting
-tree has \$2^{20}\$ leaves, it only has depth \$20\$.
+tree has \\(2^{20}\\) leaves, it only has depth \\(20\\).
 
 ```ocaml
 - : (int * float) list =
@@ -520,7 +525,7 @@ tree has \$2^{20}\$ leaves, it only has depth \$20\$.
    (20, 9.5367431640625e-07)]
 ```
 
-It still has to traverse all \$2^{20}\$ leaves though, which takes a while.
+It still has to traverse all \\(2^{20}\\) leaves though, which takes a while.
 Also, `TreeEnum` still can't infer a distribution for `geo 0.5`, because the 
 resulting tree has unbounded depth.
 
@@ -564,8 +569,8 @@ However, we can't just completely skip over subtrees with weight smaller
 than some threshold value (in this case, 0.001).
 Recall that the only time we collect weights is at the leaves of the 
 tree; so, what if _every_ leaf is in a subtree with tiny weight?
-For example, the tree for `bin 0.5 20` has \$2^{20}\$ leaves, each
-with weight \$1/2^{20}\$. If our threshold is any greater than this,
+For example, the tree for `bin 0.5 20` has \\(2^{20}\\) leaves, each
+with weight \\(1/2^{20}\\). If our threshold is any greater than this,
 then our inferencer will skip every leaf in the tree and return
 an empty map---a pretty poor approximation to the binomial 
 distribution!
@@ -666,11 +671,12 @@ look at every single leaf:
 
 However, the numbers are now approximations instead of exact values (or rather, what would be exact
 values given exact arithmetic).
-In a sense, `TreeTrimming` gets the best of both worlds:
-with threshold \$1/2^n\$, each depth-\$d\$ subtree of `bin 0.5 20` 
-will be approximated if \$1/2^d \\le 1/2^n \\iff d \\ge n \$; this is essentially like
-exhaustively enumerating the first \$n-1\$ coinflips and then
-running `MonteCarlo` with \$2^n\$ samples to estimate the result of the remaining 
+In a sense, `TreeTrimming` tries to get the best of both worlds:
+with threshold \\(1/2^n\\), each depth-\\(d\\) subtree of `bin 0.5 20` 
+will be approximated if \\(1/2^d \\le 1/2^n \\iff d \\ge n \\); this is essentially like
+exhaustively enumerating the first \\(n-1\\) coinflips and then
+running `MonteCarlo` with \\(2^n\\) samples to estimate the result of the remaining 
 flips.
 
 ## Coping with failure
+

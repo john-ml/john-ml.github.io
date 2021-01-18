@@ -43,23 +43,26 @@ code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Ann
 code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
 code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
   </style>
-  <link rel="stylesheet" type="text/css" href="css/main.css" />
-  <script type="text/javascript" async
-    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
-  </script>
-  <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-        processEscapes: true
-      }
-    });
-  </script>
+  <link rel="stylesheet" type="text/css" href="css/main.css" /> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0-beta/katex.min.css" integrity="sha384-L/SNYu0HM7XECWBeshTGLluQO9uVI1tvkCtunuoUbCHHoTH76cDyXty69Bb9I0qZ" crossorigin="anonymous">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0-beta/katex.min.js" integrity="sha384-ad+n9lzhJjYgO67lARKETJH6WuQVDDlRfj81AJJSswMyMkXTD49wBj5EP004WOY6" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/contrib/auto-render.min.js" integrity="sha384-mll67QQFJfxn0IYznZYonOWZ644AWYC+Pt2cHqMaRhXVrursRwvLnLaebdGIlYNa" crossorigin="anonymous" 
+  onload="renderMathInElement(document.body);"></script>
 </head>
 <body>
 <div id="header">
 <h1 class="title">Probabilistic programming in OCaml</h1>
 </div>
+<!-- <script type="text/javascript" async -->
+<!--   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"> -->
+<!-- </script> -->
+<!-- <script type="text/x-mathjax-config"> -->
+<!--   MathJax.Hub.Config({ -->
+<!--     tex2jax: { -->
+<!--       inlineMath: [ ['$','$'], ["\\(","\\)"] ], -->
+<!--       processEscapes: true -->
+<!--     } -->
+<!--   }); -->
+<!-- </script> -->
 <p>Here's a classic kind of word problem you might have seen before:</p>
 <blockquote>
 <p>There's a 1% chance of catching a deadly illness and you test positive. The test is correct 99% of the time. Should you be worried?</p>
@@ -106,7 +109,7 @@ d <span class="kw">true</span>
 <li>A value of type <code>'a t</code> represents a probabilistic program that produces a value of type <code>'a</code> if successful.</li>
 <li>The program <code>pure x</code> always succeeds with value <code>x</code>.</li>
 <li>The program <code>fail</code> always fails.</li>
-<li>The program <code>coin p</code> always succeeds; it yields <code>true</code> with probability $p$ and <code>false</code> with probability $1-p$.</li>
+<li>The program <code>coin p</code> always succeeds; it yields <code>true</code> with probability \(p\) and <code>false</code> with probability \(1-p\).</li>
 <li>The program <code>(let*) e1 (fun x -&gt; e2)</code> is a &quot;probabilistic let binding.&quot; It first runs <code>e1</code> and binds the result to <code>x</code>; then, it runs <code>e2</code> with <code>x</code> in scope. OCaml's <a href="https://caml.inria.fr/pub/docs/manual-ocaml/bindingops.html">binding operators</a> let us write <code>(let*) e1 (fun x -&gt; e2)</code> as <code>let* x = e1 in e2</code>.</li>
 </ul>
 <p>A module that implements this signature corresponds to an interpretation of probabilistic programs. For example, the standard way to interpret probabilistic programs is to run them, using the builtin <code>Random</code> module for random number generation:</p>
@@ -234,7 +237,7 @@ M.map (<span class="kw">fun</span> p -&gt; <span class="dt">float_of_int</span> 
   [(<span class="dv">0</span>, <span class="fl">0.124999999999999986</span>); (<span class="dv">1</span>, <span class="fl">0.374999999999999944</span>);
    (<span class="dv">2</span>, <span class="fl">0.374999999999999944</span>); (<span class="dv">3</span>, <span class="fl">0.124999999999999986</span>)]</code></pre></div>
 <p>This is because <code>NaiveEnum</code> considers every code path of the program it analyzes, not just the paths that happen to be randomly sampled. So it doesn't matter how unlikely <code>flip3'</code> is to run <code>flip3</code>.</p>
-<p>But <code>NaiveEnum</code> has lots of problems of its own. Exhaustive analysis can easily lead to exponential blowups. For example, <code>bin p n</code> is a binomial random variable with $n$ trials and success probability $p$:</p>
+<p>But <code>NaiveEnum</code> has lots of problems of its own. Exhaustive analysis can easily lead to exponential blowups. For example, <code>bin p n</code> is a binomial random variable with \(n\) trials and success probability \(p\):</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> bin p n =
   <span class="kw">let</span> <span class="kw">rec</span> go n acc =
     <span class="kw">if</span> n = <span class="dv">0</span> <span class="kw">then</span> pure acc <span class="kw">else</span>
@@ -247,7 +250,7 @@ M.map (<span class="kw">fun</span> p -&gt; <span class="dt">float_of_int</span> 
    (<span class="dv">6</span>, <span class="fl">0.03737</span>); (<span class="dv">7</span>, <span class="fl">0.07254</span>); (<span class="dv">8</span>, <span class="fl">0.12179</span>); (<span class="dv">9</span>, <span class="fl">0.16057</span>); (<span class="dv">10</span>, <span class="fl">0.17396</span>);
    (<span class="dv">11</span>, <span class="fl">0.15959</span>); (<span class="dv">12</span>, <span class="fl">0.1207</span>); (<span class="dv">13</span>, <span class="fl">0.07392</span>); (<span class="dv">14</span>, <span class="fl">0.03716</span>); (<span class="dv">15</span>, <span class="fl">0.01518</span>);
    (<span class="dv">16</span>, <span class="fl">0.00432</span>); (<span class="dv">17</span>, <span class="fl">0.00126</span>); (<span class="dv">18</span>, <span class="fl">0.00023</span>); (<span class="dv">19</span>, <span class="fl">2e-05</span>); (<span class="dv">20</span>, <span class="fl">1e-05</span>)]</code></pre></div>
-<p>But using <code>NaiveEnum</code> to estimate <code>bin 0.5 20</code> will just produce a stack overflow. This is because <code>bin 0.5 20</code> performs $20$ coin flips, and so has $2^{20}$ code paths; <code>NaiveEnum</code> tries to construct an enormous list with one entry for each such path, and overflows the stack while doing so.</p>
+<p>But using <code>NaiveEnum</code> to estimate <code>bin 0.5 20</code> will just produce a stack overflow. This is because <code>bin 0.5 20</code> performs \(20\) coin flips, and so has \(2^{20}\) code paths; <code>NaiveEnum</code> tries to construct an enormous list with one entry for each such path, and overflows the stack while doing so.</p>
 <p><code>NaiveEnum</code> also can't handle unbounded random variables. For example, <code>geo p</code> is a geometric random variable with success probability <code>p</code>:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> geo p =
   <span class="kw">let</span> <span class="kw">rec</span> go n =
@@ -269,7 +272,7 @@ M.map (<span class="kw">fun</span> p -&gt; <span class="dt">float_of_int</span> 
 <ul>
 <li><code>Done x</code> is a leaf with one value, representing a successful run with output <code>x</code>.</li>
 <li><code>Fail</code> is a leaf with no values, representing a failed run;</li>
-<li><code>Branch (p, l, r)</code> is a tree representing a random choice between subtrees <code>l</code> and <code>r</code>. Subtree <code>l</code> is chosen with probability $p$, and <code>r</code> with probability $1-p$.</li>
+<li><code>Branch (p, l, r)</code> is a tree representing a random choice between subtrees <code>l</code> and <code>r</code>. Subtree <code>l</code> is chosen with probability \(p\), and <code>r</code> with probability \(1-p\).</li>
 </ul>
 <p>It's easy to interpret <code>pure</code>, <code>fail</code>, and <code>coin</code> as trees:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> pure x = Done x
@@ -302,7 +305,7 @@ M.map (<span class="kw">fun</span> p -&gt; <span class="dt">float_of_int</span> 
     <span class="kw">in</span>
     M.map (<span class="kw">fun</span> p -&gt; p /. total) samples
 <span class="kw">end</span></code></pre></div>
-<p>Note that the stack usages of <code>go</code> and the interpretation for <code>(let*)</code> are proportional to the depth of the tree being traversed. This means <code>TreeEnum</code> is actually able to infer the distribution for <code>bin 0.5 20</code> without overflowing the stack: even though the resulting tree has $2^{20}$ leaves, it only has depth $20$.</p>
+<p>Note that the stack usages of <code>go</code> and the interpretation for <code>(let*)</code> are proportional to the depth of the tree being traversed. This means <code>TreeEnum</code> is actually able to infer the distribution for <code>bin 0.5 20</code> without overflowing the stack: even though the resulting tree has \(2^{20}\) leaves, it only has depth \(20\).</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">- : (<span class="dt">int</span> * <span class="dt">float</span>) <span class="dt">list</span> =
   [(<span class="dv">0</span>, <span class="fl">9.5367431640625e-07</span>); (<span class="dv">1</span>, <span class="fl">1.9073486328125e-05</span>);
    (<span class="dv">2</span>, <span class="fl">0.0001811981201171875</span>); (<span class="dv">3</span>, <span class="fl">0.001087188720703125</span>);
@@ -315,7 +318,7 @@ M.map (<span class="kw">fun</span> p -&gt; <span class="dt">float_of_int</span> 
    (<span class="dv">16</span>, <span class="fl">0.00462055206298828125</span>); (<span class="dv">17</span>, <span class="fl">0.001087188720703125</span>);
    (<span class="dv">18</span>, <span class="fl">0.0001811981201171875</span>); (<span class="dv">19</span>, <span class="fl">1.9073486328125e-05</span>);
    (<span class="dv">20</span>, <span class="fl">9.5367431640625e-07</span>)]</code></pre></div>
-<p>It still has to traverse all $2^{20}$ leaves though, which takes a while. Also, <code>TreeEnum</code> still can't infer a distribution for <code>geo 0.5</code>, because the resulting tree has unbounded depth.</p>
+<p>It still has to traverse all \(2^{20}\) leaves though, which takes a while. Also, <code>TreeEnum</code> still can't infer a distribution for <code>geo 0.5</code>, because the resulting tree has unbounded depth.</p>
 <h2 id="trees-and-simulations-together">Trees and simulations together</h2>
 <p>Here's what the tree produced by <code>geo 0.5</code> looks like:</p>
 <pre class="text"><code>Branch (0.5, Done 0,
@@ -330,7 +333,7 @@ Branch (0.5, Done 2,
    3  ‥</code></pre>
 <p>Now, there's a little bit of weight at each leaf of this tree: the leaf labelled 0 has weight 0.5, 1 has weight 0.25, and so on. <code>TreeEnum</code> must collect all of these weights together in order to compute a probability distribution. The problem is that <code>TreeEnum</code> can never stop collecting: the tree is infinite because <code>geo 0.5</code> is an unbounded random variable.</p>
 <p>To stop <code>TreeEnum</code> from looping, we can make use of the fact that weights get exponentially smaller with tree depth. For example, by the time <code>TreeEnum</code> hits the leaf labelled 10, it can collect at most 0.001 weight from the next subtree to examine. If we were to just stop at this point, we'd still have a good picture of what the distribution for <code>geo 0.5</code> looks like.</p>
-<p>However, we can't just completely skip over subtrees with weight smaller than some threshold value (in this case, 0.001). Recall that the only time we collect weights is at the leaves of the tree; so, what if <em>every</em> leaf is in a subtree with tiny weight? For example, the tree for <code>bin 0.5 20</code> has $2^{20}$ leaves, each with weight $1/2^{20}$. If our threshold is any greater than this, then our inferencer will skip every leaf in the tree and return an empty map---a pretty poor approximation to the binomial distribution!</p>
+<p>However, we can't just completely skip over subtrees with weight smaller than some threshold value (in this case, 0.001). Recall that the only time we collect weights is at the leaves of the tree; so, what if <em>every</em> leaf is in a subtree with tiny weight? For example, the tree for <code>bin 0.5 20</code> has \(2^{20}\) leaves, each with weight \(1/2^{20}\). If our threshold is any greater than this, then our inferencer will skip every leaf in the tree and return an empty map---a pretty poor approximation to the binomial distribution!</p>
 <p>A solution is to combine <code>TreeEnum</code> with simulation. Instead of generating an exhaustive subtree with tiny weight, we'll approximate it by running a simulation. If the run produces a value <code>x</code>, then we'll use <code>Done x</code> as our approximation; if the run fails, then we'll use <code>Fail</code>. This approximation is very crude, but the idea is that any errors here won't matter much in the grand scheme of things because we're only approximating trees with tiny weight.</p>
 <p>We can do this as follows: interpret probabilistic computations as functions <code>float -&gt; 'a tree</code>. The extra <code>float</code> argument represents the weight at the subtree to compute: if it's below a given threshold value, then the function will return either <code>Done x</code> or <code>Fail</code> based on the result of a simulation.</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> TreeTrimming (T : <span class="kw">sig</span> <span class="kw">val</span> threshold : <span class="dt">float</span> <span class="kw">end</span>) : RAND = <span class="kw">struct</span>
@@ -379,7 +382,7 @@ Branch (0.5, Done 2,
    (<span class="dv">15</span>, <span class="fl">0.01442718505859375</span>); (<span class="dv">16</span>, <span class="fl">0.0046539306640625</span>);
    (<span class="dv">17</span>, <span class="fl">0.001129150390625</span>); (<span class="dv">18</span>, <span class="fl">0.0001983642578125</span>);
    (<span class="dv">19</span>, <span class="fl">2.288818359375e-05</span>)]</code></pre></div>
-<p>However, the numbers are now approximations instead of exact values (or rather, what would be exact values given exact arithmetic). In a sense, <code>TreeTrimming</code> gets the best of both worlds: with threshold $1/2^n$, each depth-$d$ subtree of <code>bin 0.5 20</code> will be approximated if $1/2^d \le 1/2^n \iff d \ge n $; this is essentially like exhaustively enumerating the first $n-1$ coinflips and then running <code>MonteCarlo</code> with $2^n$ samples to estimate the result of the remaining flips.</p>
+<p>However, the numbers are now approximations instead of exact values (or rather, what would be exact values given exact arithmetic). In a sense, <code>TreeTrimming</code> tries to get the best of both worlds: with threshold \(1/2^n\), each depth-\(d\) subtree of <code>bin 0.5 20</code> will be approximated if \(1/2^d \le 1/2^n \iff d \ge n \); this is essentially like exhaustively enumerating the first \(n-1\) coinflips and then running <code>MonteCarlo</code> with \(2^n\) samples to estimate the result of the remaining flips.</p>
 <h2 id="coping-with-failure">Coping with failure</h2>
 </body>
 </html>
