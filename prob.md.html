@@ -64,7 +64,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <blockquote>
 <p>There's a 1% chance of catching a deadly illness and you test positive. The test is correct 99% of the time. Should you be worried?</p>
 </blockquote>
-<p>At some point I learned how to solve problems like these by translating the problem from English into probability theory and then performing the proper calculations. But I haven't studied probability in a while, and calculations are easy to get wrong. Meanwhile, I write programs all the time and computers are great at calculating. So why not have a program find the answer for me? The following OCaml code does just that:</p>
+<p>I learned how to solve problems like these by translating them into probability theory and performing the proper calculations. But I haven't studied probability in a while, and calculations are easy to get wrong. Meanwhile, I write programs all the time and computers are great at calculating. So why not have a program find the answer for me? The following OCaml code does just that:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="co">(* Let the random variable X be true iff I&#39;m sick.</span>
 <span class="co">   d will be the distribution of X given that I tested positive. *)</span>
 <span class="kw">let</span> d : <span class="dt">bool</span> -&gt; <span class="dt">float</span> =
@@ -92,9 +92,9 @@ d <span class="kw">true</span>
 <li>The program returns whether the simulated person is actually sick.</li>
 </ul>
 <p>A normal execution of this program would either (1) fail because <code>test_result</code> was false or (2) succeed and return whether or not the simulated person was infected. The inferencer instead computes a distribution over the output values the program can succeed with (<code>true</code> and <code>false</code> in this case); the probability of succeeding with <code>true</code> corresponds to the probability I'm actually sick given a positive test result.</p>
-<p>You can find a lot of papers online about writing efficient inferencers. Rather than reading them, I decided to roll my own inferencers and try them out on some simple problems. This post describes how it works.</p>
+<p>You can find a lot of papers online about writing efficient inferencers. Rather than reading them, I decided to roll my own inferencers and try them out on some simple problems. This post describes how they work.</p>
 <h2 id="modelling-random-computations">Modelling random computations</h2>
-<p>Before we implement an inferencer, we need to be able to represent probabilistic programs. We can do this with the following signature:</p>
+<p>Before we implement an inferencer, we need to be able to represent probabilistic programs. This can be done with the following signature:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> <span class="kw">type</span> RAND = <span class="kw">sig</span>
   <span class="kw">type</span> &#39;a t
   <span class="kw">val</span> pure : &#39;a -&gt; &#39;a t
@@ -124,7 +124,7 @@ d <span class="kw">true</span>
 <p>The verbosity is due to a lack of typeclasses; in Haskell, this would be written</p>
 <div class="sourceCode"><pre class="sourceCode hs"><code class="sourceCode haskell"><span class="ot">dist&#39; ::</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> t a <span class="ot">-&gt;</span> <span class="dt">Map</span> a <span class="dt">Float</span></code></pre></div>
 <p>Given a probabilistic program of type <code>'a</code>, this function computes a discrete probability distribution over its output values. The functor is there because the distribution is represented by a finite map, which requires that <code>'a</code> be comparable.</p>
-<p>Given any implementation of this core signature, we can implement the following extended signature:</p>
+<p>Given any implementation of <code>RAND</code>, we can implement the following extended signature <code>RAND_EXT</code>:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> <span class="kw">type</span> RAND_EXT = <span class="kw">sig</span>
   <span class="kw">include</span> RAND
   <span class="kw">val</span> pdf : (&#39;a -&gt; &#39;a -&gt; <span class="dt">int</span>) -&gt; &#39;a t -&gt; (&#39;a -&gt; <span class="dt">float</span>)
@@ -144,9 +144,8 @@ d <span class="kw">true</span>
 <p>The most basic inferencer just runs the given probabilistic program a bunch of times and uses the results of successful runs to estimate the distribution of output values:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> MonteCarlo (S : <span class="kw">sig</span> <span class="kw">val</span> samples : <span class="dt">int</span> <span class="kw">end</span>) : RAND = <span class="kw">struct</span> .. <span class="kw">end</span></code></pre></div>
 <p>Just like in <code>Execute</code>, we'll represent programs as thunks <code>unit -&gt; 'a</code>:</p>
-<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> &#39;a t = <span class="dt">unit</span> -&gt; &#39;a</code></pre></div>
-<p>The definitions for <code>pure</code>, <code>fail</code>, <code>coin</code>, and <code>let*</code> are identical to their standard interpretations:</p>
-<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> pure x = <span class="kw">fun</span> _ -&gt; x
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> &#39;a t = <span class="dt">unit</span> -&gt; &#39;a
+<span class="kw">let</span> pure x = <span class="kw">fun</span> _ -&gt; x
 <span class="kw">exception</span> Fail
 <span class="kw">let</span> fail = <span class="kw">fun</span> _ -&gt; <span class="dt">raise</span> Fail
 <span class="kw">let</span> coin p = <span class="kw">fun</span> _ -&gt; <span class="dt">Random</span>.<span class="dt">float</span> <span class="fl">1.0</span> &lt;= p
@@ -179,18 +178,18 @@ M.map (<span class="kw">fun</span> p -&gt; <span class="dt">float_of_int</span> 
   <span class="kw">let</span>* c2 = coin <span class="fl">0.5</span> <span class="kw">in</span>
   <span class="kw">let</span>* c3 = coin <span class="fl">0.5</span> <span class="kw">in</span>
   pure (ind c1 + ind c2 + ind c3)</code></pre></div>
-<p>Running the inferencer on <code>flip3</code> with 10000 samples yields a reasonable-looking distribution:</p>
-<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">val</span> - : (<span class="dt">int</span> * <span class="dt">float</span>) <span class="dt">list</span> = 
+<p>Running the inferencer on <code>flip3</code> with 10000 samples quickly yields a reasonable-looking distribution:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">- : (<span class="dt">int</span> * <span class="dt">float</span>) <span class="dt">list</span> = 
   [(<span class="dv">0</span>, <span class="fl">0.1311</span>); (<span class="dv">1</span>, <span class="fl">0.3765</span>); (<span class="dv">2</span>, <span class="fl">0.3704</span>); (<span class="dv">3</span>, <span class="fl">0.122</span>)]</code></pre></div>
 <p>(For reference, the true probabilities are 1/8, 3/8, 3/8, and 1/8 respectively.)</p>
 <p>Now, here's a program that fails 99.99% of the time, but behaves just like <code>flip3</code> when it succeeds:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> flip3&#39; =
   <span class="kw">let</span>* b = coin <span class="fl">0.0001</span> <span class="kw">in</span>
   guard b flip3</code></pre></div>
-<p>This program should have the exact same distribution of output values as <code>flip3</code>. However, it'll take 10000 times as long for our inferencer to figure that out, because only one out of every 10000 runs is successful!</p>
+<p>This program should have the exact same distribution of output values as <code>flip3</code>. However, it'll take around 10000 times as long for our inferencer to figure that out!</p>
 <h2 id="enumerating-all-possibilities">Enumerating all possibilities</h2>
 <p>Instead of randomly sampling, we could run through every code path of the program to analyze.</p>
-<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> NaiveEnum (S : <span class="kw">sig</span> <span class="kw">val</span> samples : <span class="dt">int</span> <span class="kw">end</span>) : RAND = <span class="kw">struct</span> .. <span class="kw">end</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> NaiveEnum : RAND = <span class="kw">struct</span> .. <span class="kw">end</span></code></pre></div>
 <p>This method works by interpreting a probabilistic program as its distribution of output values, represented as a list of value-weight pairs:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> &#39;a t = (&#39;a * <span class="dt">float</span>) <span class="dt">list</span></code></pre></div>
 <p>The program <code>pure x</code> produces the value <code>x</code> with weight <code>1</code>:</p>
@@ -235,7 +234,7 @@ M.map (<span class="kw">fun</span> p -&gt; <span class="dt">float_of_int</span> 
   [(<span class="dv">0</span>, <span class="fl">0.124999999999999986</span>); (<span class="dv">1</span>, <span class="fl">0.374999999999999944</span>);
    (<span class="dv">2</span>, <span class="fl">0.374999999999999944</span>); (<span class="dv">3</span>, <span class="fl">0.124999999999999986</span>)]</code></pre></div>
 <p>This is because <code>NaiveEnum</code> considers every code path of the program it analyzes, not just the paths that happen to be randomly sampled. So it doesn't matter how unlikely <code>flip3'</code> is to run <code>flip3</code>.</p>
-<p>But <code>NaiveEnum</code> has lots of problems of its own. Exhaustive analysis can easily lead to exponential blowups. For example, <code>bin p n</code> is a binomial random variable $n$ trials and success probability $p$:</p>
+<p>But <code>NaiveEnum</code> has lots of problems of its own. Exhaustive analysis can easily lead to exponential blowups. For example, <code>bin p n</code> is a binomial random variable with $n$ trials and success probability $p$:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> bin p n =
   <span class="kw">let</span> <span class="kw">rec</span> go n acc =
     <span class="kw">if</span> n = <span class="dv">0</span> <span class="kw">then</span> pure acc <span class="kw">else</span>
@@ -261,7 +260,126 @@ M.map (<span class="kw">fun</span> p -&gt; <span class="dt">float_of_int</span> 
    (<span class="dv">5</span>, <span class="fl">0.0158</span>); (<span class="dv">6</span>, <span class="fl">0.0077</span>); (<span class="dv">7</span>, <span class="fl">0.0033</span>); (<span class="dv">8</span>, <span class="fl">0.0024</span>); (<span class="dv">9</span>, <span class="fl">0.0011</span>);
    (<span class="dv">10</span>, <span class="fl">0.0005</span>); (<span class="dv">11</span>, <span class="fl">0.0004</span>); (<span class="dv">14</span>, <span class="fl">0.0002</span>)]</code></pre></div>
 <p><code>NaiveEnum</code> overflows the stack because <code>geo 0.5</code> has an unbounded number of code paths.</p>
-<p>Finally, <code>NaiveEnum</code> produces many intermediate lists; these can take up an enormous amount of space if the branching tree of possibilities is large.</p>
-<h2 id="removing-intermediate-lists">Removing intermediate lists</h2>
+<h2 id="enumerating-with-trees">Enumerating with trees</h2>
+<p><code>NaiveEnum</code> stack overflows while trying to construct huge lists. To avoid that, we can instead represent the distribution as a <a href="https://en.wikipedia.org/wiki/Tree_diagram_(probability_theory)">tree of possible outcomes</a>:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> &#39;a t 
+  = Done <span class="kw">of</span> &#39;a
+  | Fail
+  | Branch <span class="kw">of</span> <span class="dt">float</span> * &#39;a t * &#39;a t</code></pre></div>
+<ul>
+<li><code>Done x</code> is a leaf with one value, representing a successful run with output <code>x</code>.</li>
+<li><code>Fail</code> is a leaf with no values, representing a failed run;</li>
+<li><code>Branch (p, l, r)</code> is a tree representing a random choice between subtrees <code>l</code> and <code>r</code>. Subtree <code>l</code> is chosen with probability $p$, and <code>r</code> with probability $1-p$.</li>
+</ul>
+<p>It's easy to interpret <code>pure</code>, <code>fail</code>, and <code>coin</code> as trees:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> pure x = Done x
+<span class="kw">let</span> fail = Fail
+<span class="kw">let</span> coin p = Branch (p, Done <span class="kw">true</span>, Done <span class="kw">false</span>)</code></pre></div>
+<p>To interpret a let binding <code>(let*) m k</code> given interpretations for <code>m</code> and <code>k</code>, apply <code>k</code> to every <code>Done x</code> in <code>m</code>:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> ( <span class="kw">let</span>* ) m k = 
+  <span class="kw">let</span> <span class="kw">rec</span> go = <span class="kw">function</span>
+    | Done x -&gt; k x
+    | Fail -&gt; Fail
+    | Branch (p, l, r) -&gt; Branch (p, go l, go r)
+  <span class="kw">in</span> go m</code></pre></div>
+<p>Each leaf of a tree diagram represents a code path in the probabilistic program being analyzed. Each <code>Done x</code> represents a successful run. The weight of each <code>Done x</code> can be computed by multiplying together probabilities on the path from it to the root of the tree. Collecting a list of such value-weight pairs yields the same thing that <code>NaiveEnum</code> would have computed; just like in <code>NaiveEnum</code>, folding over this list and normalizing yields a probability distribution. To avoid actually materializing such a huge list, we can just fold over the tree directly:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> Dist&#39; (A : <span class="dt">Map</span>.OrderedType) = <span class="kw">struct</span>
+  <span class="kw">module</span> M = <span class="dt">Map</span>.Make(A)
+  <span class="kw">let</span> f (m : A.t t) : <span class="dt">float</span> M.t =
+    <span class="kw">let</span> inc p = <span class="kw">function</span>
+      | <span class="dt">None</span> -&gt; <span class="dt">Some</span> p
+      | <span class="dt">Some</span> q -&gt; <span class="dt">Some</span> (p +. q)
+    <span class="kw">in</span>
+    <span class="kw">let</span> <span class="kw">rec</span> go m p z f = 
+      <span class="kw">match</span> m <span class="kw">with</span>
+      | Done x -&gt; f x p z
+      | Fail -&gt; z
+      | Branch (q, l, r) -&gt; go l (p *. q) (go r (p *. (<span class="fl">1.0</span> -. q)) z f) f
+    <span class="kw">in</span>
+    <span class="kw">let</span> (total, samples) = 
+      go m <span class="fl">1.0</span> (<span class="fl">0.0</span>, M.empty) (<span class="kw">fun</span> x p (total, samples) -&gt; 
+        (total +. p, M.update x (inc p) samples))
+    <span class="kw">in</span>
+    M.map (<span class="kw">fun</span> p -&gt; p /. total) samples
+<span class="kw">end</span></code></pre></div>
+<p>Note that the stack usages of <code>go</code> and the interpretation for <code>(let*)</code> are proportional to the depth of the tree being traversed. This means <code>TreeEnum</code> is actually able to infer the distribution for <code>bin 0.5 20</code> without overflowing the stack: even though the resulting tree has $2^{20}$ leaves, it only has depth $20$.</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">- : (<span class="dt">int</span> * <span class="dt">float</span>) <span class="dt">list</span> =
+  [(<span class="dv">0</span>, <span class="fl">9.5367431640625e-07</span>); (<span class="dv">1</span>, <span class="fl">1.9073486328125e-05</span>);
+   (<span class="dv">2</span>, <span class="fl">0.0001811981201171875</span>); (<span class="dv">3</span>, <span class="fl">0.001087188720703125</span>);
+   (<span class="dv">4</span>, <span class="fl">0.00462055206298828125</span>); (<span class="dv">5</span>, <span class="fl">0.0147857666015625</span>);
+   (<span class="dv">6</span>, <span class="fl">0.03696441650390625</span>); (<span class="dv">7</span>, <span class="fl">0.0739288330078125</span>);
+   (<span class="dv">8</span>, <span class="fl">0.120134353637695312</span>); (<span class="dv">9</span>, <span class="fl">0.16017913818359375</span>);
+   (<span class="dv">10</span>, <span class="fl">0.176197052001953125</span>); (<span class="dv">11</span>, <span class="fl">0.16017913818359375</span>);
+   (<span class="dv">12</span>, <span class="fl">0.120134353637695312</span>); (<span class="dv">13</span>, <span class="fl">0.0739288330078125</span>);
+   (<span class="dv">14</span>, <span class="fl">0.03696441650390625</span>); (<span class="dv">15</span>, <span class="fl">0.0147857666015625</span>);
+   (<span class="dv">16</span>, <span class="fl">0.00462055206298828125</span>); (<span class="dv">17</span>, <span class="fl">0.001087188720703125</span>);
+   (<span class="dv">18</span>, <span class="fl">0.0001811981201171875</span>); (<span class="dv">19</span>, <span class="fl">1.9073486328125e-05</span>);
+   (<span class="dv">20</span>, <span class="fl">9.5367431640625e-07</span>)]</code></pre></div>
+<p>It still has to traverse all $2^{20}$ leaves though, which takes a while. Also, <code>TreeEnum</code> still can't infer a distribution for <code>geo 0.5</code>, because the resulting tree has unbounded depth.</p>
+<h2 id="trees-and-simulations-together">Trees and simulations together</h2>
+<p>Here's what the tree produced by <code>geo 0.5</code> looks like:</p>
+<pre class="text"><code>Branch (0.5, Done 0,
+Branch (0.5, Done 1,
+Branch (0.5, Done 2,
+..)))</code></pre>
+<p>Graphically:</p>
+<pre class="text"><code> /\
+0 /\
+ 1 /\
+  2 /\
+   3  ‥</code></pre>
+<p>Now, there's a little bit of weight at each leaf of this tree: the leaf labelled 0 has weight 0.5, 1 has weight 0.25, and so on. <code>TreeEnum</code> must collect all of these weights together in order to compute a probability distribution. The problem is that <code>TreeEnum</code> can never stop collecting: the tree is infinite because <code>geo 0.5</code> is an unbounded random variable.</p>
+<p>To stop <code>TreeEnum</code> from looping, we can make use of the fact that weights get exponentially smaller with tree depth. For example, by the time <code>TreeEnum</code> hits the leaf labelled 10, it can collect at most 0.001 weight from the next subtree to examine. If we were to just stop at this point, we'd still have a good picture of what the distribution for <code>geo 0.5</code> looks like.</p>
+<p>However, we can't just completely skip over subtrees with weight smaller than some threshold value (in this case, 0.001). Recall that the only time we collect weights is at the leaves of the tree; so, what if <em>every</em> leaf is in a subtree with tiny weight? For example, the tree for <code>bin 0.5 20</code> has $2^{20}$ leaves, each with weight $1/2^{20}$. If our threshold is any greater than this, then our inferencer will skip every leaf in the tree and return an empty map---a pretty poor approximation to the binomial distribution!</p>
+<p>A solution is to combine <code>TreeEnum</code> with simulation. Instead of generating an exhaustive subtree with tiny weight, we'll approximate it by running a simulation. If the run produces a value <code>x</code>, then we'll use <code>Done x</code> as our approximation; if the run fails, then we'll use <code>Fail</code>. This approximation is very crude, but the idea is that any errors here won't matter much in the grand scheme of things because we're only approximating trees with tiny weight.</p>
+<p>We can do this as follows: interpret probabilistic computations as functions <code>float -&gt; 'a tree</code>. The extra <code>float</code> argument represents the weight at the subtree to compute: if it's below a given threshold value, then the function will return either <code>Done x</code> or <code>Fail</code> based on the result of a simulation.</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> TreeTrimming (T : <span class="kw">sig</span> <span class="kw">val</span> threshold : <span class="dt">float</span> <span class="kw">end</span>) : RAND = <span class="kw">struct</span>
+  <span class="kw">type</span> &#39;a t = <span class="dt">float</span> -&gt; &#39;a tree
+  <span class="kw">and</span> &#39;a tree
+    = Done <span class="kw">of</span> &#39;a
+    | Fail
+    | Branch <span class="kw">of</span> <span class="dt">float</span> * &#39;a tree * &#39;a tree
+  ..
+<span class="kw">end</span></code></pre></div>
+<p>As before, <code>pure</code> and <code>fail</code> succeed and fail unconditionally:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> pure x = <span class="kw">fun</span> _ -&gt; Done x
+<span class="kw">let</span> fail = <span class="kw">fun</span> _ -&gt; Fail</code></pre></div>
+<p>However, <code>coin</code> behaves differently depending on the weight of the subcomputation being analyzed. If the weight is below <code>T.threshold</code>, then we approximate by randomly flipping a coin with probability <code>p</code>; otherwise, we return a <code>Branch</code> as before:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> coin p = <span class="kw">fun</span> q -&gt;
+  <span class="kw">if</span> q &lt;= T.threshold 
+  <span class="kw">then</span> Done (<span class="dt">Random</span>.<span class="dt">float</span> <span class="fl">1.0</span> &lt;= p)
+  <span class="kw">else</span> Branch (p, Done <span class="kw">true</span>, Done <span class="kw">false</span>)</code></pre></div>
+<p>The interpretation for <code>(let*) m k</code> is basically the same as before, but with some extra code to plumb the extra parameter around and compute the weights of each subtree as we traverse <code>m</code>:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">let</span> ( <span class="kw">let</span>* ) m k = <span class="kw">fun</span> p -&gt;
+  <span class="kw">let</span> <span class="kw">rec</span> go p = <span class="kw">function</span>
+    | Done x -&gt; k x p
+    | Fail -&gt; Fail
+    | Branch (q, l, r) -&gt; 
+      Branch (q, go (p *. q) l, go (p *. (<span class="fl">1.0</span> -. q)) r)
+  <span class="kw">in</span> go p (m p)</code></pre></div>
+<p>Unlike its predecessor, <code>TreeTrimming</code> can successfully infer a distribution for <code>geo 0.5</code>:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">- : (<span class="dt">int</span> * <span class="dt">float</span>) <span class="dt">list</span> =
+  [(<span class="dv">0</span>, <span class="fl">0.5</span>); (<span class="dv">1</span>, <span class="fl">0.25</span>); (<span class="dv">2</span>, <span class="fl">0.125</span>); (<span class="dv">3</span>, <span class="fl">0.0625</span>); (<span class="dv">4</span>, <span class="fl">0.03125</span>); (<span class="dv">5</span>, <span class="fl">0.015625</span>);
+   (<span class="dv">6</span>, <span class="fl">0.0078125</span>); (<span class="dv">7</span>, <span class="fl">0.00390625</span>); (<span class="dv">8</span>, <span class="fl">0.001953125</span>); (<span class="dv">9</span>, <span class="fl">0.0009765625</span>);
+   (<span class="dv">10</span>, <span class="fl">0.00048828125</span>); (<span class="dv">11</span>, <span class="fl">0.000244140625</span>); (<span class="dv">12</span>, <span class="fl">0.0001220703125</span>);
+   (<span class="dv">13</span>, <span class="fl">6.103515625e-05</span>); (<span class="dv">14</span>, <span class="fl">3.0517578125e-05</span>); (<span class="dv">15</span>, <span class="fl">1.52587890625e-05</span>);
+   (<span class="dv">16</span>, <span class="fl">7.62939453125e-06</span>); (<span class="dv">19</span>, <span class="fl">7.62939453125e-06</span>)]</code></pre></div>
+<p>Note that, unlike with pure Monte Carlo simulation, we get exact probabilities for the first 12 or so values where the weight of the corresponding subtrees had not yet dipped below the threshold.</p>
+<!-- The implementation for `Dist'` is basically the same as in `TreeEnum`. Given -->
+<!-- an `(m : 'a t)`, we just have to start the analysis by calling `m` with -->
+<!-- initial weight `1.0` to obtain a tree. -->
+<p><code>TreeTrimming</code> also terminates much faster on <code>bin 0.5 20</code> with a suitable threshold (<code>0.00001</code> in this case), because it doesn't actually look at every single leaf:</p>
+<div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml">- : (<span class="dt">int</span> * <span class="dt">float</span>) <span class="dt">list</span> =
+  [(<span class="dv">1</span>, <span class="fl">3.0517578125e-05</span>); (<span class="dv">2</span>, <span class="fl">0.0001220703125</span>); (<span class="dv">3</span>, <span class="fl">0.001129150390625</span>);
+   (<span class="dv">4</span>, <span class="fl">0.004608154296875</span>); (<span class="dv">5</span>, <span class="fl">0.0150909423828125</span>); (<span class="dv">6</span>, <span class="fl">0.03665924072265625</span>);
+   (<span class="dv">7</span>, <span class="fl">0.07422637939453125</span>); (<span class="dv">8</span>, <span class="fl">0.12113189697265625</span>);
+   (<span class="dv">9</span>, <span class="fl">0.1580047607421875</span>); (<span class="dv">10</span>, <span class="fl">0.17621612548828125</span>);
+   (<span class="dv">11</span>, <span class="fl">0.16167449951171875</span>); (<span class="dv">12</span>, <span class="fl">0.12032318115234375</span>);
+   (<span class="dv">13</span>, <span class="fl">0.0738372802734375</span>); (<span class="dv">14</span>, <span class="fl">0.0365142822265625</span>);
+   (<span class="dv">15</span>, <span class="fl">0.01442718505859375</span>); (<span class="dv">16</span>, <span class="fl">0.0046539306640625</span>);
+   (<span class="dv">17</span>, <span class="fl">0.001129150390625</span>); (<span class="dv">18</span>, <span class="fl">0.0001983642578125</span>);
+   (<span class="dv">19</span>, <span class="fl">2.288818359375e-05</span>)]</code></pre></div>
+<p>However, the numbers are now approximations instead of exact values (or rather, what would be exact values given exact arithmetic). In a sense, <code>TreeTrimming</code> gets the best of both worlds: with threshold $1/2^n$, each depth-$d$ subtree of <code>bin 0.5 20</code> will be approximated if $1/2^d \le 1/2^n \iff d \ge n $; this is essentially like exhaustively enumerating the first $n-1$ coinflips and then running <code>MonteCarlo</code> with $2^n$ samples to estimate the result of the remaining flips.</p>
+<h2 id="coping-with-failure">Coping with failure</h2>
 </body>
 </html>

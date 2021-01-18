@@ -5,9 +5,9 @@
   line-height: 1.6 }
 
 body { 
-  margin-left: 30%;
-  max-width: 40%;
-  width: 40% }
+  margin: 0px auto;
+  max-width: 850px;
+  width: auto }
 
 p {
   padding-bottom: 0.75em;
@@ -55,3 +55,6 @@ div.sourceCode {
   padding-bottom: 0.75em  }
 div.sourceCode * { font-family: Iosevka, monospace }
 code { font-family: Iosevka, monospace }
+pre.text { 
+  margin-left: 25px;
+  padding-bottom: 0.75em  }

@@ -20,9 +20,9 @@ Here's a classic kind of word problem you might have seen before:
 > There's a 1% chance of catching a deadly illness and you test positive.
 > The test is correct 99% of the time. Should you be worried?
 
-At some point I learned how to solve problems like these by
-translating the problem from English into probability theory
-and then performing the proper calculations.
+I learned how to solve problems like these by
+translating them into probability theory
+and performing the proper calculations.
 But I haven't studied probability in a while, and
 calculations are easy to get wrong.
 Meanwhile, I write programs all the time and computers
@@ -80,12 +80,12 @@ corresponds to the probability I'm actually sick given a positive test result.
 You can find a lot of papers online about writing efficient inferencers. 
 Rather than reading them, I decided to roll my own inferencers and try them out on some 
 simple problems. 
-This post describes how it works.
+This post describes how they work.
 
 ## Modelling random computations
 
 Before we implement an inferencer, we need to be able to represent 
-probabilistic programs. We can do this with the following signature:
+probabilistic programs. This can be done with the following signature:
 
 ```ocaml
 module type RAND = sig
@@ -143,8 +143,8 @@ distribution over its output values.
 The functor is there because the distribution is represented by a finite map, 
 which requires that `'a` be comparable.
 
-Given any implementation of this core signature, we can
-implement the following extended signature:
+Given any implementation of `RAND`, we can
+implement the following extended signature `RAND_EXT`:
 
 ```ocaml
 module type RAND_EXT = sig
@@ -190,12 +190,6 @@ we'll represent programs as thunks `unit -> 'a`:
 
 ```ocaml
 type 'a t = unit -> 'a
-```
-
-The definitions for `pure`, `fail`, `coin`, and `let*` are identical 
-to their standard interpretations:
-
-```ocaml
 let pure x = fun _ -> x
 exception Fail
 let fail = fun _ -> raise Fail
@@ -269,9 +263,9 @@ let flip3 =
   pure (ind c1 + ind c2 + ind c3)
 ```
 Running the inferencer on `flip3` with 10000 samples
-yields a reasonable-looking distribution:
+quickly yields a reasonable-looking distribution:
 ```ocaml
-val - : (int * float) list = 
+- : (int * float) list = 
   [(0, 0.1311); (1, 0.3765); (2, 0.3704); (3, 0.122)]
 ```
 (For reference, the true probabilities are 1/8, 3/8, 3/8, and 1/8 respectively.)
@@ -284,8 +278,7 @@ let flip3' =
   guard b flip3
 ```
 This program should have the exact same distribution of output values as `flip3`.
-However, it'll take 10000 times as long for our inferencer to figure that out, because
-only one out of every 10000 runs is successful!
+However, it'll take around 10000 times as long for our inferencer to figure that out!
 
 ## Enumerating all possibilities
 
@@ -293,7 +286,7 @@ Instead of randomly sampling, we could run through every code path
 of the program to analyze.
 
 ```ocaml
-module NaiveEnum (S : sig val samples : int end) : RAND = struct .. end
+module NaiveEnum : RAND = struct .. end
 ```
 
 This method works by interpreting a probabilistic program as
@@ -385,7 +378,7 @@ So it doesn't matter how unlikely `flip3'` is to run `flip3`.
 
 But `NaiveEnum` has lots of problems of its own.
 Exhaustive analysis can easily lead to exponential blowups.
-For example, `bin p n` is a binomial random variable
+For example, `bin p n` is a binomial random variable with
 \$n\$ trials and success probability \$p\$:
 ```ocaml
 let bin p n =
@@ -433,9 +426,251 @@ Once again, `MonteCarlo` can estimate `geo 0.5` just fine:
 `NaiveEnum` overflows the stack because `geo 0.5` has an unbounded number of 
 code paths.
 
-Finally, `NaiveEnum` produces many intermediate lists; these can take up
-an enormous amount of space if the branching tree of possibilities is large.
+## Enumerating with trees
 
-## Removing intermediate lists
+`NaiveEnum` stack overflows while trying to construct huge lists.
+To avoid that, we can instead represent the distribution
+as a [tree of possible outcomes](https://en.wikipedia.org/wiki/Tree_diagram_(probability_theory)):
 
+```ocaml
+type 'a t 
+  = Done of 'a
+  | Fail
+  | Branch of float * 'a t * 'a t
+```
 
+- `Done x` is a leaf with one value, representing a successful run with output `x`.
+- `Fail` is a leaf with no values, representing a failed run;
+- `Branch (p, l, r)` is a tree representing a random choice between subtrees `l` and `r`.
+    Subtree `l` is chosen with probability \$p\$, and `r` with probability
+    \$1-p\$.
+
+It's easy to interpret `pure`, `fail`, and `coin` as trees:
+
+```ocaml
+let pure x = Done x
+let fail = Fail
+let coin p = Branch (p, Done true, Done false)
+```
+
+To interpret a let binding `(let*) m k` given interpretations for `m` and `k`,
+apply `k` to every `Done x` in `m`:
+
+```ocaml
+let ( let* ) m k = 
+  let rec go = function
+    | Done x -> k x
+    | Fail -> Fail
+    | Branch (p, l, r) -> Branch (p, go l, go r)
+  in go m
+```
+
+Each leaf of a tree diagram represents a code path in the probabilistic 
+program being analyzed.
+Each `Done x` represents a successful run. The weight of each
+`Done x` can be computed by multiplying together probabilities
+on the path from it to the root of the tree.
+Collecting a list of such value-weight pairs yields
+the same thing that `NaiveEnum` would have computed;
+just like in `NaiveEnum`, folding over this list
+and normalizing yields a probability distribution.
+To avoid actually materializing such a huge list, we can just fold 
+over the tree directly:
+
+```ocaml
+module Dist' (A : Map.OrderedType) = struct
+  module M = Map.Make(A)
+  let f (m : A.t t) : float M.t =
+    let inc p = function
+      | None -> Some p
+      | Some q -> Some (p +. q)
+    in
+    let rec go m p z f = 
+      match m with
+      | Done x -> f x p z
+      | Fail -> z
+      | Branch (q, l, r) -> go l (p *. q) (go r (p *. (1.0 -. q)) z f) f
+    in
+    let (total, samples) = 
+      go m 1.0 (0.0, M.empty) (fun x p (total, samples) -> 
+        (total +. p, M.update x (inc p) samples))
+    in
+    M.map (fun p -> p /. total) samples
+end
+```
+
+Note that the stack usages of `go` and the interpretation for `(let*)`
+are proportional to the depth of the tree being traversed.
+This means `TreeEnum` is actually able to infer the distribution for
+`bin 0.5 20` without overflowing the stack: even though the resulting
+tree has \$2^{20}\$ leaves, it only has depth \$20\$.
+
+```ocaml
+- : (int * float) list =
+  [(0, 9.5367431640625e-07); (1, 1.9073486328125e-05);
+   (2, 0.0001811981201171875); (3, 0.001087188720703125);
+   (4, 0.00462055206298828125); (5, 0.0147857666015625);
+   (6, 0.03696441650390625); (7, 0.0739288330078125);
+   (8, 0.120134353637695312); (9, 0.16017913818359375);
+   (10, 0.176197052001953125); (11, 0.16017913818359375);
+   (12, 0.120134353637695312); (13, 0.0739288330078125);
+   (14, 0.03696441650390625); (15, 0.0147857666015625);
+   (16, 0.00462055206298828125); (17, 0.001087188720703125);
+   (18, 0.0001811981201171875); (19, 1.9073486328125e-05);
+   (20, 9.5367431640625e-07)]
+```
+
+It still has to traverse all \$2^{20}\$ leaves though, which takes a while.
+Also, `TreeEnum` still can't infer a distribution for `geo 0.5`, because the 
+resulting tree has unbounded depth.
+
+## Trees and simulations together
+
+Here's what the tree produced by `geo 0.5` looks like:
+
+```text
+Branch (0.5, Done 0,
+Branch (0.5, Done 1,
+Branch (0.5, Done 2,
+..)))
+```
+
+Graphically:
+
+```text
+ /\
+0 /\
+ 1 /\
+  2 /\
+   3  ‥
+```
+
+Now, there's a little bit of weight at each leaf of this tree:
+the leaf labelled 0 has weight 0.5, 1 has weight 0.25, and so on.
+`TreeEnum` must collect all of these weights together in order to compute a 
+probability distribution.
+The problem is that `TreeEnum` can never stop collecting:
+the tree is infinite because `geo 0.5` is an unbounded random variable.
+
+To stop `TreeEnum` from looping,
+we can make use of the fact that
+weights get exponentially smaller with tree depth.
+For example, by the time `TreeEnum` hits the leaf labelled 10,
+it can collect at most 0.001 weight from the next subtree to examine.
+If we were to just stop at this point, we'd still have a
+good picture of what the distribution for `geo 0.5` looks like.
+
+However, we can't just completely skip over subtrees with weight smaller
+than some threshold value (in this case, 0.001).
+Recall that the only time we collect weights is at the leaves of the 
+tree; so, what if _every_ leaf is in a subtree with tiny weight?
+For example, the tree for `bin 0.5 20` has \$2^{20}\$ leaves, each
+with weight \$1/2^{20}\$. If our threshold is any greater than this,
+then our inferencer will skip every leaf in the tree and return
+an empty map---a pretty poor approximation to the binomial 
+distribution!
+
+A solution is to combine `TreeEnum` with simulation.
+Instead of generating an exhaustive subtree with tiny weight,
+we'll approximate it by running a simulation.
+If the run produces a value `x`, then we'll use `Done x`
+as our approximation; if the run fails, then we'll use `Fail`.
+This approximation is very crude, but the idea is that any errors here
+won't matter much in the grand scheme of things because we're only
+approximating trees with tiny weight.
+
+We can do this as follows: interpret probabilistic computations
+as functions `float -> 'a tree`.
+The extra `float` argument represents the weight at the subtree to compute:
+if it's below a given threshold value, then the function will
+return either `Done x` or `Fail` based on the result of a simulation.
+
+```ocaml
+module TreeTrimming (T : sig val threshold : float end) : RAND = struct
+  type 'a t = float -> 'a tree
+  and 'a tree
+    = Done of 'a
+    | Fail
+    | Branch of float * 'a tree * 'a tree
+  ..
+end
+```
+
+As before, `pure` and `fail` succeed and fail unconditionally:
+
+```ocaml
+let pure x = fun _ -> Done x
+let fail = fun _ -> Fail
+```
+
+However, `coin` behaves differently depending on the weight of the subcomputation
+being analyzed. If the weight is below `T.threshold`, then we approximate
+by randomly flipping a coin with probability `p`; otherwise, we return a
+`Branch` as before:
+
+```ocaml
+let coin p = fun q ->
+  if q <= T.threshold 
+  then Done (Random.float 1.0 <= p)
+  else Branch (p, Done true, Done false)
+```
+
+The interpretation for `(let*) m k` is basically the same as before, but with some extra
+code to plumb the extra parameter around and compute the weights of each subtree as we traverse `m`:
+
+```ocaml
+let ( let* ) m k = fun p ->
+  let rec go p = function
+    | Done x -> k x p
+    | Fail -> Fail
+    | Branch (q, l, r) -> 
+      Branch (q, go (p *. q) l, go (p *. (1.0 -. q)) r)
+  in go p (m p)
+```
+Unlike its predecessor, `TreeTrimming`
+can successfully infer a distribution for `geo 0.5`:
+
+```ocaml
+- : (int * float) list =
+  [(0, 0.5); (1, 0.25); (2, 0.125); (3, 0.0625); (4, 0.03125); (5, 0.015625);
+   (6, 0.0078125); (7, 0.00390625); (8, 0.001953125); (9, 0.0009765625);
+   (10, 0.00048828125); (11, 0.000244140625); (12, 0.0001220703125);
+   (13, 6.103515625e-05); (14, 3.0517578125e-05); (15, 1.52587890625e-05);
+   (16, 7.62939453125e-06); (19, 7.62939453125e-06)]
+```
+
+Note that, unlike with pure Monte Carlo simulation,
+we get exact probabilities for the first 12 or so values
+where the weight of the corresponding subtrees had not yet 
+dipped below the threshold.
+
+<!-- The implementation for `Dist'` is basically the same as in `TreeEnum`. Given -->
+<!-- an `(m : 'a t)`, we just have to start the analysis by calling `m` with --> 
+<!-- initial weight `1.0` to obtain a tree. -->
+`TreeTrimming` also terminates much faster on `bin 0.5 20` 
+with a suitable threshold (`0.00001` in this case), because it doesn't actually
+look at every single leaf:
+
+```ocaml
+- : (int * float) list =
+  [(1, 3.0517578125e-05); (2, 0.0001220703125); (3, 0.001129150390625);
+   (4, 0.004608154296875); (5, 0.0150909423828125); (6, 0.03665924072265625);
+   (7, 0.07422637939453125); (8, 0.12113189697265625);
+   (9, 0.1580047607421875); (10, 0.17621612548828125);
+   (11, 0.16167449951171875); (12, 0.12032318115234375);
+   (13, 0.0738372802734375); (14, 0.0365142822265625);
+   (15, 0.01442718505859375); (16, 0.0046539306640625);
+   (17, 0.001129150390625); (18, 0.0001983642578125);
+   (19, 2.288818359375e-05)]
+```
+
+However, the numbers are now approximations instead of exact values (or rather, what would be exact
+values given exact arithmetic).
+In a sense, `TreeTrimming` gets the best of both worlds:
+with threshold \$1/2^n\$, each depth-\$d\$ subtree of `bin 0.5 20` 
+will be approximated if \$1/2^d \\le 1/2^n \\iff d \\ge n \$; this is essentially like
+exhaustively enumerating the first \$n-1\$ coinflips and then
+running `MonteCarlo` with \$2^n\$ samples to estimate the result of the remaining 
+flips.
+
+## Coping with failure
