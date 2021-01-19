@@ -10,7 +10,7 @@ index.html: index.md.html
 	python3 patch_index_html.py index.html
 
 %.md.html: content/%.md
-	pandoc -s -o $@ $<
+	pandoc -s -o $@ $< --filter=graphviz_filter.py
 
 %.v.html: content/%.v
 	cp content/$*.v $*.v

@@ -53,8 +53,13 @@ ul {
 div.sourceCode { 
   margin-left: 25px;
   padding-bottom: 0.75em  }
-div.sourceCode * { font-family: Iosevka, monospace }
+div.sourceCode * { 
+ font-family: Iosevka, monospace;
+ line-height: 1.5 }
 code { font-family: Iosevka, monospace }
+
 pre.text { 
   margin-left: 25px;
   padding-bottom: 0.75em  }
+
+img { margin-left: 25px }

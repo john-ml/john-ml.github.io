@@ -5,7 +5,13 @@ header-includes: |
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0-beta/katex.min.css" integrity="sha384-L/SNYu0HM7XECWBeshTGLluQO9uVI1tvkCtunuoUbCHHoTH76cDyXty69Bb9I0qZ" crossorigin="anonymous">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0-beta/katex.min.js" integrity="sha384-ad+n9lzhJjYgO67lARKETJH6WuQVDDlRfj81AJJSswMyMkXTD49wBj5EP004WOY6" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/contrib/auto-render.min.js" integrity="sha384-mll67QQFJfxn0IYznZYonOWZ644AWYC+Pt2cHqMaRhXVrursRwvLnLaebdGIlYNa" crossorigin="anonymous" 
-  onload="renderMathInElement(document.body);"></script>
+  onload="renderMathInElement(
+    document.body, { 
+      delimiters: [
+        { left: '$$', right: '$$', display: true }, 
+        { left: '\\(', right: '\\)', display: false }
+      ]
+    });"></script>
 ---
 
 <!-- <script type="text/javascript" async -->
@@ -20,45 +26,65 @@ header-includes: |
 <!--   }); -->
 <!-- </script> -->
 
-Here's a classic kind of word problem you might have seen before:
+Here's a classic kind of probability word problem:
 
 > There's a 1% chance of catching a deadly illness and you test positive.
-> The test is correct 99% of the time. Should you be worried?
+> The test is correct 99% of the time. What are the odds that you're actually sick?
 
-I learned how to solve problems like these by
+Humans can solve problems like these by
 translating them into probability theory
 and performing the proper calculations.
-But I haven't studied probability in a while, and
-calculations are easy to get wrong.
-Meanwhile, I write programs all the time and computers
-are great at calculating.
-So why not have a program find the answer for me?
-The following OCaml code does just that:
+<!-- In this case, we can use Bayes' rule: -->
+<!-- $$ -->
+<!-- \begin{aligned}\mathbf{P}(\textrm{sick}\mid\textrm{positive}) -->
+<!-- &= \frac{\mathbf{P}(\textrm{positive}\mid\textrm{sick})\mathbf{P}(\textrm{sick})} -->
+<!--   {\mathbf{P}(\textrm{positive})}\\ -->
+<!-- &= \frac{\mathbf{P}(\textrm{positive}\mid\textrm{sick})\mathbf{P}(\textrm{sick})} -->
+<!--   {\mathbf{P}(\textrm{positive}\mid\textrm{sick})\mathbf{P}(\textrm{sick}) -->
+<!--   +\mathbf{P}(\textrm{positive}\mid\textrm{healthy})\mathbf{P}(\textrm{healthy})}\\ -->
+<!-- &= \frac{(0.99)(0.01)}{(0.99)(0.01) + (0.01)(0.99)}\\ -->
+<!-- &= \frac12 -->
+<!-- \end{aligned} -->
+<!-- $$ -->
+But probability is often counterintuitive, and calculations are easy to get wrong.
+So, why not have computers do the math for us?
 
+Here's an OCaml program that simulates the situation described above:
 ```ocaml
-(* Let the random variable X be true iff I'm sick.
-   d will be the distribution of X given that I tested positive. *)
-let d : bool -> float =
-  pdf OBool.compare (
-    (* Flip a coin with 1% chance of heads. If heads, I'm infected. *)
-    let* infected : bool = coin 0.01 in
-    let accuracy = 0.99 in
-    (* Get tested. *)
-    let* test_result =
-      if infected
-      then coin accuracy
-      else coin (1.0 -. accuracy)
-    in
-    (* Assume the test came back positive. *)
-    guard test_result (
-    pure infected))
-in 
-(* What's the probability that I'm sick? *)
-d true
-(* ==> 0.5 *)
+let sim () =
+  (* Before getting tested, there's a 1% chance I'm sick. *)
+  let sick : bool = Random.float 1.0 <= 0.01 in
+  (* Simulate a test result. *)
+  let accuracy = 0.99 in
+  let test_result =
+    if sick
+    (* If I'm sick, then there's a 99% chance the test comes back positive. *)
+    then Random.float 1.0 <= accuracy
+    (* If I'm healthy, then there's a 99% chance the test comes back negative. *)
+    else Random.float 1.0 <= 1.0 -. accuracy
+  in
+  (* We only care about the situation where the test comes back positive. *)
+  assert test_result;
+  sick
 ```
 
-Indeed, the probability that I'm sick given that I tested positive is 50%, by Bayes' rule.
+If I run this program, there are three possible outcomes:
+
+- It produces the output `true`.
+- It produces the output `false`.
+- It fails the assertion on the second-to-last line.
+
+Each outcome corresponds to an outcome of our hypothetical scenario:
+
+- Output `true` corresponds to getting a true positive test result.
+- Output `false` corresponds to getting a false positive test result.
+- Assertion failure corresponds to getting a negative test result.
+
+So, the probability that I'm sick given a positive test result
+is just the probability that `sim ()` returns `true` given that
+it doesn't fail. I can estimate this probability
+by running `sim ()` a large number of times, discarding all the failed runs,
+and computing the fraction of runs that returned `true`.
 
 This is called 
 [probabilistic programming](https://en.wikipedia.org/wiki/Probabilistic_programming).
@@ -67,211 +93,147 @@ The program you write could use (pseudo)randomness in it (e.g. simulated dice ro
 but at the end of the run you still only get a single value.
 In probabilistic programming, you write a program and then run an _inferencer_
 that computes a distribution over output values.
-In the above example, the inferencer is `pdf OBool.compare`.
-It's argument is a program that simulates the process of getting tested and 
-receiving a positive result:
-
-- `guard test_result` is like `assert test_result`;
-  it only allows the program to continue past that point if `test_result` is `true`.
-- The program returns whether the simulated person is actually sick.
-
-A normal execution of this program would either (1) fail because `test_result` was false
-or (2) succeed and return whether or not the simulated person was infected.
-The inferencer instead computes a distribution over the output values the program
-can succeed with (`true` and `false` in this case);
-the probability of succeeding with `true`
-corresponds to the probability I'm actually sick given a positive test result.
+This inferencer can then serve as a substitute for having to do
+error-prone probability calculations by hand.
 
 You can find a lot of papers online about writing efficient inferencers. 
-Rather than reading them, I decided to roll my own inferencers and try them out on some 
+Before reading them, I wanted to roll my own inferencers and try them out on some 
 simple problems. 
 This post describes how they work.
 
 ## Modelling random computations
 
-Before we implement an inferencer, we need to be able to represent 
-probabilistic programs. This can be done with the following signature:
+The following GADT encodes the abstract syntax of probabilistic programs:
 
 ```ocaml
-module type RAND = sig
-  type 'a t
-  val pure : 'a -> 'a t
-  val fail : 'a t
-  val coin : float -> bool t
-  val ( let* ) : 'a t -> ('a -> 'b t) -> 'b t
-end
+type 'a rand
+  = Pure : 'a -> 'a rand
+  | Fail : 'a rand
+  | Coin : float -> bool rand
+  | Let : 'a rand * ('a -> 'b rand) -> 'b rand
 ```
 
-- A value of type `'a t` represents a probabilistic program that
-  produces a value of type `'a` if successful.
-- The program `pure x` always succeeds with value `x`.
-- The program `fail` always fails.
-- The program `coin p` always succeeds; it yields `true` with probability \\(p\\) and `false` with
-    probability \\(1-p\\).
-- The program `(let*) e1 (fun x -> e2)` is a "probabilistic let binding."
+A value of type `'a rand` represents a probabilistic program that
+produces a value of type `'a` if successful.
+Each constructor of `rand` represents a basic probabilistic
+programming construct:
+
+- The program `Pure x` always succeeds with value `x`.
+- The program `Fail` always fails.
+- The program `Coin p` always succeeds; 
+  it yields `true` with probability \\(p\\) and `false` with
+  probability \\(1-p\\).
+- The program `Let (e1, fun x -> e2)` is a "probabilistic let binding."
   It first runs `e1` and binds the result to `x`; then, it runs `e2` with `x` in scope.
-  OCaml's [binding operators](https://caml.inria.fr/pub/docs/manual-ocaml/bindingops.html) 
-  let us write `(let*) e1 (fun x -> e2)` as `let* x = e1 in e2`.
 
-A module that implements this signature corresponds to an interpretation of probabilistic 
-programs. For example, the standard way to interpret probabilistic programs is to run them,
-using the builtin `Random` module for random number generation:
+We can write an interpreter for probabilistic computations
+by translating the above explanations of each of `rand`'s constructors 
+into OCaml code:
 
 ```ocaml
-module Execute : RAND = sig
-  type 'a t = unit -> 'a
-  let pure x = fun _ -> x
-  exception Fail
-  let fail = fun _ -> raise Fail
-  let coin p = fun _ -> Random.float 1.0 <= p
-  let ( let* ) x k = fun _ -> k (x ()) ()
-end
+exception Failure
+let rec run : type a. a rand -> a = function
+  | Pure x -> x
+  | Fail -> raise Failure
+  | Coin p -> Random.float 1.0 <= p
+  | Let (m, k) -> run (k (run m))
 ```
 
-We can implement an inferencer by giving an alternative interpretation to
-probabilistic programs: rather than trying to compute a single result value, the inferencer tries to
-compute an entire distribution.
-
-To support inference, we need to add one more declaration to the `RAND` signature:
+We'll also define a useful combinator, `guard`,
+for making assertions, and
+define the notation `let* x = e1 in e2` to be
+`Let (e1, fun x -> e2)` using
+OCaml's [binding operators](https://caml.inria.fr/pub/docs/manual-ocaml/bindingops.html):
 
 ```ocaml
-module Dist' : functor (A : Map.OrderedType) -> sig val f : A.t t -> float Map.Make(A).t end
+let guard b m = if b then m else Fail
+let ( let* ) m k = Let (m, k)
 ```
 
-The verbosity is due to a lack of typeclasses; in Haskell, this would be written
-```hs
-dist' :: Ord a => t a -> Map a Float
-```
-
-Given a probabilistic program of type `'a`, this function computes a discrete probability
-distribution over its output values. 
-The functor is there because the distribution is represented by a finite map, 
-which requires that `'a` be comparable.
-
-Given any implementation of `RAND`, we can
-implement the following extended signature `RAND_EXT`:
+These allow us to write probabilistic programs in
+syntax that looks a lot like regular OCaml.
+For example, here's what the program from the introduction 
+looks like in this representation:
 
 ```ocaml
-module type RAND_EXT = sig
-  include RAND
-  val pdf : ('a -> 'a -> int) -> 'a t -> ('a -> float)
-  val dist : ('a -> 'a -> int) -> 'a t -> ('a * float) list
-  val guard : bool -> 'a t -> 'a t
-end
+let illness : bool rand =
+  let* sick = Coin 0.01 in
+  let accuracy = 0.99 in
+  let* test_result =
+    if sick
+    then Coin accuracy
+    else Coin (1.0 -. accuracy)
+  in
+  guard test_result @@
+  Pure sick
 ```
 
-- Given a probabilistic program of type `'a t`,
-  `pdf` returns a probability density function `'a -> float`
-  for easy log-time lookup. 
-  The comparison function `'a -> 'a -> int` is needed to instantiate `Dist'` properly.
-- Similarly, `dist` returns the distribution as a list of value-probability pairs,
-    for easy iteration.
-- `guard p m` is a probabilistic program which checks that `p` holds before continuing with `m`.
-   It's easy to define:
-    ```ocaml
-    guard p m = if p then m else fail
-    ```
-
-The extension from `RAND` to `RAND_EXT` can be done once and for all, with a functor:
+Our inferencers will analyze probabilistic programs and
+produce distributions of output values, represented by
+lists of value-probability pairs:
 
 ```ocaml
-module RandExt (R : RAND) : RAND_EXT = struct .. end
+type 'a dist = ('a * float) list
+type 'a inferencer = 'a rand -> 'a dist
 ```
 
-Thanks to this, we never have to work directly with `Dist'`.
-Now all we have to do is implement `RAND` in a way that performs inference.
+With all these definitions in hand, we're now ready to write some inferencers.
 
 ## Monte Carlo simulation
 
 The most basic inferencer just runs the given probabilistic program a bunch of 
-times and uses the results of successful runs to estimate the distribution of output values:
+times and uses the results of successful runs to estimate the distribution of 
+output values:
 
 ```ocaml
-module MonteCarlo (S : sig val samples : int end) : RAND = struct .. end
+module H = Hashtbl
+let monte_carlo (type a) (samples : int) (m : a rand) : a dist =
+  let rec run' () = try run m with Failure -> run' () in
+  let d = H.create samples in
+  for _ = 1 to samples do
+    let x = run' () in
+    H.replace d x (1 + try H.find d x with Not_found -> 0)
+  done;
+  let prob_of count = float_of_int count /. float_of_int samples in
+  List.sort compare (H.fold (fun x c xs -> (x, prob_of c) :: xs) d [])
 ```
 
-Just like in `Execute`,
-we'll represent programs as thunks `unit -> 'a`:
-
+Running `monte_carlo` with 10000 samples
+on the example in the introduction yields the following distribution:
 ```ocaml
-type 'a t = unit -> 'a
-let pure x = fun _ -> x
-exception Fail
-let fail = fun _ -> raise Fail
-let coin p = fun _ -> Random.float 1.0 <= p
-let ( let* ) x k = fun _ -> k (x ()) ()
+Value   Probability     Plot
+false   0.502600        █████████████████████████
+true    0.497400        ████████████████████████▌
 ```
-
-The implementation of `Dist'` is a bit trickier. We have to write a function
-`f` that takes in a probabilistic program `(m : A.t t)` and returns
-a finite map from `A.t`s to `float`s:
-
-```ocaml
-module Dist' (A : Map.OrderedType) = struct
-  module M = Map.Make(A)
-  let f (m : A.t t) : float M.t = ..
-end
-```
-
-The program `m` is represented by a thunk `unit -> A.t`.
-When called, it will either yield a value of type `A.t` or raise
-`Fail`.
-We can write a function that repeatedly runs `m` until it succeeds with
-a value of type `A.t`:
-
-```ocaml
-let rec sample m = try m () with Fail -> sample m in
-```
-
-Now we can run `sample m` repeatedly to collect `S.samples` samples
-into a finite map `samples` which associates each `A.t` with the number of times
-it was returned by `m ()`.
-Then, normalizing each of the counts in `samples`
-by the total number of samples yields
-a finite map that associates each `A.t` to the frequency with which it 
-occurred:
-
-```ocaml
-let rec go n samples =
-  if n = 0 then samples else
-  let inc = function
-    | None -> Some 1
-    | Some k -> Some (k + 1)
-  in
-  go (n - 1) (M.update (sample m) inc samples)
-in
-let samples = go S.samples M.empty in
-M.map (fun p -> float_of_int p /. S.samples) samples
-```
+(Indeed, the probability of being sick given a positive test result
+is 50%, by Bayes' rule.)
 
 This inferencer isn't great: even for simple probabilistic programs,
 it takes a large number of samples to converge on the true
 distribution of output values.
-For example, running the inferencer with 10000 samples
-on the example program in the introduction yields the following distribution:
-```ocaml
-- : (bool * float) list = [(true, 0.492); (false, 0.508)]
-```
 It also has a major weakness: because the sampling function has to
-keep retrying `m ()` until it successfully produces a result value,
+keep retrying `m` until it successfully produces a result value,
 it takes forever to collect a sufficiently large number of samples
 if `m` doesn't succeed very often.
 
 Here's an example: the following program
 flips three fair coins and computes the number of heads:
 ```ocaml
-let flip3 =
+let flip3 : int rand =
   let ind p = if p then 1 else 0 in
-  let* c1 = coin 0.5 in
-  let* c2 = coin 0.5 in
-  let* c3 = coin 0.5 in
-  pure (ind c1 + ind c2 + ind c3)
+  let* c1 = Coin 0.5 in
+  let* c2 = Coin 0.5 in
+  let* c3 = Coin 0.5 in
+  Pure (ind c1 + ind c2 + ind c3)
 ```
-Running the inferencer on `flip3` with 10000 samples
+Running `monte_carlo` on `flip3` with 10000 samples
 quickly yields a reasonable-looking distribution:
 ```ocaml
-- : (int * float) list = 
-  [(0, 0.1311); (1, 0.3765); (2, 0.3704); (3, 0.122)]
+Value   Probability     Plot
+0       0.128100        ██████
+1       0.370200        ██████████████████▌
+2       0.374800        ██████████████████▌
+3       0.126900        ██████
 ```
 (For reference, the true probabilities are 1/8, 3/8, 3/8, and 1/8 respectively.)
 
@@ -282,108 +244,119 @@ let flip3' =
   let* b = coin 0.0001 in
   guard b flip3
 ```
-This program should have the exact same distribution of output values as `flip3`.
-However, it'll take around 10000 times as long for our inferencer to figure that out!
+This program has the exact same distribution of output values as `flip3`,
+but it'll take 10000 times as long on average for `monte_carlo` to figure 
+that out.
 
-## Enumerating all possibilities
+## Exhaustive enumeration
 
-Instead of randomly sampling, we could run through every code path
-of the program to analyze.
-
-```ocaml
-module NaiveEnum : RAND = struct .. end
-```
-
-This method works by interpreting a probabilistic program as
-its distribution of output values, represented as a list of 
-value-weight pairs:
+An alternative approach is to run through every possible code path
+of the program to analyze. We can do this by interpreting
+probabilistic programs as
+[decision trees](https://en.wikipedia.org/wiki/Tree_diagram_(probability_theory)),
+with output values or failures at the leaves, and
+probabilistic choices at internal nodes:
 
 ```ocaml
-type 'a t = ('a * float) list
+type 'a tree
+  = Single of 'a 
+  | Empty 
+  | Branch of float * 'a tree * 'a tree
 ```
 
-The program `pure x` produces the value `x` with weight `1`:
+- `Single x` is a leaf with one value, representing a successful run with output `x`.
+- `Empty` is a leaf with no values, representing a failed run.
+- `Branch (p, l, r)` is a tree representing a random choice between subtrees `l` and `r`.
+    Subtree `l` is chosen with probability \\(p\\), and `r` with probability
+    \\(1-p\\).
+
+    Though branch only stores one `float`, we'll draw
+    `Branch (p, l, r)` as a node with two outgoing edges, each labelled by
+    a probability:
+    ```graphviz
+    digraph {
+      branch [label = ""];
+      l [shape = plaintext];
+      r [shape = plaintext];
+      branch -> l [label = "  p"];
+      branch -> r [label = "  1 - p"];
+    }
+    ```
+
+It's easy to convert programs into decision trees:
 
 ```ocaml
-let pure x = [(x, 1.0)]
+let rec treeify : type a. a rand -> a tree = function
+  (* Pure x always succeeds with x, and Fail always fails *)
+  | Pure x -> Single x
+  | Fail -> Empty
+  (* Coin p is a random choice between true and false *)
+  | Coin p -> Branch (p, Single true, Single false)
+  (* To interpret (Let (m, k)), apply (treeify . k) to each (Single x) in (treeify m) *)
+  | Let (m, k) ->
+    let rec go = function
+      | Single x -> treeify (k x)
+      | Empty -> Empty
+      | Branch (p, l, r) -> Branch (p, go l, go r)
+    in go (treeify m)
 ```
 
-The program `fail` never produces any values:
+Each leaf of a decision tree represents a code path in the probabilistic 
+program being analyzed.
+Each `Single x` represents a successful run. The weight of each
+`Single x` can be computed by multiplying together probabilities
+on the path from it to the root of the tree.
+If we collect all such value-weight pairs,
+then combining pairs associated with the same value (by summing
+up their corresponding weights)
+and normalizing by the total weight collected
+yields the desired distribution of output values:
 
 ```ocaml
-let fail = []
+let naive_enum (type a) (m : a rand) : a dist =
+  (* Setup *)
+  let d = H.create 10 in
+  let inc x p = H.replace d x (p +. try H.find d x with Not_found -> 0.0) in
+  (* Add each (value, weight) pair in (treeify m) to the hashtable *)
+  let rec go p = function
+    | Single x -> add x p
+    | Empty -> ()
+    | Branch (q, l, r) ->
+      go (p *. q) l; 
+      go (p *. (1.0 -. q)) r
+  in
+  go (treeify m);
+  (* Normalize to get a probability distribution *)
+  let total = H.fold (fun _ p total -> p +. total) d 0.0 in
+  List.sort compare (H.fold (fun x p xs -> (x, p /. total) :: xs) d [])
 ```
 
-The program `coin p` produces `true` with weight `p` and `false` with weight
-`1.0 -. p`:
+Unlike `monte_carlo`, `naive_enum` computes exact probabilities
+(or rather, it would if we used exact arithmetic), and isn't
+as adversely affected by a low success probability.
+For example, it infers the following output distribution for `flip3'`
+near-instantly:
 
 ```ocaml
-let coin p = [(true, p); (false, 1.0 -. p)]
+Value   Probability     Plot
+0       0.125000        ██████
+1       0.375000        ██████████████████▌
+2       0.375000        ██████████████████▌
+3       0.125000        ██████
 ```
 
-To interpret a let-binding `(let*) m k`:
-
-- `m` is a list `[(x, p); ..]`.
-- Apply `k` to each `x` in this list; this yields a nested structure of the form
-  `[([(y, q); ..], p); ..]`.
-- Multiply each nested `q` by its corresponding `p` to get
-  `[[(y, q *. p); ..]; ..]`.
-- Finally, flatten the nested lists to get `[(y, q *. p); ..]`.
-
-In OCaml:
-```ocaml
-let ( let* ) xps k = 
-  let ( let* ) x k = List.concat_map k x in
-  let* (x, p) = xps in
-  List.map (fun (y, q) -> (y, p *. q)) (k x)
-```
-
-To convert a list of weighted values into a distribution represented
-as a finite map, simply fold over the list and add up weights.
-Then, dividing by the sum of all the weights yields a proper probability 
-distribution:
-
-```ocaml
-module Dist' (A : Map.OrderedType) = struct
-  module M = Map.Make(A)
-  let f (m : A.t t) : float M.t =
-    let inc p = function
-      | None -> Some p
-      | Some q -> Some (p +. q)
-    in
-    let (total, samples) = 
-      List.fold_left 
-        (fun (total, samples) (x, p) -> 
-          (total +. p, M.update x (inc p) samples))
-        (0.0, M.empty) m 
-    in
-    M.map (fun p -> p /. total) samples
-end
-```
-
-`NaiveEnum` produces much more accurate distributions than `MonteCarlo`.
-In fact, it would produce exact
-probabilities if we used exact arithmetic. Running it on the
-example program in the introduction yields:
-```ocaml
-- : (bool * float) list =
-  [(false, 0.500000000000000222); (true, 0.499999999999999722)]
-```
-Unlike random sampling, `NaiveEnum` works just as well
-when the success probability is very low. For example,
-it infers the following distribution for `flip3'` near-instantly:
-```ocaml
-- : (int * float) list =
-  [(0, 0.124999999999999986); (1, 0.374999999999999944);
-   (2, 0.374999999999999944); (3, 0.124999999999999986)]
-```
-This is because `NaiveEnum` considers every code path of the program
+This is because `naive_enum` considers every code path of the program
 it analyzes, not just the paths that happen to be randomly sampled. 
-So it doesn't matter how unlikely `flip3'` is to run `flip3`.
+So it doesn't matter how unlikely `flip3'` is to run `flip3`; 
+as long as the code paths exist,
+`naive_enum` will find them and take them into account.
 
-But `NaiveEnum` has lots of problems of its own.
-Exhaustive analysis can easily lead to exponential blowups.
-For example, `bin p n` is a binomial random variable with
+However, `naive_enum` has some major problems of its own: it can be
+slow if the size of the decision tree increases exponentially
+with depth, and it just won't work if the decision tree is infinite.
+
+As an example of exponential blowup, 
+`bin p n` is a binomial random variable with
 \\(n\\) trials and success probability \\(p\\):
 ```ocaml
 let bin p n =
@@ -394,289 +367,292 @@ let bin p n =
   in go n 0
 ```
 
-We can use `MonteCarlo` to estimate `bin 0.5 20` just fine, albeit very roughly:
+The tree for `bin p n` has \\(2^{n}\\) leaves;
+`naive_enum` must go through each and every one of them
+before yielding an output distribution, so its runtime is exponential in \\(n\\).
 
+As an example of an infinite decision tree,
+`geo p` is a geometric random variable with success probability `p`:
 ```ocaml
-- : (int * float) list =
-  [(1, 3e-05); (2, 0.00019); (3, 0.00096); (4, 0.00477); (5, 0.01543);
-   (6, 0.03737); (7, 0.07254); (8, 0.12179); (9, 0.16057); (10, 0.17396);
-   (11, 0.15959); (12, 0.1207); (13, 0.07392); (14, 0.03716); (15, 0.01518);
-   (16, 0.00432); (17, 0.00126); (18, 0.00023); (19, 2e-05); (20, 1e-05)]
-```
-
-But using `NaiveEnum` to estimate `bin 0.5 20` will just produce a stack overflow.
-This is because `bin 0.5 20` performs \\(20\\) coin flips, and so has
-\\(2^{20}\\) code paths; `NaiveEnum` tries to construct an enormous list
-with one entry for each such path, and overflows the stack while doing so.
-
-`NaiveEnum` also can't handle unbounded random variables.
-For example, `geo p` is a geometric random variable with success probability `p`:
-```ocaml
-let geo p =
+let geo (p : float) : int rand =
   let rec go n =
-    let* b = coin p in
-    if b then pure n else go (n + 1)
+    let* b = Coin p in
+    if b then Pure n else go (n + 1)
   in go 0
 ```
 
-Once again, `MonteCarlo` can estimate `geo 0.5` just fine:
+Here's what its decision tree looks like:
 
-```ocaml
-- : (int * float) list =
-  [(0, 0.5034); (1, 0.2524); (2, 0.1258); (3, 0.0561); (4, 0.0309);
-   (5, 0.0158); (6, 0.0077); (7, 0.0033); (8, 0.0024); (9, 0.0011);
-   (10, 0.0005); (11, 0.0004); (14, 0.0002)]
+```{.graphviz style='width: 30%'}
+digraph {
+  0 [label = "Single 0"];
+  1 [label = "Single 1"];
+  2 [label = "Single 2"];
+  3 [label = "Single 3"];
+  b0 [label = ""];
+  b1 [label = ""];
+  b2 [label = ""];
+  b3 [label = ""];
+  dots [shape = plaintext, label = "..."];
+  b0 -> 0    [label = "  0.5"];
+  b0 -> b1   [label = "  0.5"];
+  b1 -> 1    [label = "  0.5"];
+  b1 -> b2   [label = "  0.5"];
+  b2 -> 2    [label = "  0.5"];
+  b2 -> b3   [label = "  0.5"];
+  b3 -> 3    [label = "  0.5"];
+  b3 -> dots [label = "  0.5"];
+}
 ```
 
-`NaiveEnum` overflows the stack because `geo 0.5` has an unbounded number of 
-code paths.
-
-## Enumerating with trees
-
-`NaiveEnum` stack overflows while trying to construct huge lists.
-To avoid that, we can instead represent the distribution
-as a [tree of possible outcomes](https://en.wikipedia.org/wiki/Tree_diagram_(probability_theory)):
-
-```ocaml
-type 'a t 
-  = Done of 'a
-  | Fail
-  | Branch of float * 'a t * 'a t
-```
-
-- `Done x` is a leaf with one value, representing a successful run with output `x`.
-- `Fail` is a leaf with no values, representing a failed run;
-- `Branch (p, l, r)` is a tree representing a random choice between subtrees `l` and `r`.
-    Subtree `l` is chosen with probability \\(p\\), and `r` with probability
-    \\(1-p\\).
-
-It's easy to interpret `pure`, `fail`, and `coin` as trees:
-
-```ocaml
-let pure x = Done x
-let fail = Fail
-let coin p = Branch (p, Done true, Done false)
-```
-
-To interpret a let binding `(let*) m k` given interpretations for `m` and `k`,
-apply `k` to every `Done x` in `m`:
-
-```ocaml
-let ( let* ) m k = 
-  let rec go = function
-    | Done x -> k x
-    | Fail -> Fail
-    | Branch (p, l, r) -> Branch (p, go l, go r)
-  in go m
-```
-
-Each leaf of a tree diagram represents a code path in the probabilistic 
-program being analyzed.
-Each `Done x` represents a successful run. The weight of each
-`Done x` can be computed by multiplying together probabilities
-on the path from it to the root of the tree.
-Collecting a list of such value-weight pairs yields
-the same thing that `NaiveEnum` would have computed;
-just like in `NaiveEnum`, folding over this list
-and normalizing yields a probability distribution.
-To avoid actually materializing such a huge list, we can just fold 
-over the tree directly:
-
-```ocaml
-module Dist' (A : Map.OrderedType) = struct
-  module M = Map.Make(A)
-  let f (m : A.t t) : float M.t =
-    let inc p = function
-      | None -> Some p
-      | Some q -> Some (p +. q)
-    in
-    let rec go m p z f = 
-      match m with
-      | Done x -> f x p z
-      | Fail -> z
-      | Branch (q, l, r) -> go l (p *. q) (go r (p *. (1.0 -. q)) z f) f
-    in
-    let (total, samples) = 
-      go m 1.0 (0.0, M.empty) (fun x p (total, samples) -> 
-        (total +. p, M.update x (inc p) samples))
-    in
-    M.map (fun p -> p /. total) samples
-end
-```
-
-Note that the stack usages of `go` and the interpretation for `(let*)`
-are proportional to the depth of the tree being traversed.
-This means `TreeEnum` is actually able to infer the distribution for
-`bin 0.5 20` without overflowing the stack: even though the resulting
-tree has \\(2^{20}\\) leaves, it only has depth \\(20\\).
-
-```ocaml
-- : (int * float) list =
-  [(0, 9.5367431640625e-07); (1, 1.9073486328125e-05);
-   (2, 0.0001811981201171875); (3, 0.001087188720703125);
-   (4, 0.00462055206298828125); (5, 0.0147857666015625);
-   (6, 0.03696441650390625); (7, 0.0739288330078125);
-   (8, 0.120134353637695312); (9, 0.16017913818359375);
-   (10, 0.176197052001953125); (11, 0.16017913818359375);
-   (12, 0.120134353637695312); (13, 0.0739288330078125);
-   (14, 0.03696441650390625); (15, 0.0147857666015625);
-   (16, 0.00462055206298828125); (17, 0.001087188720703125);
-   (18, 0.0001811981201171875); (19, 1.9073486328125e-05);
-   (20, 9.5367431640625e-07)]
-```
-
-It still has to traverse all \\(2^{20}\\) leaves though, which takes a while.
-Also, `TreeEnum` still can't infer a distribution for `geo 0.5`, because the 
-resulting tree has unbounded depth.
+Since geometric random variables are unbounded,
+this tree continues on indefinitely,
+and `naive_enum` will never terminate.
 
 ## Trees and simulations together
 
-Here's what the tree produced by `geo 0.5` looks like:
+<!-- There's a little bit of weight at each leaf of the tree -->
+<!-- shown above: -->
+<!-- the leaf labelled 0 has weight 0.5, 1 has weight 0.25, and so on. -->
+<!-- To terminate, `naive_enum` must collect all of these weights together --> 
+<!-- in order to compute a probability distribution. -->
+<!-- The problem is that it can never stop collecting. -->
 
-```text
-Branch (0.5, Done 0,
-Branch (0.5, Done 1,
-Branch (0.5, Done 2,
-..)))
-```
+To overcome `naive_enum`'s shortcomings, we can combine its
+brute force strategy with simulations.
+Instead of exploring every single subtree,
+we'll approximate some of them by running a simulation.
+If the simulation produces a value `x`, then we'll use `Single x`
+as our approximation; if the run fails, then we'll use `Empty`.
+A heuristic will determine when a subtree should be approximated.
+Each simulation is a very crude approximation, but the hope is that 
+errors won't matter much in the grand scheme of things with clever
+choice of heuristic.
 
-Graphically:
-
-```text
- /\
-0 /\
- 1 /\
-  2 /\
-   3  ‥
-```
-
-Now, there's a little bit of weight at each leaf of this tree:
-the leaf labelled 0 has weight 0.5, 1 has weight 0.25, and so on.
-`TreeEnum` must collect all of these weights together in order to compute a 
-probability distribution.
-The problem is that `TreeEnum` can never stop collecting:
-the tree is infinite because `geo 0.5` is an unbounded random variable.
-
-To stop `TreeEnum` from looping,
-we can make use of the fact that
-weights get exponentially smaller with tree depth.
-For example, by the time `TreeEnum` hits the leaf labelled 10,
-it can collect at most 0.001 weight from the next subtree to examine.
-If we were to just stop at this point, we'd still have a
-good picture of what the distribution for `geo 0.5` looks like.
-
-However, we can't just completely skip over subtrees with weight smaller
-than some threshold value (in this case, 0.001).
-Recall that the only time we collect weights is at the leaves of the 
-tree; so, what if _every_ leaf is in a subtree with tiny weight?
-For example, the tree for `bin 0.5 20` has \\(2^{20}\\) leaves, each
-with weight \\(1/2^{20}\\). If our threshold is any greater than this,
-then our inferencer will skip every leaf in the tree and return
-an empty map---a pretty poor approximation to the binomial 
-distribution!
-
-A solution is to combine `TreeEnum` with simulation.
-Instead of generating an exhaustive subtree with tiny weight,
-we'll approximate it by running a simulation.
-If the run produces a value `x`, then we'll use `Done x`
-as our approximation; if the run fails, then we'll use `Fail`.
-This approximation is very crude, but the idea is that any errors here
-won't matter much in the grand scheme of things because we're only
-approximating trees with tiny weight.
-
-We can do this as follows: interpret probabilistic computations
-as functions `float -> 'a tree`.
-The extra `float` argument represents the weight at the subtree to compute:
-if it's below a given threshold value, then the function will
-return either `Done x` or `Fail` based on the result of a simulation.
+To give the inferencer control over which parts of the tree
+should be generated, we'll make trees lazy:
 
 ```ocaml
-module TreeTrimming (T : sig val threshold : float end) : RAND = struct
-  type 'a t = float -> 'a tree
-  and 'a tree
-    = Done of 'a
-    | Fail
-    | Branch of float * 'a tree * 'a tree
-  ..
-end
+type 'a tree = 'a tree_whnf Lazy.t
+and 'a tree_whnf 
+  = Single of 'a 
+  | Empty 
+  | Branch of float * 'a tree * 'a tree
 ```
 
-As before, `pure` and `fail` succeed and fail unconditionally:
+An exploration strategy is a consumer of these lazy trees.
+As it explores a tree, it collects value-weight pairs `(x, p)`
+via the callback `add x p`:
 
 ```ocaml
-let pure x = fun _ -> Done x
-let fail = fun _ -> Fail
+type 'a consumer = add:('a -> float -> unit) -> 'a tree -> unit
 ```
 
-However, `coin` behaves differently depending on the weight of the subcomputation
-being analyzed. If the weight is below `T.threshold`, then we approximate
-by randomly flipping a coin with probability `p`; otherwise, we return a
-`Branch` as before:
+Given a consumer, we can use a hash table to store
+all the value-weight pairs it collects while traversing
+`treeify m`, and then turn that table into a probability 
+distribution:
 
 ```ocaml
-let coin p = fun q ->
-  if q <= T.threshold 
-  then Done (Random.float 1.0 <= p)
-  else Branch (p, Done true, Done false)
+let consume (type a) (m : a rand) (f : a consumer) : a dist =
+  let d = H.create 10 in
+  let add x p = H.replace d x (p +. try H.find d x with Not_found -> 0.0) in
+  f ~add (treeify m);
+  let total = H.fold (fun _ p total -> p +. total) d 0.0 in
+  List.sort compare (H.fold (fun x p xs -> (x, p /. total) :: xs) d [])
 ```
 
-The interpretation for `(let*) m k` is basically the same as before, but with some extra
-code to plumb the extra parameter around and compute the weights of each subtree as we traverse `m`:
+From this perspective, `naive_enum` is the consumer
+that just fully traverses the tree and calls `add` on every value-weight pair
+it encounters along the way:
 
 ```ocaml
-let ( let* ) m k = fun p ->
+let naive_enum (type a) (m : a rand) : a dist =
+  consume m @@ fun ~add m ->
   let rec go p = function
-    | Done x -> k x p
-    | Fail -> Fail
-    | Branch (q, l, r) -> 
-      Branch (q, go (p *. q) l, go (p *. (1.0 -. q)) r)
-  in go p (m p)
+    | lazy (Single x) -> add x p
+    | lazy Empty -> ()
+    | lazy (Branch (q, l, r)) -> 
+      go (p *. q) l; 
+      go (p *. (1.0 -. q)) r
+  in go 1.0 m
 ```
-Unlike its predecessor, `TreeTrimming`
+
+Now, here's a simple exploration strategy
+that fixes some of `naive_enum`'s shortcomings:
+only exhaustively explore subtrees with weight greater than some
+threshold value:
+
+```ocaml
+let trimmed (type a) (threshold : float) (m : a rand) : a dist =
+  consume m @@ fun ~add m ->
+  let rec go p = function
+    (* As before *)
+    | lazy (Single x) -> add x p
+    | lazy Empty -> ()
+    | lazy (Branch (q, l, r)) ->
+      if p <= threshold then
+        (* This subtree has tiny weight. 
+           Instead of exploring both branches, randomly choose one to follow. *)
+        if Random.float 1.0 <= q 
+        then go (p *. q) l 
+        else go (p *. (1.0 -. q)) r
+      else begin
+        (* As before *)
+        go (p *. q) l; 
+        go (p *. (1.0 -. q)) r
+      end
+  in go 1.0 m
+```
+
+Effectively, `trimmed` "trims" every subtree with weight
+less than `threshold`, replacing them with the result of simulations.
+The hope is that any approximation errors will average out
+as long as the threshold value is small.
+
+Unlike its predecessor, `trimmed`
 can successfully infer a distribution for `geo 0.5`:
 
 ```ocaml
-- : (int * float) list =
-  [(0, 0.5); (1, 0.25); (2, 0.125); (3, 0.0625); (4, 0.03125); (5, 0.015625);
-   (6, 0.0078125); (7, 0.00390625); (8, 0.001953125); (9, 0.0009765625);
-   (10, 0.00048828125); (11, 0.000244140625); (12, 0.0001220703125);
-   (13, 6.103515625e-05); (14, 3.0517578125e-05); (15, 1.52587890625e-05);
-   (16, 7.62939453125e-06); (19, 7.62939453125e-06)]
+Value   Probability     Plot
+0       0.500002        █████████████████████████
+1       0.250001        ████████████▌
+2       0.125000        ██████
+3       0.062500        ███
+4       0.031250        █▌
+5       0.015625        ▌
+6       0.007813
+7       0.003906
+8       0.001953
+9       0.000977
+10      0.000488
+11      0.000244
+12      0.000122
+13      0.000061
+14      0.000031
+15      0.000015
+16      0.000008
+17      0.000004
 ```
 
 Note that, unlike with pure Monte Carlo simulation,
-we get exact probabilities for the first 12 or so values
+we get exact probabilities[^1] for the first 12 or so values
 where the weight of the corresponding subtrees had not yet 
 dipped below the threshold.
 
-<!-- The implementation for `Dist'` is basically the same as in `TreeEnum`. Given -->
-<!-- an `(m : 'a t)`, we just have to start the analysis by calling `m` with --> 
-<!-- initial weight `1.0` to obtain a tree. -->
-`TreeTrimming` also terminates much faster on `bin 0.5 20` 
+`trimmed` also terminates much faster on `bin 0.5 20` 
 with a suitable threshold (`0.00001` in this case), because it doesn't actually
 look at every single leaf:
 
 ```ocaml
-- : (int * float) list =
-  [(1, 3.0517578125e-05); (2, 0.0001220703125); (3, 0.001129150390625);
-   (4, 0.004608154296875); (5, 0.0150909423828125); (6, 0.03665924072265625);
-   (7, 0.07422637939453125); (8, 0.12113189697265625);
-   (9, 0.1580047607421875); (10, 0.17621612548828125);
-   (11, 0.16167449951171875); (12, 0.12032318115234375);
-   (13, 0.0738372802734375); (14, 0.0365142822265625);
-   (15, 0.01442718505859375); (16, 0.0046539306640625);
-   (17, 0.001129150390625); (18, 0.0001983642578125);
-   (19, 2.288818359375e-05)]
+Value   Probability     Plot
+1       0.000008
+2       0.000137
+3       0.001114
+4       0.004700
+5       0.014275        ▌
+6       0.037239        █▌
+7       0.075180        ███▌
+8       0.120148        ██████
+9       0.160233        ████████
+10      0.175865        ████████▌
+11      0.159477        ███████▌
+12      0.119995        █████▌
+13      0.074409        ███▌
+14      0.036957        █▌
+15      0.014679        ▌
+16      0.004349
+17      0.001068
+18      0.000137
+19      0.000023
+20      0.000008
 ```
 
-However, the numbers are now approximations instead of exact values (or rather, what would be exact
-values given exact arithmetic).
-In a sense, `TreeTrimming` tries to get the best of both worlds:
+However, the numbers are now approximations instead of exact values.
+In a sense, `trimmed` tries to get the best of both worlds:
 with threshold \\(1/2^n\\), each depth-\\(d\\) subtree of `bin 0.5 20` 
-will be approximated if \\(1/2^d \\le 1/2^n \\iff d \\ge n \\); this is essentially like
-exhaustively enumerating the first \\(n-1\\) coinflips and then
-running `MonteCarlo` with \\(2^n\\) samples to estimate the result of the remaining 
-flips.
+will be approximated if \\(1/2^d \\le 1/2^n\\). This occurs
+exactly when \\(d \\ge n \\). So, `trimmed` essentially
+behaves like `naive_enum` for the first \\(n-1\\) coinflips,
+and like `monte_carlo` with \\(2^n\\) samples for the remaining flips.
 
 ## Coping with failure
 
+Unfortunately, `trimmed` inherits from `monte_carlo` a weakness
+to programs with high failure rates.
+It infers the following nonsensical distribution for
+`flip3'` with threshold `0.0001`:
+
+```ocaml
+Value   Probability     Plot
+1       1.000000        ██████████████████████████████████████████████████
+```
+
+What happened? Here's what `flip3'` looks like as a decision tree:
+
+```{.graphviz style='width: 80%'}
+digraph {
+  Empty;
+  b [label = ""];
+  subgraph trimmed {
+    node [style = filled];
+    ttt [label = "Single 0"];
+    tth [label = "Single 1"];
+    tht [label = "Single 1"];
+    thh [label = "Single 2"];
+    htt [label = "Single 1"];
+    hth [label = "Single 2"];
+    hht [label = "Single 2"];
+    hhh [label = "Single 3"];
+    c [label = ""];
+    b -> Empty [label = "  0.9999  "];
+    b -> c     [label = "  0.0001"];
+    ct [label = ""];
+    ch [label = ""];
+    c -> ct    [label = "  0.5"];
+    c -> ch    [label = "  0.5"];
+    ctt [label = ""];
+    cth [label = ""];
+    ct -> ctt  [label = "  0.5"];
+    ctt -> ttt [label = "  0.5"];
+    ctt -> tth [label = "  0.5"];
+    ct -> cth  [label = "  0.5"];
+    cth -> tht [label = "  0.5"];
+    cth -> thh [label = "  0.5"];
+    cht [label = ""];
+    chh [label = ""];
+    ch -> cht  [label = "  0.5"];
+    cht -> htt [label = "  0.5"];
+    cht -> hth [label = "  0.5"];
+    ch -> chh  [label = "  0.5"];
+    chh -> hht [label = "  0.5"];
+    chh -> hhh [label = "  0.5"];
+  }
+}
+```
+
+The three coin flips correspond to
+the subtree shaded in gray. 
+This subtree has weight 0.0001.
+Since this weight is equal to the threshold value,
+the entire subtree is replaced by a simulated run
+in which only one coin landed heads.
+The result is the following trimmed tree:
+
+```graphviz
+digraph {
+  Empty;
+  b [label = ""];
+  b -> Empty [label = "  0.9999  "];
+  b -> "Single 1" [label = "  0.0001"];
+}
+```
+
+The failure is discarded, leaving just a single
+value-probability pair `(1, 0.0001)`.
+Clearly this is a really bad approximation of
+`flip3'`.
+
+The problem is that
+
+[^1]: Well, we would if we used exact arithmetic. The probability of a fair coin landing heads is not 0.500002...
