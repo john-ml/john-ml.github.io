@@ -357,7 +357,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p>The three coin flips correspond to the subtree shaded in gray. This subtree has weight 0.0001. Since this weight is equal to the threshold value, the entire subtree is replaced by a simulated run in which only one coin landed heads. The result is the following trimmed tree:</p>
 <p><img src="graphviz-images/859cb2400be1da4a9c1e60883718ee31a3ee2beb.svg" /></p>
 <p>The failure is discarded, leaving just a single value-probability pair <code>(1, 0.0001)</code>. Clearly this is a really bad approximation of <code>flip3'</code>.</p>
-<p>The problem is that weights are probabilities before conditioning: if a subtree has weight \(p\), that means the corresponding code path in the program being analyzed has probability \(p\) of being executed. However, we're interested in the probabilities of code paths being executed <em>given that the program does not fail</em>. The gray subtree above has weight <code>0.0001</code>, but conditional probability <code>1.0</code>.</p>
+<p>The problem is that weights are probabilities before conditioning: if a subtree has weight \(p\), that means the corresponding code path in the program being analyzed has probability \(p\) of being executed. However, we're interested in the probabilities of code paths being executed <em>given that the program does not fail</em>. The probability of reaching the gray subtree above is <code>0.0001</code>, but the probability of reaching it given that the program does not fail is <code>1.0</code>.</p>
 <div class="footnotes">
 <hr />
 <ol>

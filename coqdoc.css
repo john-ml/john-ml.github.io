@@ -36,7 +36,7 @@ ul { padding-left: 25px }
   font-size: 100%;
   line-height: 100% }
 
-#main  h1 { line-height: 95% } /* allow for multi-line headers */
+/* #main  h1 { line-height: 95% } /1* allow for multi-line headers *1/ */
 
 #main  a.idref:visited {color: #416DFF; text-decoration: none; }
 #main  a.idref:link {color: #416DFF; text-decoration: none; }

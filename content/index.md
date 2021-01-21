@@ -4,7 +4,7 @@ title: John Li
   [[GitHub]](https://github.com/john-ml/) 
   [[CV]](https://john-ml.github.io/content/cv.pdf)
   </font>
-header-includes: |
+header-includes: 
   <link rel="stylesheet" type="text/css" href="css/main.css" />
 ---
 

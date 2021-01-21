@@ -661,7 +661,9 @@ in the program being analyzed
 has probability \\(p\\) of being executed.
 However, we're interested in the probabilities
 of code paths being executed _given that the program does not fail_.
-The gray subtree above has weight `0.0001`, but
-conditional probability `1.0`.
+The probability of reaching
+the gray subtree above is `0.0001`, but
+the probability of reaching it given that the program
+does not fail is `1.0`.
 
 [^1]: Well, we would if we used exact arithmetic. The probability of a fair coin landing heads is not 0.500002...
