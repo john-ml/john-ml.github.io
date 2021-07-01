@@ -17,6 +17,4 @@ violin, and bad web design.
 
 ## Posts
 
-<!-- 17 Jan 2020 [Probabilistic programming in OCaml](prob.md.html) -->
-
-27 Dec 2020 [When are Coq types provably unequal?](types_not_equal.v.html)
+[When are Coq types provably unequal?](types_not_equal.v.html)
