@@ -96,10 +96,9 @@ that computes a distribution over output values.
 This inferencer can then serve as a substitute for having to do
 error-prone probability calculations by hand.
 
-You can find a lot of papers online about writing efficient inferencers. 
-Before reading them, I wanted to roll my own inferencers and try them out on some 
+I found a lot of papers online about writing efficient inferencers, but
+before reading them, I wanted to roll my own and try them out on some 
 simple problems. 
-This post describes how they work.
 
 ## Modelling random computations
 
@@ -177,7 +176,7 @@ type 'a dist = ('a * float) list
 type 'a inferencer = 'a rand -> 'a dist
 ```
 
-With all these definitions in hand, we're now ready to write some inferencers.
+Now to write some inferencers:
 
 ## Monte Carlo simulation
 
@@ -667,3 +666,6 @@ the probability of reaching it given that the program
 does not fail is `1.0`.
 
 [^1]: Well, we would if we used exact arithmetic. The probability of a fair coin landing heads is not 0.500002...
+
+<!-- cool paper (ADDs, an analogue of BDDs, are used to compactly represent distributions): https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/paper-33.pdf
+nice survey: https://dl.acm.org/doi/abs/10.1145/2593882.2593900?casa_token=NsbW-8Vf0tIAAAAA:LWOgR4ict_XxZ4IJ9mI09ekblpk3c_bssB0mSgqSKzegtGqpfaevoSMl3K1zmwcf2xWdYOZq9B3XWA -->

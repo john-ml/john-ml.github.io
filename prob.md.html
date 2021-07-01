@@ -104,7 +104,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </ul>
 <p>So, the probability that I'm sick given a positive test result is just the probability that <code>sim ()</code> returns <code>true</code> given that it doesn't fail. I can estimate this probability by running <code>sim ()</code> a large number of times, discarding all the failed runs, and computing the fraction of runs that returned <code>true</code>.</p>
 <p>This is called <a href="https://en.wikipedia.org/wiki/Probabilistic_programming">probabilistic programming</a>. In regular programming, you write a program and then run it to get a result. The program you write could use (pseudo)randomness in it (e.g. simulated dice rolls), but at the end of the run you still only get a single value. In probabilistic programming, you write a program and then run an <em>inferencer</em> that computes a distribution over output values. This inferencer can then serve as a substitute for having to do error-prone probability calculations by hand.</p>
-<p>You can find a lot of papers online about writing efficient inferencers. Before reading them, I wanted to roll my own inferencers and try them out on some simple problems. This post describes how they work.</p>
+<p>I found a lot of papers online about writing efficient inferencers, but before reading them, I wanted to roll my own and try them out on some simple problems.</p>
 <h2 id="modelling-random-computations">Modelling random computations</h2>
 <p>The following GADT encodes the abstract syntax of probabilistic programs:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> &#39;a rand
@@ -143,7 +143,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p>Our inferencers will analyze probabilistic programs and produce distributions of output values, represented by lists of value-probability pairs:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">type</span> &#39;a dist = (&#39;a * <span class="dt">float</span>) <span class="dt">list</span>
 <span class="kw">type</span> &#39;a inferencer = &#39;a rand -&gt; &#39;a dist</code></pre></div>
-<p>With all these definitions in hand, we're now ready to write some inferencers.</p>
+<p>Now to write some inferencers:</p>
 <h2 id="monte-carlo-simulation">Monte Carlo simulation</h2>
 <p>The most basic inferencer just runs the given probabilistic program a bunch of times and uses the results of successful runs to estimate the distribution of output values:</p>
 <div class="sourceCode"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span class="kw">module</span> H = <span class="dt">Hashtbl</span>
