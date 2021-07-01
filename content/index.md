@@ -14,7 +14,3 @@ Prof. [Andrew Appel](https://www.cs.princeton.edu/~appel/)
 on [CertiCoq](https://www.cs.princeton.edu/~appel/certicoq/).
 I enjoy programming language semantics, compilers, interactive theorem proving, bullet chess,
 violin, and bad web design.
-
-## Posts
-
-[When are Coq types provably unequal?](types_not_equal.v.html)
