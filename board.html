@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <title>Board</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <script src="keys.js"></script>
+  <script>
+    const trie_root = empty_trie();
+    init_trie(trie_root);
+    let trie_current = trie_root; // traversed by keypress events
+    let pending_chars = []; // pushed to by keypress events
+    function printable(c) { return c.length === 1; }
+    function write_at_cursor(s) {
+      console.log('write', s, s.length);
+      // https://stackoverflow.com/questions/2920150/insert-text-at-cursor-in-a-content-editable-div
+      for (const c of s) {
+        let selection = window.getSelection();
+        let range = selection.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(range.createContextualFragment(c.replace(' ', '&nbsp;')));
+        selection.modify('move', 'right', 'character');
+      }
+    }
+    function reset_state_with_new_char(c) {
+      pending_chars = [];
+      trie_current = trie_root;
+      if (c in trie_current[1])
+      {
+        trie_current = trie_current[1][c];
+        pending_chars.push(c);
+      } else if (printable(c)) write_at_cursor(c);
+    }
+    function keypress() {
+      let c = window.event.key;
+      if (printable(c) && c in trie_current[1]) {
+        console.log('valid');
+        // Valid trie character: keep traversing the trie
+        trie_current = trie_current[1][c];
+        pending_chars.push(c);
+      } else if (trie_current[0] !== null) {
+        console.log('hit');
+        // Hit! Display the corresponding trie entry and reset state with the new char
+        let s = trie_current[0];
+        write_at_cursor(s);
+        reset_state_with_new_char(c);
+      } else {
+        console.log('miss');
+        // Miss: display all pending chars and reset state
+        write_at_cursor(pending_chars.join(''));
+        reset_state_with_new_char(c);
+      }
+      console.log(window.event.key, '->', trie_current, pending_chars);
+    }
+    document.onkeypress = keypress;
+    function keydown() {
+      let c = window.event.key;
+      if (c.includes('Arrow') || c === 'Control')
+        keypress();
+    }
+    document.onkeydown = keydown;
+  </script>
+</head>
+<body contenteditable
+  spellcheck=false
+  id="text"
+  style="font-family: monospace"
+  onkeypress="if (printable(window.event.key)) return false"></body>
+</html>
