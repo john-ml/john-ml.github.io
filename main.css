@@ -4,7 +4,27 @@ body {
   font-family: 'Domine';
   color: #3f3f3f;
   background-color: #f7f7f7;
-  font-size: 125%;
-  margin-left: 10%;
-  margin-right: 10%;
+  font-size: 100%;
+  margin-left: 15em;
+  margin-right: 15em;
+}
+
+.entries {
+  margin-left: -11em;
+  border-spacing: 0;
+}
+
+.entries tr td:first-child {
+  width: 10em;
+  padding-right: 1em;
+  text-align: right;
+  vertical-align: top;
+}
+
+.entries tr td:last-child {
+  padding-bottom: 1em;
+}
+
+.abstract {
+  display: none;
 }

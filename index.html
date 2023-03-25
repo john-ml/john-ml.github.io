@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta http-equiv="Content-Style-Type" content="text/css" />
@@ -7,9 +6,10 @@
   <style type="text/css">code{white-space: pre;}</style>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Domine">
   <link rel="stylesheet" type="text/css" href="main.css" />
+  <script src="abstracts.js"></script>
 </head>
 <body>
-<h1 class="title">John Li <sup style="font-size:60%"><a href="cv.pdf">[CV]</a></sup></h1>
+<h1 class="title">John Li <span style="font-size:50%"><a href="cv.pdf">[CV]</a></span></h1>
 <p>
   I'm a PhD student in programming languages working with
   <a href="http://www.ccs.neu.edu/home/amal/">Amal Ahmed</a>
@@ -27,21 +27,124 @@
 
 <h3>Talks</h3>
 
-<a href=new-foundations-for-probabilistic-separation-logic.pdf>New Foundations for Probabilistic Separation Logic</a>, John Li, Amal Ahmed, and Steven Holtzen (LAFI @ POPL'23)
 
-<h3>Preprints</h3>
+<table class="entries">
+  <tr>
+    <td class="label">LAFI @ POPL 2023</td>
+    <td>
+      <a href=new-foundations-for-probabilistic-separation-logic.pdf>New Foundations for Probabilistic Separation Logic</a>.
+      <br/><small>John M. Li, Amal Ahmed, and Steven Holtzen.</small>
+      <br/><small><a href="lafi-extended-abstract.pdf">[Extended Abstract]</a></small>
+      <small><a href="new-foundations-for-probabilistic-separation-logic-poster.pdf">[Poster]</a></small>
+    </td>
+  </tr>
+</table>
 
-<a href=lilac.pdf>Lilac: a Modal Separation Logic for Conditional Probability</a>, John Li, Amal Ahmed, and Steven Holtzen
+<h3>Papers</h3>
 
-<h3>Publications</h3>
+<table class="entries">
+  <tr>
+    <td class="label">Preprint, 2023</td>
+    <td>
+      <a href=lilac-a-modal-separation-logic-for-conditional-probability.pdf>Lilac: a Modal Separation Logic for Conditional Probability</a>
+      <br/><small>John M. Li, Amal Ahmed, and Steven Holtzen.</small>
+      <br/><small><a href="#" onclick="toggleAbstract('lilac'); return false;">[Abstract]</a></small>
+      <br/><span id="lilac-abstract" class="abstract">
+        We present Lilac, a separation logic for reasoning about probabilistic
+        programs where separating conjunction captures probabilistic
+        independence. Inspired by an analogy with mutable state where sampling
+        corresponds to dynamic allocation, we show how probability spaces over a
+        fixed, ambient sample space appear to be the natural analogue of heap
+        fragments, and present a new combining operation on them such that
+        probability spaces behave like heaps and measurability of random
+        variables behaves like ownership. This combining operation forms the
+        basis for our model of separation, and produces a logic with many
+        pleasant properties. In particular, Lilac has a frame rule identical to
+        the ordinary one, and naturally accommodates advanced features like
+        continuous random variables and reasoning about quantitative properties
+        of programs. Then we propose a new modality based on disintegration
+        theory for reasoning about conditional probability. We show how the
+        resulting modal logic validates examples from prior work, and give a
+        formal verification of an intricate weighted sampling algorithm whose
+        correctness depends crucially on conditional independence structure.
+      </span>
+    </td>
+  </tr>
+  <tr>
+    <td class="label">ICFP 2021</td>
+    <td>
+      <a href=deriving-efficient-program-transformations-from-rewrite-rules.pdf>Deriving Efficient Program Transformations from Rewrite Rules</a>
+      <br/><small>John M. Li and Andrew W. Appel.</small>
+      <br/><small><a href="#" onclick="toggleAbstract('deriver'); return false;">[Abstract]</a></small>
+      <small><a href=deriving-efficient-program-transformations-from-rewrite-rules-slides.pdf>[Slides]</a></small>
+      <br/><span id="deriver-abstract" class="abstract">
+        An efficient optimizing compiler can perform many cascading rewrites in
+        a single pass, using auxiliary data structures such as variable binding
+        maps, delayed substitutions, and occurrence counts. Such optimizers
+        often perform transformations according to relatively simple rewrite
+        rules, but the subtle interactions between the data structures needed
+        for efficiency make them tricky to write and trickier to prove correct.
+        We present a system for semi-automatically deriving both an efficient
+        program transformation and its correctness proof from a list of rewrite
+        rules and specifications of the auxiliary data structures it requires.
+        Dependent types ensure that the holes left behind by our system (for the
+        user to fill in) are filled in correctly, allowing the user low-level
+        control over the implementation without having to worry about getting it
+        wrong. We implemented our system in Coq (though it could be implemented
+        in other logics as well), and used it to write optimization passes that
+        perform uncurrying, inlining, dead code elimination, and static
+        evaluation of case expressions and record projections. The generated
+        implementations are sometimes faster, and at most 40% slower, than
+        hand-written counterparts on a small set of benchmarks; in some cases,
+        they require significantly less code to write and prove correct.
+      </span>
+    </td>
+  </tr>
+  <tr>
+    <td class="label">ICFP 2021</td>
+    <td>
+      <a href=compositional-optimizations-for-certicoq.pdf>Compositional Optimizations for CertiCoq</a>
+      <br/><small>Zoe Paraskevopoulou, John M. Li, and Andrew W. Appel.</small>
+      <br/><small><a href="#" onclick="toggleAbstract('certicoq'); return false;">[Abstract]</a></small>
+      <br/><span id="certicoq-abstract" class="abstract">
+        <p>Compositional compiler verification is a difficult problem that focuses
+        on separate compilation of program components with possibly different
+        verified compilers. Logical relations are widely used in proving
+        correctness of program transformations in higher-order languages;
+        however, they do not scale to compositional verification of multi-pass
+        compilers due to their lack of transitivity. The only known technique to
+        apply to compositional verification of multi-pass compilers for
+        higher-order languages is parametric inter-language simulations (PILS),
+        which is however significantly more complicated than traditional proof
+        techniques for compiler correctness.  In this paper, we present a novel
+        verification framework for <i>lightweight compositional compiler
+        correctness</i>. We demonstrate that by imposing the additional restriction
+        that program components are compiled by pipelines that go through <i>the
+        same sequence of intermediate representations</i>, logical relation proofs
+        can be transitively composed in order to derive an end-to-end
+        compositional specification for multi-pass compiler pipelines.  Unlike
+        traditional logical-relation frameworks, our framework supports
+        divergence preservation---even when transformations reduce the number of
+        program steps. We achieve this by parameterizing our logical relations
+        with a pair of <i>relational invariants</i>.</p>
 
-<a href=deriving-efficient-program-transformations-from-rewrite-rules.pdf>Deriving Efficient Program Transformations from Rewrite Rules</a>, John M. Li and Andrew W. Appel (ICFP'21)
+        <p>We apply this technique to verify a multi-pass, optimizing middle-end
+        pipeline for CertiCoq, a compiler from Gallina (Coq's specification
+        language) to C. The pipeline optimizes and closure-converts an untyped
+        functional intermediate language (ANF or CPS) to a subset of that
+        language without nested functions, which can be easily code-generated to
+        low-level languages. Notably, our pipeline performs more complex
+        closure-allocation optimizations than the state of the art in verified
+        compilation. Using our novel verification framework, we prove an
+        end-to-end theorem for our pipeline that covers both termination and
+        divergence and applies to whole-program and separate compilation, even
+        when different modules are compiled with different optimizations.  Our
+        results are mechanized in the Coq proof assistant.</p>
+      </span>
+    </td>
+  </tr>
+</table>
 
-<br/>
-
-<a href=compositional-optimizations-for-certicoq.pdf>Compositional Optimizations for CertiCoq</a>, Zoe Paraskevopoulou, John M. Li, and Andrew W. Appel (ICFP'21)
-
-<br/>
 <br/>
 <br/>
 <br/>
