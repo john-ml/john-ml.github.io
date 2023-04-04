@@ -6,6 +6,15 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
   <link rel="stylesheet" type="text/css" href="main.css" />
   <script src="abstracts.js"></script>
+  <script>
+    window.onload = () => {
+      let k = Math.random();
+      console.log(k);
+      if (k < 0.0001) {
+        document.body.innerHTML = '<img src="http://olekg.pl/assets/headshot.png" style="width:100%"></img>';
+      }
+    };
+  </script>
 </head>
 <body>
 <h1 class="title">John Li <span style="font-size:50%"><a href="cv.pdf">CV</a></span></h1>
