@@ -10,6 +10,10 @@ a:hover {
   /* background-color: rgba(65, 105, 225, 0.1); */
 }
 
+.title {
+  margin-top: 0;
+}
+
 body { 
   font-family: 'Roboto';
   color: #000000;
