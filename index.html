@@ -87,7 +87,7 @@
 <body>
 
 <br>
-<table>
+<!-- <table>
   <tr>
     <td>
       <h1 class="title">John Li <span style="font-size:50%"><a href="cv.pdf">CV</a></span></h1>
@@ -107,15 +107,32 @@
       <td><img src="photo.jpg" style="width:10em;margin-left:2em"></td>
     </td>
   </tr>
-</table>
+</table> -->
+<h1 class="title">John Li <span style="font-size:50%"><a href="cv.pdf">CV</a></span></h1>
+<img src="photo.jpg" style="width: 7.5em; margin-left: 1em; float:right">
+<p>
+I'm a PhD student in programming languages working with
+<a href="http://www.ccs.neu.edu/home/amal/">Amal Ahmed</a>
+and
+<a href="https://www.khoury.northeastern.edu/home/sholtzen/">Steven Holtzen</a>
+at Northeastern University.
+I'm generally interested in logic, semantics, and mechanized proof;
+lately I've been thinking about connections between mutable state and probability theory.
+Before starting my PhD, I built a verified-optimization-pass generator as
+part of the <a href="https://certicoq.org/">CertiCoq</a> project.
+When I'm not thinking about research, I like learning math,
+playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-club/2020-01/msg00095.html">ping pong</a>.
+</p>
+
+<br/>
 
 <h3>Papers</h3>
 
 <table class="entries">
   <tr>
-    <td class="label">PLDI 2023</td>
     <td>
       Lilac: A Modal Separation Logic for Conditional Probability
+      <span class="label">PLDI 2023</span>
       <br/><small>John M. Li, Amal Ahmed, and Steven Holtzen.</small>
       <br/>
         <small><a href="#" onclick="toggleAbstract('lilac'); return false;">Abstract</a></small>
@@ -145,9 +162,9 @@
     </td>
   </tr>
   <tr>
-    <td class="label">ICFP 2021</td>
     <td>
       Deriving Efficient Program Transformations from Rewrite Rules
+      <span class="label">ICFP 2021</span>
       <br/><small>John M. Li and Andrew W. Appel.</small>
       <br/>
         <small><a href="#" onclick="toggleAbstract('deriver'); return false;">Abstract</a></small>
@@ -181,9 +198,9 @@
     </td>
   </tr>
   <tr>
-    <td class="label">ICFP 2021</td>
     <td>
       Compositional Optimizations for CertiCoq
+      <span style="float: right">ICFP 2021</span>
       <br/><small>Zoe Paraskevopoulou, John M. Li, and Andrew W. Appel.</small>
       <br/>
         <small><a href="#" onclick="toggleAbstract('certicoq'); return false;">Abstract</a></small>
@@ -235,9 +252,8 @@
 
 <table class="entries">
   <tr>
-    <td class="label">LAFI @ POPL 2023</td>
     <td>
-      New Foundations for Probabilistic Separation Logic
+      New Foundations for Probabilistic Separation Logic<span class="label">LAFI @ POPL 2023</span>
       <br/><small>John M. Li, Amal Ahmed, and Steven Holtzen.</small>
       <br/>
         <small><a href="lafi-extended-abstract.pdf">Extended Abstract</a></small>

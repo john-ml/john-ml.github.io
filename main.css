@@ -19,26 +19,23 @@ body {
   color: #000000;
   background-color: #ffffff;
   font-size: 100%;
-  margin-left: 15em;
-  margin-right: 15em;
+  margin-left: 10%;
+  margin-right: 10%;
   text-align: justify;
   text-justify: inter-word;
 }
 
 .entries {
-  margin-left: -11em;
   border-spacing: 0;
+  width: 100%;
 }
 
 .entries tr td:first-child {
-  width: 10em;
-  padding-right: 1em;
-  text-align: right;
-  vertical-align: top;
+  padding-bottom: 1em;
 }
 
-.entries tr td:last-child {
-  padding-bottom: 1em;
+.label {
+  float: right;
 }
 
 .abstract {
