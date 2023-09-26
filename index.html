@@ -55,8 +55,11 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
         <small><a href=https://dl.acm.org/doi/10.1145/3591226>DOI</a></small>
         &nbsp;&nbsp;
         <small><a href=lilac-a-modal-separation-logic-for-conditional-probability.pdf>Local copy</a></small>
-      <br/><span id="lilac-abstract" class="abstract">
-        We present Lilac, a separation logic for reasoning about probabilistic
+        &nbsp;&nbsp;
+        <small><a href="#" onclick="toggleNotes('lilac'); return false;">Notes</a></small>
+      <br/>
+      <span id="lilac-abstract" class="abstract">
+        <p>We present Lilac, a separation logic for reasoning about probabilistic
         programs where separating conjunction captures probabilistic
         independence. Inspired by an analogy with mutable state where sampling
         corresponds to dynamic allocation, we show how probability spaces over a
@@ -72,7 +75,22 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
         theory for reasoning about conditional probability. We show how the
         resulting modal logic validates examples from prior work, and give a
         formal verification of an intricate weighted sampling algorithm whose
-        correctness depends crucially on conditional independence structure.
+        correctness depends crucially on conditional independence structure.</p>
+      </span>
+      <span id="lilac-notes" class="notes">
+        <p>Since publication, <a href="http://baojia.lu/">Jialu Bao</a>
+        has pointed out that the interpretation of
+        almost-sure equality of random variables does not validate
+        the expected substitution rule, due to a subtle point about
+        negligibility. This issue is corrected in the local copy above
+        and on arXiv; see <a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=33">Appendix B.5</a> for details.</p>
+        <p>We did not attempt to fully mechanize Lilac, but
+        we do have a mechanization of 
+        our main result that probability spaces 
+        form a Kripke resource monoid (<a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=11">Theorem 2.4</a> in the paper).
+        See <a href="https://neuppl.khoury.northeastern.edu/blog/2023/pi-lambda/">this blog post</a>
+        for links to the mechanization, and for a PL-brained presentation of the pi-lambda theorem,
+        a workhorse of measure-theoretic probability.</p>
       </span>
     </td>
   </tr>
