@@ -37,12 +37,39 @@ body {
   float: right;
 }
 
-.abstract {
-  display: none;
-  font-size: 90%;
+.summary-text {
+  color: royalblue;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.summary-text:hover {
+  color: darkred;
 }
 
-.notes {
+summary {
+  display: inline;
+}
+details[open] > summary {
+  display: block;
+}
+details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+details > summary::-webkit-details-marker {
   display: none;
-  font-size: 90%;
+}
+
+.extra-notes {
+  display: inline;
+}
+.extra-notes[open] {
+  display: block;
+}
+.extra-notes[open] > summary {
+  display: block;
 }

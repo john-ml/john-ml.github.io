@@ -6,7 +6,6 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
   <link rel="stylesheet" type="text/css" href="normalize.css" />
   <link rel="stylesheet" type="text/css" href="main.css" />
-  <script src="abstracts.js"></script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-2LPT4XM85R"></script>
   <script>
@@ -45,213 +44,228 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
     <td>
       Multi-Language Probabilistic Programming
       <span class="label">OOPSLA 2025</span>
-      <br/><small>Sam Stites, John M. Li, and Steven Holtzen.</small>
-      <br/>
-        <small><a href="#" onclick="toggleAbstract('multippl'); return false;">Abstract</a></small>
-        &nbsp;&nbsp;
-        <small><a href="https://arxiv.org/abs/2502.19538">arXiv</a></small>
-        &nbsp;&nbsp;
-        <small><a href=multi-language-probabilistic-programming.pdf>Local copy</a></small>
-        &nbsp;&nbsp;
-      <br/>
-      <span id="multippl-abstract" class="abstract">
-           There are many different probabilistic programming languages that
-           are specialized to specific kinds of probabilistic programs. From a
-           usability and scalability perspective, this is undesirable: today,
-           probabilistic programmers are forced up-front to decide which
-           language they want to use and cannot mix-and-match different
-           languages for handling heterogeneous programs. To rectify this, we
-           seek a foundation for sound interoperability for probabilistic
-           programming languages: just as today's Python programmers can resort
-           to low-level C programming for performance, we argue that
-           probabilistic programmers should be able to freely mix different
-           languages for meeting the demands of heterogeneous probabilistic
-           programming environments. As a first step towards this goal, we
-           introduce MultiPPL, a probabilistic multi-language that
-           enables programmers to interoperate between two different
-           probabilistic programming languages: one that leverages a
-           high-performance exact discrete inference strategy, and one that
-           uses approximate importance sampling. We give a syntax and semantics
-           for MultiPPL, prove soundness of its inference algorithm,
-           and provide empirical evidence that it enables programmers to
-           perform inference on complex heterogeneous probabilistic programs
-           and flexibly exploits the strengths and weaknesses of two languages
-           simultaneously.
-      </span>
+      <small>
+        <br/><span class="authors">Sam Stites, John M. Li, and Steven Holtzen.</span>
+        <br/>
+        <details>
+          <summary>
+            <span class="summary-text">Abstract</span>
+            &nbsp;&nbsp;
+            <a href="https://arxiv.org/abs/2502.19538">arXiv</a>
+            &nbsp;&nbsp;
+            <a href=multi-language-probabilistic-programming.pdf>Local copy</a>
+          </summary>
+          There are many different probabilistic programming languages that
+          are specialized to specific kinds of probabilistic programs. From a
+          usability and scalability perspective, this is undesirable: today,
+          probabilistic programmers are forced up-front to decide which
+          language they want to use and cannot mix-and-match different
+          languages for handling heterogeneous programs. To rectify this, we
+          seek a foundation for sound interoperability for probabilistic
+          programming languages: just as today's Python programmers can resort
+          to low-level C programming for performance, we argue that
+          probabilistic programmers should be able to freely mix different
+          languages for meeting the demands of heterogeneous probabilistic
+          programming environments. As a first step towards this goal, we
+          introduce MultiPPL, a probabilistic multi-language that
+          enables programmers to interoperate between two different
+          probabilistic programming languages: one that leverages a
+          high-performance exact discrete inference strategy, and one that
+          uses approximate importance sampling. We give a syntax and semantics
+          for MultiPPL, prove soundness of its inference algorithm,
+          and provide empirical evidence that it enables programmers to
+          perform inference on complex heterogeneous probabilistic programs
+          and flexibly exploits the strengths and weaknesses of two languages
+          simultaneously.
+        </details>
+      </small>
     </td>
   </tr>
   <tr>
     <td>
       A Nominal Approach to Probabilistic Separation Logic
       <span class="label">LICS 2024</span>
-      <br/><small>John M. Li, Jon Aytac, Philip Johnson-Freyd, Amal Ahmed, and Steven Holtzen.</small>
-      <br/>
-        <small><a href="#" onclick="toggleAbstract('nominal'); return false;">Abstract</a></small>
-        &nbsp;&nbsp;
-        <small><a href=a-nominal-approach-to-probabilistic-separation-logic-slides.pdf>Slides</a></small>
-        &nbsp;&nbsp;
-        <small><a href="https://arxiv.org/abs/2405.06826">arXiv</a></small>
-        &nbsp;&nbsp;
-        <small><a href=https://dl.acm.org/doi/10.1145/3661814.3662135>DOI</a></small>
-        &nbsp;&nbsp;
-        <small><a href=a-nominal-approach-to-probabilistic-separation-logic.pdf>Local copy</a></small>
-        &nbsp;&nbsp;
-      <br/>
-      <span id="nominal-abstract" class="abstract">
-        Currently, there is a gap between the tools used by probability
-        theorists and those used in formal reasoning about probabilistic
-        programs. On the one hand, a probability theorist decomposes
-        probabilistic state along the simple and natural product of probability
-        spaces. On the other hand, recently developed probabilistic separation
-        logics decompose state via relatively unfamiliar measure-theoretic
-        constructions for computing unions of sigma-algebras and probability
-        measures. We bridge the gap between these two perspectives by showing
-        that these two methods of decomposition are equivalent up to a suitable
-        equivalence of categories. Our main result is a probabilistic analog of
-        the classic equivalence between the category of nominal sets and the
-        Schanuel topos. Through this equivalence, we validate design decisions
-        in prior work on probabilistic separation logic and create new
-        connections to nominal-set-like models of probability. 
-      </span>
+      <small>
+        <br/><span class="authors">John M. Li, Jon Aytac, Philip Johnson-Freyd, Amal Ahmed, and Steven Holtzen.</span>
+        <br/>
+        <details>
+          <summary>
+            <span class="summary-text">Abstract</span>
+            &nbsp;&nbsp;
+            <a href=a-nominal-approach-to-probabilistic-separation-logic-slides.pdf>Slides</a>
+            &nbsp;&nbsp;
+            <a href="https://arxiv.org/abs/2405.06826">arXiv</a>
+            &nbsp;&nbsp;
+            <a href=https://dl.acm.org/doi/10.1145/3661814.3662135>DOI</a>
+            &nbsp;&nbsp;
+            <a href=a-nominal-approach-to-probabilistic-separation-logic.pdf>Local copy</a>
+          </summary>
+          Currently, there is a gap between the tools used by probability
+          theorists and those used in formal reasoning about probabilistic
+          programs. On the one hand, a probability theorist decomposes
+          probabilistic state along the simple and natural product of probability
+          spaces. On the other hand, recently developed probabilistic separation
+          logics decompose state via relatively unfamiliar measure-theoretic
+          constructions for computing unions of sigma-algebras and probability
+          measures. We bridge the gap between these two perspectives by showing
+          that these two methods of decomposition are equivalent up to a suitable
+          equivalence of categories. Our main result is a probabilistic analog of
+          the classic equivalence between the category of nominal sets and the
+          Schanuel topos. Through this equivalence, we validate design decisions
+          in prior work on probabilistic separation logic and create new
+          connections to nominal-set-like models of probability. 
+        </details>
+      </small>
     </td>
   </tr>
   <tr>
     <td>
       Lilac: A Modal Separation Logic for Conditional Probability
       <span class="label">PLDI 2023</span>
-      <br/><small>John M. Li, Amal Ahmed, and Steven Holtzen.</small>
-      <br/>
-        <small><a href="#" onclick="toggleAbstract('lilac'); return false;">Abstract</a></small>
-        &nbsp;&nbsp;
-        <small><a href=lilac-slides.pdf>Slides</a></small>
-        &nbsp;&nbsp;
-        <small><a href="https://arxiv.org/abs/2304.01339">arXiv</a></small>
-        &nbsp;&nbsp;
-        <small><a href=https://dl.acm.org/doi/10.1145/3591226>DOI</a></small>
-        &nbsp;&nbsp;
-        <small><a href=lilac-a-modal-separation-logic-for-conditional-probability.pdf>Local copy</a></small>
-        &nbsp;&nbsp;
-        <small><a href="#" onclick="toggleNotes('lilac'); return false;">Notes</a></small>
-      <br/>
-      <span id="lilac-abstract" class="abstract">
-        We present Lilac, a separation logic for reasoning about probabilistic
-        programs where separating conjunction captures probabilistic
-        independence. Inspired by an analogy with mutable state where sampling
-        corresponds to dynamic allocation, we show how probability spaces over a
-        fixed, ambient sample space appear to be the natural analogue of heap
-        fragments, and present a new combining operation on them such that
-        probability spaces behave like heaps and measurability of random
-        variables behaves like ownership. This combining operation forms the
-        basis for our model of separation, and produces a logic with many
-        pleasant properties. In particular, Lilac has a frame rule identical to
-        the ordinary one, and naturally accommodates advanced features like
-        continuous random variables and reasoning about quantitative properties
-        of programs. Then we propose a new modality based on disintegration
-        theory for reasoning about conditional probability. We show how the
-        resulting modal logic validates examples from prior work, and give a
-        formal verification of an intricate weighted sampling algorithm whose
-        correctness depends crucially on conditional independence structure.
-      </span>
-      <span id="lilac-notes" class="notes">
-        <p>Since publication, <a href="http://baojia.lu/">Jialu Bao</a>
-        has pointed out that the interpretation of
-        almost-sure equality of random variables does not validate
-        the expected substitution rule, due to a subtle point about
-        negligibility. This issue is corrected in the local copy above
-        and on arXiv; see <a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=33">Appendix B.5</a> for details.</p>
-        <p>We did not attempt to fully mechanize Lilac, but
-        we do have a mechanization of 
-        our main result that probability spaces 
-        form a Kripke resource monoid (<a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=11">Theorem 2.4</a> in the paper).
-        See <a href="https://neuppl.khoury.northeastern.edu/blog/2023/pi-lambda/">this blog post</a>
-        for links to the mechanization, and for a PL-brained presentation of the pi-lambda theorem,
-        a workhorse of measure-theoretic probability.</p>
-      </span>
+      <small>
+        <br/><span class="authors">John M. Li, Amal Ahmed, and Steven Holtzen.</span>
+        <br/>
+        <details>
+          <summary>
+            <span class="summary-text">Abstract</span>
+            &nbsp;&nbsp;
+            <a href=lilac-slides.pdf>Slides</a>
+            &nbsp;&nbsp;
+            <a href="https://arxiv.org/abs/2304.01339">arXiv</a>
+            &nbsp;&nbsp;
+            <a href=https://dl.acm.org/doi/10.1145/3591226>DOI</a>
+            &nbsp;&nbsp;
+            <a href=lilac-a-modal-separation-logic-for-conditional-probability.pdf>Local copy</a>
+            &nbsp;&nbsp;
+            <details class="extra-notes">
+              <summary>
+                <span class="summary-text">Notes</span>&nbsp;&nbsp;
+              </summary>
+              Since publication, <a href="http://baojia.lu/">Jialu Bao</a>
+              has pointed out that the interpretation of
+              almost-sure equality of random variables does not validate
+              the expected substitution rule, due to a subtle point about
+              negligibility. This issue is corrected in the local copy above
+              and on arXiv; see <a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=33">Appendix B.5</a> for details.
+
+              We did not attempt to fully mechanize Lilac, but
+              we do have <a href="https://gist.github.com/SHoltzen/c822d4f9e10e9fd34c96b63f64fa82b4">a mechanization of our main result</a>
+              that probability spaces form a Kripke resource
+              monoid (<a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=11">Theorem 2.4</a> in the paper).
+            </details>
+          </summary>
+          We present Lilac, a separation logic for reasoning about probabilistic
+          programs where separating conjunction captures probabilistic
+          independence. Inspired by an analogy with mutable state where sampling
+          corresponds to dynamic allocation, we show how probability spaces over a
+          fixed, ambient sample space appear to be the natural analogue of heap
+          fragments, and present a new combining operation on them such that
+          probability spaces behave like heaps and measurability of random
+          variables behaves like ownership. This combining operation forms the
+          basis for our model of separation, and produces a logic with many
+          pleasant properties. In particular, Lilac has a frame rule identical to
+          the ordinary one, and naturally accommodates advanced features like
+          continuous random variables and reasoning about quantitative properties
+          of programs. Then we propose a new modality based on disintegration
+          theory for reasoning about conditional probability. We show how the
+          resulting modal logic validates examples from prior work, and give a
+          formal verification of an intricate weighted sampling algorithm whose
+          correctness depends crucially on conditional independence structure.
+        </details>
+      </small>
     </td>
   </tr>
   <tr>
     <td>
       Deriving Efficient Program Transformations from Rewrite Rules
       <span class="label">ICFP 2021</span>
-      <br/><small>John M. Li and Andrew W. Appel.</small>
-      <br/>
-        <small><a href="#" onclick="toggleAbstract('deriver'); return false;">Abstract</a></small>
-        &nbsp;&nbsp;
-        <small><a href=deriving-efficient-program-transformations-from-rewrite-rules-slides.pdf>Slides</a></small>
-        &nbsp;&nbsp;
-        <small><a href=https://dl.acm.org/doi/10.1145/3473579>DOI</a></small>
-        &nbsp;&nbsp;
-        <small><a href=deriving-efficient-program-transformations-from-rewrite-rules.pdf>Local copy</a></small>
-      <br/><span id="deriver-abstract" class="abstract">
-        An efficient optimizing compiler can perform many cascading rewrites in
-        a single pass, using auxiliary data structures such as variable binding
-        maps, delayed substitutions, and occurrence counts. Such optimizers
-        often perform transformations according to relatively simple rewrite
-        rules, but the subtle interactions between the data structures needed
-        for efficiency make them tricky to write and trickier to prove correct.
-        We present a system for semi-automatically deriving both an efficient
-        program transformation and its correctness proof from a list of rewrite
-        rules and specifications of the auxiliary data structures it requires.
-        Dependent types ensure that the holes left behind by our system (for the
-        user to fill in) are filled in correctly, allowing the user low-level
-        control over the implementation without having to worry about getting it
-        wrong. We implemented our system in Coq (though it could be implemented
-        in other logics as well), and used it to write optimization passes that
-        perform uncurrying, inlining, dead code elimination, and static
-        evaluation of case expressions and record projections. The generated
-        implementations are sometimes faster, and at most 40% slower, than
-        hand-written counterparts on a small set of benchmarks; in some cases,
-        they require significantly less code to write and prove correct.
-      </span>
+      <small>
+        <br/><span class="authors">John M. Li and Andrew W. Appel.</span>
+        <br/>
+        <details>
+          <summary>
+            <span class="summary-text">Abstract</span>
+            &nbsp;&nbsp;
+            <a href=deriving-efficient-program-transformations-from-rewrite-rules-slides.pdf>Slides</a>
+            &nbsp;&nbsp;
+            <a href=https://dl.acm.org/doi/10.1145/3473579>DOI</a>
+            &nbsp;&nbsp;
+            <a href=deriving-efficient-program-transformations-from-rewrite-rules.pdf>Local copy</a>
+          </summary>
+          An efficient optimizing compiler can perform many cascading rewrites in
+          a single pass, using auxiliary data structures such as variable binding
+          maps, delayed substitutions, and occurrence counts. Such optimizers
+          often perform transformations according to relatively simple rewrite
+          rules, but the subtle interactions between the data structures needed
+          for efficiency make them tricky to write and trickier to prove correct.
+          We present a system for semi-automatically deriving both an efficient
+          program transformation and its correctness proof from a list of rewrite
+          rules and specifications of the auxiliary data structures it requires.
+          Dependent types ensure that the holes left behind by our system (for the
+          user to fill in) are filled in correctly, allowing the user low-level
+          control over the implementation without having to worry about getting it
+          wrong. We implemented our system in Coq (though it could be implemented
+          in other logics as well), and used it to write optimization passes that
+          perform uncurrying, inlining, dead code elimination, and static
+          evaluation of case expressions and record projections. The generated
+          implementations are sometimes faster, and at most 40% slower, than
+          hand-written counterparts on a small set of benchmarks; in some cases,
+          they require significantly less code to write and prove correct.
+        </details>
+      </small>
     </td>
   </tr>
   <tr>
     <td>
       Compositional Optimizations for CertiCoq
       <span style="float: right">ICFP 2021</span>
-      <br/><small>Zoe Paraskevopoulou, John M. Li, and Andrew W. Appel.</small>
-      <br/>
-        <small><a href="#" onclick="toggleAbstract('certicoq'); return false;">Abstract</a></small>
-        &nbsp;&nbsp;
-        <small><a href=https://dl.acm.org/doi/10.1145/3473591>DOI</a></small>
-        &nbsp;&nbsp;
-        <small><a href=compositional-optimizations-for-certicoq.pdf>Local copy</a></small>
-      <br/><span id="certicoq-abstract" class="abstract">
-        Compositional compiler verification is a difficult problem that focuses
-        on separate compilation of program components with possibly different
-        verified compilers. Logical relations are widely used in proving
-        correctness of program transformations in higher-order languages;
-        however, they do not scale to compositional verification of multi-pass
-        compilers due to their lack of transitivity. The only known technique to
-        apply to compositional verification of multi-pass compilers for
-        higher-order languages is parametric inter-language simulations (PILS),
-        which is however significantly more complicated than traditional proof
-        techniques for compiler correctness.  In this paper, we present a novel
-        verification framework for <i>lightweight compositional compiler
-        correctness</i>. We demonstrate that by imposing the additional restriction
-        that program components are compiled by pipelines that go through <i>the
-        same sequence of intermediate representations</i>, logical relation proofs
-        can be transitively composed in order to derive an end-to-end
-        compositional specification for multi-pass compiler pipelines.  Unlike
-        traditional logical-relation frameworks, our framework supports
-        divergence preservation---even when transformations reduce the number of
-        program steps. We achieve this by parameterizing our logical relations
-        with a pair of <i>relational invariants</i>.
+      <small>
+        <br/><span class="authors">Zoe Paraskevopoulou, John M. Li, and Andrew W. Appel.</span>
         <br/>
-        <br/>
-        We apply this technique to verify a multi-pass, optimizing middle-end
-        pipeline for CertiCoq, a compiler from Gallina (Coq's specification
-        language) to C. The pipeline optimizes and closure-converts an untyped
-        functional intermediate language (ANF or CPS) to a subset of that
-        language without nested functions, which can be easily code-generated to
-        low-level languages. Notably, our pipeline performs more complex
-        closure-allocation optimizations than the state of the art in verified
-        compilation. Using our novel verification framework, we prove an
-        end-to-end theorem for our pipeline that covers both termination and
-        divergence and applies to whole-program and separate compilation, even
-        when different modules are compiled with different optimizations.  Our
-        results are mechanized in the Coq proof assistant.
-      </span>
+        <details>
+          <summary>
+            <span class="summary-text">Abstract</span>
+            &nbsp;&nbsp;
+            <a href=https://dl.acm.org/doi/10.1145/3473591>DOI</a>
+            &nbsp;&nbsp;
+            <a href=compositional-optimizations-for-certicoq.pdf>Local copy</a>
+          </summary>
+          Compositional compiler verification is a difficult problem that focuses
+          on separate compilation of program components with possibly different
+          verified compilers. Logical relations are widely used in proving
+          correctness of program transformations in higher-order languages;
+          however, they do not scale to compositional verification of multi-pass
+          compilers due to their lack of transitivity. The only known technique to
+          apply to compositional verification of multi-pass compilers for
+          higher-order languages is parametric inter-language simulations (PILS),
+          which is however significantly more complicated than traditional proof
+          techniques for compiler correctness.  In this paper, we present a novel
+          verification framework for <i>lightweight compositional compiler
+          correctness</i>. We demonstrate that by imposing the additional restriction
+          that program components are compiled by pipelines that go through <i>the
+          same sequence of intermediate representations</i>, logical relation proofs
+          can be transitively composed in order to derive an end-to-end
+          compositional specification for multi-pass compiler pipelines.  Unlike
+          traditional logical-relation frameworks, our framework supports
+          divergence preservation---even when transformations reduce the number of
+          program steps. We achieve this by parameterizing our logical relations
+          with a pair of <i>relational invariants</i>.
+          <p>
+            We apply this technique to verify a multi-pass, optimizing middle-end
+            pipeline for CertiCoq, a compiler from Gallina (Coq's specification
+            language) to C. The pipeline optimizes and closure-converts an untyped
+            functional intermediate language (ANF or CPS) to a subset of that
+            language without nested functions, which can be easily code-generated to
+            low-level languages. Notably, our pipeline performs more complex
+            closure-allocation optimizations than the state of the art in verified
+            compilation. Using our novel verification framework, we prove an
+            end-to-end theorem for our pipeline that covers both termination and
+            divergence and applies to whole-program and separate compilation, even
+            when different modules are compiled with different optimizations.  Our
+            results are mechanized in the Coq proof assistant.
+          </p>
+        </details>
+      </small>
     </td>
   </tr>
 </table>
