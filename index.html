@@ -136,23 +136,6 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
             <a href=https://dl.acm.org/doi/10.1145/3591226>DOI</a>
             &nbsp;&nbsp;
             <a href=lilac-a-modal-separation-logic-for-conditional-probability.pdf>Local copy</a>
-            &nbsp;&nbsp;
-            <details class="extra-notes">
-              <summary>
-                <span class="summary-text">Notes</span>&nbsp;&nbsp;
-              </summary>
-              Since publication, <a href="http://baojia.lu/">Jialu Bao</a>
-              has pointed out that the interpretation of
-              almost-sure equality of random variables does not validate
-              the expected substitution rule, due to a subtle point about
-              negligibility. This issue is corrected in the local copy above
-              and on arXiv; see <a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=33">Appendix B.5</a> for details.
-
-              We did not attempt to fully mechanize Lilac, but
-              we do have <a href="https://gist.github.com/SHoltzen/c822d4f9e10e9fd34c96b63f64fa82b4">a mechanization of our main result</a>
-              that probability spaces form a Kripke resource
-              monoid (<a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=11">Theorem 2.4</a> in the paper).
-            </details>
           </summary>
           We present Lilac, a separation logic for reasoning about probabilistic
           programs where separating conjunction captures probabilistic
@@ -171,6 +154,21 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
           resulting modal logic validates examples from prior work, and give a
           formal verification of an intricate weighted sampling algorithm whose
           correctness depends crucially on conditional independence structure.
+          <p>
+            <b>Notes:</b>
+            Since publication, <a href="http://baojia.lu/">Jialu Bao</a>
+            has pointed out that the interpretation of
+            almost-sure equality of random variables does not validate
+            the expected substitution rule, due to a subtle point about
+            negligibility. This issue is corrected in the local copy above
+            and on arXiv; see <a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=33">Appendix B.5</a> for details.
+
+            We did not attempt to fully mechanize Lilac, but
+            we do have <a href="https://gist.github.com/SHoltzen/c822d4f9e10e9fd34c96b63f64fa82b4">a mechanization of our main result</a>
+            that probability spaces form a Kripke resource
+            monoid (<a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=11">Theorem 2.4</a> in the paper).
+          </p>
+          </details>
         </details>
       </small>
     </td>

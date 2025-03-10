@@ -52,6 +52,7 @@ body {
 
 summary {
   display: inline;
+  text-justify: none;
 }
 details[open] > summary {
   display: block;
@@ -68,8 +69,8 @@ details > summary::-webkit-details-marker {
   display: inline;
 }
 .extra-notes[open] {
-  display: block;
+  display: inline;
 }
 .extra-notes[open] > summary {
-  display: block;
+  display: inline;
 }
