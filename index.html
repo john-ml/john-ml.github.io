@@ -42,6 +42,46 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
 <table class="entries">
   <tr>
     <td>
+      Roulette: A Language for Expressive, Exact, and Efficient Discrete Probabilistic Programming
+      <span class="label">PLDI 2025</span>
+      <small>
+        <br/><span class="authors">Cameron Moy, Jack Czenszak, John M. Li, Brianna Marshall, and Steven Holtzen.</span>
+        <br/>
+        <details>
+          <summary>
+            <span class="summary-text">Abstract</span>
+            &nbsp;&nbsp;
+            <a href=https://dl.acm.org/doi/10.1145/3720482>DOI</a>
+            &nbsp;&nbsp;
+            <a href=roulette.pdf>Local copy</a>
+          </summary>
+          <p>Exact probabilistic inference is a requirement for many applications
+          of probabilistic programming languages (PPLs) such as in high-consequence
+          settings or verification. However, designing and implementing a PPL with
+          scalable high-performance exact inference is difficult: exact inference engines,
+          much like SAT solvers, are intricate low-level programs that are hard to
+          implement. Due to this implementation challenge, PPLs that support scalable
+          exact inference are restrictive and lack many features of general-purpose
+          languages.</p>
+          <p>This paper presents Roulette, the first discrete probabilistic programming
+          language that combines high- performance exact inference with general-purpose
+          language features. Roulette supports a significant subset of Racket, including
+          data structures, first-class functions, surely-terminating recursion, mutable
+          state, modules, and macros, along with probabilistic features such as finitely
+          supported discrete random variables, conditioning, and top-level inference. The
+          key insight is that there is a close connection between exact probabilistic
+          inference and the symbolic evaluation strategy of Rosette. Building on this
+          connection, Roulette generalizes and extends the Rosette solver-aided
+          programming system to reason about probabilistic rather than symbolic
+          quantities.  We prove Roulette sound by generalizing a proof of correctness for
+          Rosette to handle probabilities, and demonstrate its scalability and
+          expressivity on a number of examples.</p>
+        </details>
+      </small>
+    </td>
+  </tr>
+  <tr>
+    <td>
       Multi-Language Probabilistic Programming
       <span class="label">OOPSLA 2025</span>
       <small>
@@ -57,7 +97,7 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
             &nbsp;&nbsp;
             <a href=multi-language-probabilistic-programming.pdf>Local copy</a>
           </summary>
-          There are many different probabilistic programming languages that
+          <p>There are many different probabilistic programming languages that
           are specialized to specific kinds of probabilistic programs. From a
           usability and scalability perspective, this is undesirable: today,
           probabilistic programmers are forced up-front to decide which
@@ -78,7 +118,7 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
           and provide empirical evidence that it enables programmers to
           perform inference on complex heterogeneous probabilistic programs
           and flexibly exploits the strengths and weaknesses of two languages
-          simultaneously.
+          simultaneously.</p>
         </details>
       </small>
     </td>
@@ -102,7 +142,7 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
             &nbsp;&nbsp;
             <a href=a-nominal-approach-to-probabilistic-separation-logic.pdf>Local copy</a>
           </summary>
-          Currently, there is a gap between the tools used by probability
+          <p>Currently, there is a gap between the tools used by probability
           theorists and those used in formal reasoning about probabilistic
           programs. On the one hand, a probability theorist decomposes
           probabilistic state along the simple and natural product of probability
@@ -115,7 +155,7 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
           the classic equivalence between the category of nominal sets and the
           Schanuel topos. Through this equivalence, we validate design decisions
           in prior work on probabilistic separation logic and create new
-          connections to nominal-set-like models of probability. 
+          connections to nominal-set-like models of probability.</p>
         </details>
       </small>
     </td>
@@ -139,7 +179,7 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
             &nbsp;&nbsp;
             <a href=lilac-a-modal-separation-logic-for-conditional-probability.pdf>Local copy</a>
           </summary>
-          We present Lilac, a separation logic for reasoning about probabilistic
+          <p>We present Lilac, a separation logic for reasoning about probabilistic
           programs where separating conjunction captures probabilistic
           independence. Inspired by an analogy with mutable state where sampling
           corresponds to dynamic allocation, we show how probability spaces over a
@@ -155,7 +195,7 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
           theory for reasoning about conditional probability. We show how the
           resulting modal logic validates examples from prior work, and give a
           formal verification of an intricate weighted sampling algorithm whose
-          correctness depends crucially on conditional independence structure.
+          correctness depends crucially on conditional independence structure.</p>
           <p>
             <b>Notes:</b>
             Since publication, <a href="http://baojia.lu/">Jialu Bao</a>
@@ -192,7 +232,7 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
             &nbsp;&nbsp;
             <a href=deriving-efficient-program-transformations-from-rewrite-rules.pdf>Local copy</a>
           </summary>
-          An efficient optimizing compiler can perform many cascading rewrites in
+          <p>An efficient optimizing compiler can perform many cascading rewrites in
           a single pass, using auxiliary data structures such as variable binding
           maps, delayed substitutions, and occurrence counts. Such optimizers
           often perform transformations according to relatively simple rewrite
@@ -210,7 +250,7 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
           evaluation of case expressions and record projections. The generated
           implementations are sometimes faster, and at most 40% slower, than
           hand-written counterparts on a small set of benchmarks; in some cases,
-          they require significantly less code to write and prove correct.
+          they require significantly less code to write and prove correct.</p>
         </details>
       </small>
     </td>
@@ -230,7 +270,7 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
             &nbsp;&nbsp;
             <a href=compositional-optimizations-for-certicoq.pdf>Local copy</a>
           </summary>
-          Compositional compiler verification is a difficult problem that focuses
+          <p>Compositional compiler verification is a difficult problem that focuses
           on separate compilation of program components with possibly different
           verified compilers. Logical relations are widely used in proving
           correctness of program transformations in higher-order languages;
@@ -249,7 +289,7 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
           traditional logical-relation frameworks, our framework supports
           divergence preservation---even when transformations reduce the number of
           program steps. We achieve this by parameterizing our logical relations
-          with a pair of <i>relational invariants</i>.
+          with a pair of <i>relational invariants</i>.</p>
           <p>
             We apply this technique to verify a multi-pass, optimizing middle-end
             pipeline for CertiCoq, a compiler from Gallina (Coq's specification
