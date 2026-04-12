@@ -42,6 +42,46 @@ playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-
 <table class="entries">
   <tr>
     <td>
+      Categorical Semantics of Probabilistic Symbolic Execution
+      <span class="label">PLDI 2026</span>
+      <small>
+        <br/><span class="authors">John M. Li, Jack Czenszak, Steven Holtzen.</span>
+        <br/>
+        <details>
+          <summary>
+            <span class="summary-text">Abstract</span>
+            &nbsp;&nbsp;
+            <a href=https://dl.acm.org/doi/10.1145/3808343>DOI</a>
+            &nbsp;&nbsp;
+            <a href=categorical-semantics-of-probabilistic-symbolic-execution.pdf>Local copy</a>
+          </summary>
+          <p>Symbolic execution has emerged as a powerful technique for scaling
+          exact probabilistic inference to languages with more expressive
+          features. But, this expressivity comes at a price: probabilistic
+          programming languages based on symbolic execution are difficult to
+          debug, optimize, and prove correct due to the many intricacies
+          inherent to high-performance symbolic execution strategies. We aim to
+          make it easier to work with probabilistic symbolic executors by
+          developing <i>symbolic sets</i>, a new semantic domain that cleanly
+          captures the notion of computation underlying symbolic execution. Just
+          as a symbolic executor replaces ordinary execution with a lifted
+          semantics, symbolic set theory replaces ordinary set theory with a
+          lifted <i>mathematics</i>: the category of symbolic sets is a
+          Grothendieck topos, which allows type theory to be used as a
+          metalanguage for working with symbolic sets and functions. We prove a
+          metatheorem that shows how a large class of definitional interpreters
+          written in the internal language of symbolic sets are automatically
+          correct for their ordinary set-theoretic interpretations. Using this
+          metatheorem, we give the first full correctness argument for a
+          symbolic probabilistic language with higher-order functions,
+          type-directed state merging, pattern matching, and structural
+          recursion.</p>
+        </details>
+      </small>
+    </td>
+  </tr>
+  <tr>
+    <td>
       From Linearity to Borrowing
       <span class="label">OOPSLA 2025</span>
       <small>
