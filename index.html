@@ -1,464 +1,268 @@
 <!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="John Li's academic homepage." />
   <title>John Li</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap">
   <link rel="stylesheet" type="text/css" href="normalize.css" />
   <link rel="stylesheet" type="text/css" href="main.css" />
-  <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-2LPT4XM85R"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-  
     gtag('config', 'G-2LPT4XM85R');
   </script>
 </head>
 <body>
+  <main class="page">
+    <section class="intro-section" aria-labelledby="site-title">
+      <div class="intro">
+        <h1 id="site-title">John Li</h1>
+        <p class="lede">
+          I'm a PhD student of
+          <a href="https://www.ccs.neu.edu/home/amal/">Amal Ahmed</a>
+          and
+          <a href="https://www.khoury.northeastern.edu/home/sholtzen/">Steven Holtzen</a>
+          at Northeastern University.
+          I'm generally interested in programming language semantics,
+          especially for languages with probabilistic features.
+        </p>
+        <p class="lede">
+          Before starting my PhD, I built a verified-optimization-pass generator as
+          part of the <a href="https://certicoq.org/">CertiCoq</a> project.
+          When I'm not thinking about research, I like learning math and
+          playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-club/2020-01/msg00095.html">ping pong</a>.
+        </p>
+      </div>
+      <figure class="portrait">
+        <img src="photo.jpg" alt="Portrait of John Li" loading="lazy" decoding="async" />
+      </figure>
+    </section>
 
-<br>
-<img src="photo.jpg" style="width: 10em; margin-left: 1em; float: right">
-<h1 class="title">John Li</h1>
-<p>
-I'm a PhD student of
-<a href="https://www.ccs.neu.edu/home/amal/">Amal Ahmed</a>
-and
-<a href="https://www.khoury.northeastern.edu/home/sholtzen/">Steven Holtzen</a>
-at Northeastern University.
-I'm generally interested in programming language semantics,
-especially for languages with probabilistic features.
-Before starting my PhD, I built a verified-optimization-pass generator as
-part of the <a href="https://certicoq.org/">CertiCoq</a> project.
-When I'm not thinking about research, I like learning math and
-playing bullet chess, violin, and <a href="https://sympa.inria.fr/sympa/arc/coq-club/2020-01/msg00095.html">ping pong</a>.
-</p>
+    <section class="section" aria-labelledby="papers">
+      <h2 id="papers">Papers</h2>
+      <div class="entries">
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">Categorical Semantics of Probabilistic Symbolic Execution</div>
+            <span class="label">PLDI 2026</span>
+          </div>
+          <div class="authors">John M. Li, Jack Czenszak, Steven Holtzen.</div>
+          <input class="abstract-toggle" type="checkbox" id="abstract-categorical-semantics-of-probabilistic-symbolic-execution" />
+          <div class="paper-actions">
+            <label class="abstract-link" for="abstract-categorical-semantics-of-probabilistic-symbolic-execution">Abstract</label>
+            <a href="https://dl.acm.org/doi/10.1145/3808343">DOI</a>
+            <a href="categorical-semantics-of-probabilistic-symbolic-execution.pdf">Local copy</a>
+          </div>
+          <div class="abstract">
+            <p>Symbolic execution has emerged as a powerful technique for scaling exact probabilistic inference to languages with more expressive features. But, this expressivity comes at a price: probabilistic programming languages based on symbolic execution are difficult to debug, optimize, and prove correct due to the many intricacies inherent to high-performance symbolic execution strategies. We aim to make it easier to work with probabilistic symbolic executors by developing <i>symbolic sets</i>, a new semantic domain that cleanly captures the notion of computation underlying symbolic execution. Just as a symbolic executor replaces ordinary execution with a lifted semantics, symbolic set theory replaces ordinary set theory with a lifted <i>mathematics</i>: the category of symbolic sets is a Grothendieck topos, which allows type theory to be used as a metalanguage for working with symbolic sets and functions. We prove a metatheorem that shows how a large class of definitional interpreters written in the internal language of symbolic sets are automatically correct for their ordinary set-theoretic interpretations. Using this metatheorem, we give the first full correctness argument for a symbolic probabilistic language with higher-order functions, type-directed state merging, pattern matching, and structural recursion.</p>
+          </div>
+        </article>
 
-<br/>
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">From Linearity to Borrowing</div>
+            <span class="label">OOPSLA 2025</span>
+          </div>
+          <div class="authors">Andrew Wagner, Olek Gierczak, Brianna Marshall, John M. Li, Amal Ahmed.</div>
+          <input class="abstract-toggle" type="checkbox" id="abstract-from-linearity-to-borrowing" />
+          <div class="paper-actions">
+            <label class="abstract-link" for="abstract-from-linearity-to-borrowing">Abstract</label>
+            <a href="https://dl.acm.org/doi/10.1145/3764117">DOI</a>
+            <a href="from-linearity-to-borrowing.pdf">Local copy</a>
+            <a href="https://2025.splashcon.org/details/OOPSLA/176/From-Linearity-to-Borrowing">OOPSLA 2025 Distinguished Paper Award</a>
+          </div>
+          <div class="abstract">
+            <p>Linear type systems are powerful because they can statically ensure the correct management of resources like memory, but they can also be cumbersome to work with, since even benign uses of a resource require that it be explicitly threaded through during computation. Borrowing, as popularized by Rust, reduces this burden by allowing one to temporarily disable certain resource permissions (e.g., deallocation or mutation) in exchange for enabling certain structural permissions (e.g., weakening or contraction). In particular, this mechanism spares the borrower of a resource from having to explicitly return it to the lender but nevertheless ensures that the lender eventually reclaims ownership of the resource.</p>
+            <p>In this paper, we elucidate the semantics of borrowing by starting with a standard linear type system for ensuring safe manual memory management in an untyped lambda calculus and gradually augmenting it with immutable borrows, lexical lifetimes, reborrowing, and finally mutable borrows. We prove semantic type soundness for our Borrow Calculus (BoCa) using Borrow Logic (BoLo), a novel domain-specific separation logic for borrowing. We establish the soundness of this logic using a semantic model that additionally guarantees that our calculus is terminating and free of memory leaks. We also show that our Borrow Logic is robust enough to establish the semantic safety of some syntactically ill-typed programs that temporarily break but reestablish invariants.</p>
+          </div>
+        </article>
 
-<h3>Papers</h3>
-
-<table class="entries">
-  <tr>
-    <td>
-      Categorical Semantics of Probabilistic Symbolic Execution
-      <span class="label">PLDI 2026</span>
-      <small>
-        <br/><span class="authors">John M. Li, Jack Czenszak, Steven Holtzen.</span>
-        <br/>
-        <details>
-          <summary>
-            <span class="summary-text">Abstract</span>
-            &nbsp;&nbsp;
-            <a href=https://dl.acm.org/doi/10.1145/3808343>DOI</a>
-            &nbsp;&nbsp;
-            <a href=categorical-semantics-of-probabilistic-symbolic-execution.pdf>Local copy</a>
-          </summary>
-          <p>Symbolic execution has emerged as a powerful technique for scaling
-          exact probabilistic inference to languages with more expressive
-          features. But, this expressivity comes at a price: probabilistic
-          programming languages based on symbolic execution are difficult to
-          debug, optimize, and prove correct due to the many intricacies
-          inherent to high-performance symbolic execution strategies. We aim to
-          make it easier to work with probabilistic symbolic executors by
-          developing <i>symbolic sets</i>, a new semantic domain that cleanly
-          captures the notion of computation underlying symbolic execution. Just
-          as a symbolic executor replaces ordinary execution with a lifted
-          semantics, symbolic set theory replaces ordinary set theory with a
-          lifted <i>mathematics</i>: the category of symbolic sets is a
-          Grothendieck topos, which allows type theory to be used as a
-          metalanguage for working with symbolic sets and functions. We prove a
-          metatheorem that shows how a large class of definitional interpreters
-          written in the internal language of symbolic sets are automatically
-          correct for their ordinary set-theoretic interpretations. Using this
-          metatheorem, we give the first full correctness argument for a
-          symbolic probabilistic language with higher-order functions,
-          type-directed state merging, pattern matching, and structural
-          recursion.</p>
-        </details>
-      </small>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      From Linearity to Borrowing
-      <span class="label">OOPSLA 2025</span>
-      <small>
-        <br/><span class="authors">Andrew Wagner, Olek Gierczak, Brianna Marshall, John M. Li, Amal Ahmed.</span>
-        <br/>
-        <details>
-          <summary>
-            <span class="summary-text">Abstract</span>
-            &nbsp;&nbsp;
-            <a href=https://dl.acm.org/doi/10.1145/3764117>DOI</a>
-            &nbsp;&nbsp;
-            <a href=from-linearity-to-borrowing.pdf>Local copy</a>
-            &nbsp;&nbsp;
-            <a href=https://2025.splashcon.org/details/OOPSLA/176/From-Linearity-to-Borrowing>OOPSLA 2025 Distinguished Paper Award</a>
-          </summary>
-          <p>Linear type systems are powerful because they can statically ensure
-          the correct management of resources like memory, but they can also be
-          cumbersome to work with, since even benign uses of a resource require
-          that it be explicitly threaded through during computation. Borrowing,
-          as popularized by Rust, reduces this burden by allowing one to
-          temporarily disable certain resource permissions (e.g., deallocation
-          or mutation) in exchange for enabling certain structural permissions
-          (e.g., weakening or contraction). In particular, this mechanism spares
-          the borrower of a resource from having to explicitly return it to the
-          lender but nevertheless ensures that the lender eventually reclaims
-          ownership of the resource.</p>
-          <p>In this paper, we elucidate the semantics of borrowing by starting
-          with a standard linear type system for ensuring safe manual memory
-          management in an untyped lambda calculus and gradually augmenting it
-          with immutable borrows, lexical lifetimes, reborrowing, and finally
-          mutable borrows. We prove semantic type soundness for our Borrow
-          Calculus (BoCa) using Borrow Logic (BoLo), a novel domain-specific
-          separation logic for borrowing. We establish the soundness of this
-          logic using a semantic model that additionally guarantees that our
-          calculus is terminating and free of memory leaks. We also show that
-          our Borrow Logic is robust enough to establish the semantic safety of
-          some syntactically ill-typed programs that temporarily break but
-          reestablish invariants.</p>
-        </details>
-      </small>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Multi-Language Probabilistic Programming
-      <span class="label">OOPSLA 2025</span>
-      <small>
-        <br/><span class="authors">Sam Stites, John M. Li, and Steven Holtzen.</span>
-        <br/>
-        <details>
-          <summary>
-            <span class="summary-text">Abstract</span>
-            &nbsp;&nbsp;
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">Multi-Language Probabilistic Programming</div>
+            <span class="label">OOPSLA 2025</span>
+          </div>
+          <div class="authors">Sam Stites, John M. Li, and Steven Holtzen.</div>
+          <input class="abstract-toggle" type="checkbox" id="abstract-multi-language-probabilistic-programming" />
+          <div class="paper-actions">
+            <label class="abstract-link" for="abstract-multi-language-probabilistic-programming">Abstract</label>
             <a href="https://arxiv.org/abs/2502.19538">arXiv</a>
-            &nbsp;&nbsp;
-            <a href=https://dl.acm.org/doi/10.1145/3720482>DOI</a>
-            &nbsp;&nbsp;
-            <a href=multi-language-probabilistic-programming.pdf>Local copy</a>
-          </summary>
-          <p>There are many different probabilistic programming languages that
-          are specialized to specific kinds of probabilistic programs. From a
-          usability and scalability perspective, this is undesirable: today,
-          probabilistic programmers are forced up-front to decide which
-          language they want to use and cannot mix-and-match different
-          languages for handling heterogeneous programs. To rectify this, we
-          seek a foundation for sound interoperability for probabilistic
-          programming languages: just as today's Python programmers can resort
-          to low-level C programming for performance, we argue that
-          probabilistic programmers should be able to freely mix different
-          languages for meeting the demands of heterogeneous probabilistic
-          programming environments. As a first step towards this goal, we
-          introduce MultiPPL, a probabilistic multi-language that
-          enables programmers to interoperate between two different
-          probabilistic programming languages: one that leverages a
-          high-performance exact discrete inference strategy, and one that
-          uses approximate importance sampling. We give a syntax and semantics
-          for MultiPPL, prove soundness of its inference algorithm,
-          and provide empirical evidence that it enables programmers to
-          perform inference on complex heterogeneous probabilistic programs
-          and flexibly exploits the strengths and weaknesses of two languages
-          simultaneously.</p>
-        </details>
-      </small>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Roulette: A Language for Expressive, Exact, and Efficient Discrete Probabilistic Programming
-      <span class="label">PLDI 2025</span>
-      <small>
-        <br/><span class="authors">Cameron Moy, Jack Czenszak, John M. Li, Brianna Marshall, and Steven Holtzen.</span>
-        <br/>
-        <details>
-          <summary>
-            <span class="summary-text">Abstract</span>
-            &nbsp;&nbsp;
-            <a href=https://doi.org/10.1145/3729334>DOI</a>
-            &nbsp;&nbsp;
-            <a href=roulette.pdf>Local copy</a>
-          </summary>
-          <p>Exact probabilistic inference is a requirement for many applications
-          of probabilistic programming languages (PPLs) such as in high-consequence
-          settings or verification. However, designing and implementing a PPL with
-          scalable high-performance exact inference is difficult: exact inference engines,
-          much like SAT solvers, are intricate low-level programs that are hard to
-          implement. Due to this implementation challenge, PPLs that support scalable
-          exact inference are restrictive and lack many features of general-purpose
-          languages.</p>
-          <p>This paper presents Roulette, the first discrete probabilistic programming
-          language that combines high- performance exact inference with general-purpose
-          language features. Roulette supports a significant subset of Racket, including
-          data structures, first-class functions, surely-terminating recursion, mutable
-          state, modules, and macros, along with probabilistic features such as finitely
-          supported discrete random variables, conditioning, and top-level inference. The
-          key insight is that there is a close connection between exact probabilistic
-          inference and the symbolic evaluation strategy of Rosette. Building on this
-          connection, Roulette generalizes and extends the Rosette solver-aided
-          programming system to reason about probabilistic rather than symbolic
-          quantities.  We prove Roulette sound by generalizing a proof of correctness for
-          Rosette to handle probabilities, and demonstrate its scalability and
-          expressivity on a number of examples.</p>
-        </details>
-      </small>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      A Nominal Approach to Probabilistic Separation Logic
-      <span class="label">LICS 2024</span>
-      <small>
-        <br/><span class="authors">John M. Li, Jon Aytac, Philip Johnson-Freyd, Amal Ahmed, and Steven Holtzen.</span>
-        <br/>
-        <details>
-          <summary>
-            <span class="summary-text">Abstract</span>
-            &nbsp;&nbsp;
-            <a href=a-nominal-approach-to-probabilistic-separation-logic-slides.pdf>Slides</a>
-            &nbsp;&nbsp;
+            <a href="https://dl.acm.org/doi/10.1145/3720482">DOI</a>
+            <a href="multi-language-probabilistic-programming.pdf">Local copy</a>
+          </div>
+          <div class="abstract">
+            <p>There are many different probabilistic programming languages that are specialized to specific kinds of probabilistic programs. From a usability and scalability perspective, this is undesirable: today, probabilistic programmers are forced up-front to decide which language they want to use and cannot mix-and-match different languages for handling heterogeneous programs. To rectify this, we seek a foundation for sound interoperability for probabilistic programming languages: just as today's Python programmers can resort to low-level C programming for performance, we argue that probabilistic programmers should be able to freely mix different languages for meeting the demands of heterogeneous probabilistic programming environments. As a first step towards this goal, we introduce MultiPPL, a probabilistic multi-language that enables programmers to interoperate between two different probabilistic programming languages: one that leverages a high-performance exact discrete inference strategy, and one that uses approximate importance sampling. We give a syntax and semantics for MultiPPL, prove soundness of its inference algorithm, and provide empirical evidence that it enables programmers to perform inference on complex heterogeneous probabilistic programs and flexibly exploits the strengths and weaknesses of two languages simultaneously.</p>
+          </div>
+        </article>
+
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">Roulette: A Language for Expressive, Exact, and Efficient Discrete Probabilistic Programming</div>
+            <span class="label">PLDI 2025</span>
+          </div>
+          <div class="authors">Cameron Moy, Jack Czenszak, John M. Li, Brianna Marshall, and Steven Holtzen.</div>
+          <input class="abstract-toggle" type="checkbox" id="abstract-roulette" />
+          <div class="paper-actions">
+            <label class="abstract-link" for="abstract-roulette">Abstract</label>
+            <a href="https://doi.org/10.1145/3729334">DOI</a>
+            <a href="roulette.pdf">Local copy</a>
+          </div>
+          <div class="abstract">
+            <p>Exact probabilistic inference is a requirement for many applications of probabilistic programming languages (PPLs) such as in high-consequence settings or verification. However, designing and implementing a PPL with scalable high-performance exact inference is difficult: exact inference engines, much like SAT solvers, are intricate low-level programs that are hard to implement. Due to this implementation challenge, PPLs that support scalable exact inference are restrictive and lack many features of general-purpose languages.</p>
+            <p>This paper presents Roulette, the first discrete probabilistic programming language that combines high-performance exact inference with general-purpose language features. Roulette supports a significant subset of Racket, including data structures, first-class functions, surely-terminating recursion, mutable state, modules, and macros, along with probabilistic features such as finitely supported discrete random variables, conditioning, and top-level inference. The key insight is that there is a close connection between exact probabilistic inference and the symbolic evaluation strategy of Rosette. Building on this connection, Roulette generalizes and extends the Rosette solver-aided programming system to reason about probabilistic rather than symbolic quantities. We prove Roulette sound by generalizing a proof of correctness for Rosette to handle probabilities, and demonstrate its scalability and expressivity on a number of examples.</p>
+          </div>
+        </article>
+
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">A Nominal Approach to Probabilistic Separation Logic</div>
+            <span class="label">LICS 2024</span>
+          </div>
+          <div class="authors">John M. Li, Jon Aytac, Philip Johnson-Freyd, Amal Ahmed, and Steven Holtzen.</div>
+          <input class="abstract-toggle" type="checkbox" id="abstract-a-nominal-approach-to-probabilistic-separation-logic" />
+          <div class="paper-actions">
+            <label class="abstract-link" for="abstract-a-nominal-approach-to-probabilistic-separation-logic">Abstract</label>
+            <a href="a-nominal-approach-to-probabilistic-separation-logic-slides.pdf">Slides</a>
             <a href="https://arxiv.org/abs/2405.06826">arXiv</a>
-            &nbsp;&nbsp;
-            <a href=https://dl.acm.org/doi/10.1145/3661814.3662135>DOI</a>
-            &nbsp;&nbsp;
-            <a href=a-nominal-approach-to-probabilistic-separation-logic.pdf>Local copy</a>
-          </summary>
-          <p>Currently, there is a gap between the tools used by probability
-          theorists and those used in formal reasoning about probabilistic
-          programs. On the one hand, a probability theorist decomposes
-          probabilistic state along the simple and natural product of probability
-          spaces. On the other hand, recently developed probabilistic separation
-          logics decompose state via relatively unfamiliar measure-theoretic
-          constructions for computing unions of sigma-algebras and probability
-          measures. We bridge the gap between these two perspectives by showing
-          that these two methods of decomposition are equivalent up to a suitable
-          equivalence of categories. Our main result is a probabilistic analog of
-          the classic equivalence between the category of nominal sets and the
-          Schanuel topos. Through this equivalence, we validate design decisions
-          in prior work on probabilistic separation logic and create new
-          connections to nominal-set-like models of probability.</p>
-        </details>
-      </small>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Lilac: A Modal Separation Logic for Conditional Probability
-      <span class="label">PLDI 2023</span>
-      <small>
-        <br/><span class="authors">John M. Li, Amal Ahmed, and Steven Holtzen.</span>
-        <br/>
-        <details>
-          <summary>
-            <span class="summary-text">Abstract</span>
-            &nbsp;&nbsp;
-            <a href=lilac-slides.pdf>Slides</a>
-            &nbsp;&nbsp;
+            <a href="https://dl.acm.org/doi/10.1145/3661814.3662135">DOI</a>
+            <a href="a-nominal-approach-to-probabilistic-separation-logic.pdf">Local copy</a>
+          </div>
+          <div class="abstract">
+            <p>Currently, there is a gap between the tools used by probability theorists and those used in formal reasoning about probabilistic programs. On the one hand, a probability theorist decomposes probabilistic state along the simple and natural product of probability spaces. On the other hand, recently developed probabilistic separation logics decompose state via relatively unfamiliar measure-theoretic constructions for computing unions of sigma-algebras and probability measures. We bridge the gap between these two perspectives by showing that these two methods of decomposition are equivalent up to a suitable equivalence of categories. Our main result is a probabilistic analog of the classic equivalence between the category of nominal sets and the Schanuel topos. Through this equivalence, we validate design decisions in prior work on probabilistic separation logic and create new connections to nominal-set-like models of probability.</p>
+          </div>
+        </article>
+
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">Lilac: A Modal Separation Logic for Conditional Probability</div>
+            <span class="label">PLDI 2023</span>
+          </div>
+          <div class="authors">John M. Li, Amal Ahmed, and Steven Holtzen.</div>
+          <input class="abstract-toggle" type="checkbox" id="abstract-lilac" />
+          <input class="notes-toggle" type="checkbox" id="notes-lilac" />
+          <div class="paper-actions">
+            <label class="abstract-link" for="abstract-lilac">Abstract</label>
+            <a href="lilac-slides.pdf">Slides</a>
             <a href="https://arxiv.org/abs/2304.01339">arXiv</a>
-            &nbsp;&nbsp;
-            <a href=https://dl.acm.org/doi/10.1145/3591226>DOI</a>
-            &nbsp;&nbsp;
-            <a href=lilac-a-modal-separation-logic-for-conditional-probability.pdf>Local copy</a>
-          </summary>
-          <p>We present Lilac, a separation logic for reasoning about probabilistic
-          programs where separating conjunction captures probabilistic
-          independence. Inspired by an analogy with mutable state where sampling
-          corresponds to dynamic allocation, we show how probability spaces over a
-          fixed, ambient sample space appear to be the natural analogue of heap
-          fragments, and present a new combining operation on them such that
-          probability spaces behave like heaps and measurability of random
-          variables behaves like ownership. This combining operation forms the
-          basis for our model of separation, and produces a logic with many
-          pleasant properties. In particular, Lilac has a frame rule identical to
-          the ordinary one, and naturally accommodates advanced features like
-          continuous random variables and reasoning about quantitative properties
-          of programs. Then we propose a new modality based on disintegration
-          theory for reasoning about conditional probability. We show how the
-          resulting modal logic validates examples from prior work, and give a
-          formal verification of an intricate weighted sampling algorithm whose
-          correctness depends crucially on conditional independence structure.</p>
-          <p>
-            <b>Notes:</b>
-            Since publication, <a href="http://baojia.lu/">Jialu Bao</a>
-            has pointed out that the interpretation of
-            almost-sure equality of random variables does not validate
-            the expected substitution rule, due to a subtle point about
-            negligibility. This issue is corrected in the local copy above
-            and on arXiv; see <a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=33">Appendix B.5</a> for details.
+            <a href="https://dl.acm.org/doi/10.1145/3591226">DOI</a>
+            <a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf">Local copy</a>
+            <label class="abstract-link" for="notes-lilac">Notes</label>
+          </div>
+          <div class="abstract">
+            <p>We present Lilac, a separation logic for reasoning about probabilistic programs where separating conjunction captures probabilistic independence. Inspired by an analogy with mutable state where sampling corresponds to dynamic allocation, we show how probability spaces over a fixed, ambient sample space appear to be the natural analogue of heap fragments, and present a new combining operation on them such that probability spaces behave like heaps and measurability of random variables behaves like ownership. This combining operation forms the basis for our model of separation, and produces a logic with many pleasant properties. In particular, Lilac has a frame rule identical to the ordinary one, and naturally accommodates advanced features like continuous random variables and reasoning about quantitative properties of programs. Then we propose a new modality based on disintegration theory for reasoning about conditional probability. We show how the resulting modal logic validates examples from prior work, and give a formal verification of an intricate weighted sampling algorithm whose correctness depends crucially on conditional independence structure.</p>
+          </div>
+          <div class="notes">
+            <p>Since publication, <a href="http://baojia.lu/">Jialu Bao</a> has pointed out that the interpretation of almost-sure equality of random variables does not validate the expected substitution rule, due to a subtle point about negligibility. This issue is corrected in the local copy above and on arXiv; see <a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=33">Appendix B.5</a> for details. We did not attempt to fully mechanize Lilac, but we do have <a href="https://gist.github.com/SHoltzen/c822d4f9e10e9fd34c96b63f64fa82b4">a mechanization of our main result</a> that probability spaces form a Kripke resource monoid (<a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=11">Theorem 2.4</a> in the paper).</p>
+          </div>
+        </article>
 
-            We did not attempt to fully mechanize Lilac, but
-            we do have <a href="https://gist.github.com/SHoltzen/c822d4f9e10e9fd34c96b63f64fa82b4">a mechanization of our main result</a>
-            that probability spaces form a Kripke resource
-            monoid (<a href="lilac-a-modal-separation-logic-for-conditional-probability.pdf#page=11">Theorem 2.4</a> in the paper).
-          </p>
-          </details>
-        </details>
-      </small>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Deriving Efficient Program Transformations from Rewrite Rules
-      <span class="label">ICFP 2021</span>
-      <small>
-        <br/><span class="authors">John M. Li and Andrew W. Appel.</span>
-        <br/>
-        <details>
-          <summary>
-            <span class="summary-text">Abstract</span>
-            &nbsp;&nbsp;
-            <a href=deriving-efficient-program-transformations-from-rewrite-rules-slides.pdf>Slides</a>
-            &nbsp;&nbsp;
-            <a href=https://dl.acm.org/doi/10.1145/3473579>DOI</a>
-            &nbsp;&nbsp;
-            <a href=deriving-efficient-program-transformations-from-rewrite-rules.pdf>Local copy</a>
-          </summary>
-          <p>An efficient optimizing compiler can perform many cascading rewrites in
-          a single pass, using auxiliary data structures such as variable binding
-          maps, delayed substitutions, and occurrence counts. Such optimizers
-          often perform transformations according to relatively simple rewrite
-          rules, but the subtle interactions between the data structures needed
-          for efficiency make them tricky to write and trickier to prove correct.
-          We present a system for semi-automatically deriving both an efficient
-          program transformation and its correctness proof from a list of rewrite
-          rules and specifications of the auxiliary data structures it requires.
-          Dependent types ensure that the holes left behind by our system (for the
-          user to fill in) are filled in correctly, allowing the user low-level
-          control over the implementation without having to worry about getting it
-          wrong. We implemented our system in Coq (though it could be implemented
-          in other logics as well), and used it to write optimization passes that
-          perform uncurrying, inlining, dead code elimination, and static
-          evaluation of case expressions and record projections. The generated
-          implementations are sometimes faster, and at most 40% slower, than
-          hand-written counterparts on a small set of benchmarks; in some cases,
-          they require significantly less code to write and prove correct.</p>
-        </details>
-      </small>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Compositional Optimizations for CertiCoq
-      <span style="float: right">ICFP 2021</span>
-      <small>
-        <br/><span class="authors">Zoe Paraskevopoulou, John M. Li, and Andrew W. Appel.</span>
-        <br/>
-        <details>
-          <summary>
-            <span class="summary-text">Abstract</span>
-            &nbsp;&nbsp;
-            <a href=https://dl.acm.org/doi/10.1145/3473591>DOI</a>
-            &nbsp;&nbsp;
-            <a href=compositional-optimizations-for-certicoq.pdf>Local copy</a>
-          </summary>
-          <p>Compositional compiler verification is a difficult problem that focuses
-          on separate compilation of program components with possibly different
-          verified compilers. Logical relations are widely used in proving
-          correctness of program transformations in higher-order languages;
-          however, they do not scale to compositional verification of multi-pass
-          compilers due to their lack of transitivity. The only known technique to
-          apply to compositional verification of multi-pass compilers for
-          higher-order languages is parametric inter-language simulations (PILS),
-          which is however significantly more complicated than traditional proof
-          techniques for compiler correctness.  In this paper, we present a novel
-          verification framework for <i>lightweight compositional compiler
-          correctness</i>. We demonstrate that by imposing the additional restriction
-          that program components are compiled by pipelines that go through <i>the
-          same sequence of intermediate representations</i>, logical relation proofs
-          can be transitively composed in order to derive an end-to-end
-          compositional specification for multi-pass compiler pipelines.  Unlike
-          traditional logical-relation frameworks, our framework supports
-          divergence preservation---even when transformations reduce the number of
-          program steps. We achieve this by parameterizing our logical relations
-          with a pair of <i>relational invariants</i>.</p>
-          <p>
-            We apply this technique to verify a multi-pass, optimizing middle-end
-            pipeline for CertiCoq, a compiler from Gallina (Coq's specification
-            language) to C. The pipeline optimizes and closure-converts an untyped
-            functional intermediate language (ANF or CPS) to a subset of that
-            language without nested functions, which can be easily code-generated to
-            low-level languages. Notably, our pipeline performs more complex
-            closure-allocation optimizations than the state of the art in verified
-            compilation. Using our novel verification framework, we prove an
-            end-to-end theorem for our pipeline that covers both termination and
-            divergence and applies to whole-program and separate compilation, even
-            when different modules are compiled with different optimizations.  Our
-            results are mechanized in the Coq proof assistant.
-          </p>
-        </details>
-      </small>
-    </td>
-  </tr>
-</table>
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">Deriving Efficient Program Transformations from Rewrite Rules</div>
+            <span class="label">ICFP 2021</span>
+          </div>
+          <div class="authors">John M. Li and Andrew W. Appel.</div>
+          <input class="abstract-toggle" type="checkbox" id="abstract-deriving-efficient-program-transformations-from-rewrite-rules" />
+          <div class="paper-actions">
+            <label class="abstract-link" for="abstract-deriving-efficient-program-transformations-from-rewrite-rules">Abstract</label>
+            <a href="deriving-efficient-program-transformations-from-rewrite-rules-slides.pdf">Slides</a>
+            <a href="https://dl.acm.org/doi/10.1145/3473579">DOI</a>
+            <a href="deriving-efficient-program-transformations-from-rewrite-rules.pdf">Local copy</a>
+          </div>
+          <div class="abstract">
+            <p>An efficient optimizing compiler can perform many cascading rewrites in a single pass, using auxiliary data structures such as variable binding maps, delayed substitutions, and occurrence counts. Such optimizers often perform transformations according to relatively simple rewrite rules, but the subtle interactions between the data structures needed for efficiency make them tricky to write and trickier to prove correct. We present a system for semi-automatically deriving both an efficient program transformation and its correctness proof from a list of rewrite rules and specifications of the auxiliary data structures it requires. Dependent types ensure that the holes left behind by our system (for the user to fill in) are filled in correctly, allowing the user low-level control over the implementation without having to worry about getting it wrong. We implemented our system in Coq (though it could be implemented in other logics as well), and used it to write optimization passes that perform uncurrying, inlining, dead code elimination, and static evaluation of case expressions and record projections. The generated implementations are sometimes faster, and at most 40% slower, than hand-written counterparts on a small set of benchmarks; in some cases, they require significantly less code to write and prove correct.</p>
+          </div>
+        </article>
 
-<h3>Extended abstracts</h3>
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">Compositional Optimizations for CertiCoq</div>
+            <span class="label">ICFP 2021</span>
+          </div>
+          <div class="authors">Zoe Paraskevopoulou, John M. Li, and Andrew W. Appel.</div>
+          <input class="abstract-toggle" type="checkbox" id="abstract-compositional-optimizations-for-certicoq" />
+          <div class="paper-actions">
+            <label class="abstract-link" for="abstract-compositional-optimizations-for-certicoq">Abstract</label>
+            <a href="https://dl.acm.org/doi/10.1145/3473591">DOI</a>
+            <a href="compositional-optimizations-for-certicoq.pdf">Local copy</a>
+          </div>
+          <div class="abstract">
+            <p>Compositional compiler verification is a difficult problem that focuses on separate compilation of program components with possibly different verified compilers. Logical relations are widely used in proving correctness of program transformations in higher-order languages; however, they do not scale to compositional verification of multi-pass compilers due to their lack of transitivity. The only known technique to apply to compositional verification of multi-pass compilers for higher-order languages is parametric inter-language simulations (PILS), which is however significantly more complicated than traditional proof techniques for compiler correctness. In this paper, we present a novel verification framework for <i>lightweight compositional compiler correctness</i>. We demonstrate that by imposing the additional restriction that program components are compiled by pipelines that go through <i>the same sequence of intermediate representations</i>, logical relation proofs can be transitively composed in order to derive an end-to-end compositional specification for multi-pass compiler pipelines. Unlike traditional logical-relation frameworks, our framework supports divergence preservation-even when transformations reduce the number of program steps. We achieve this by parameterizing our logical relations with a pair of <i>relational invariants</i>.</p>
+            <p>We apply this technique to verify a multi-pass, optimizing middle-end pipeline for CertiCoq, a compiler from Gallina (Coq's specification language) to C. The pipeline optimizes and closure-converts an untyped functional intermediate language (ANF or CPS) to a subset of that language without nested functions, which can be easily code-generated to low-level languages. Notably, our pipeline performs more complex closure-allocation optimizations than the state of the art in verified compilation. Using our novel verification framework, we prove an end-to-end theorem for our pipeline that covers both termination and divergence and applies to whole-program and separate compilation, even when different modules are compiled with different optimizations. Our results are mechanized in the Coq proof assistant.</p>
+          </div>
+        </article>
+      </div>
+    </section>
 
-<table class="entries">
-  <tr>
-    <td>
-      Substructural Weakest Preconditions in Fibrations<span class="label">HOPE @ ICFP 2025</span>
-      <br/><small>John M. Li, Ryan Doenges, Pedro H. Azevedo de Amorim.</small>
-      <br/>
-        <small><a href=substructural-wp-abstract.pdf>Extended Abstract</a></small>
-        &nbsp;&nbsp;
-        <small><a href="substructural-weakest-preconditions-in-fibrations.pdf">Slides</a></small>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Towards Symbolic Execution for Probability and Non-determinism<span class="label">LAFI @ POPL 2025</span>
-      <br/><small>Jack Czenszak, John M. Li, Steven Holtzen.</small>
-      <br/>
-        <small><a href="lafi25.pdf">Extended Abstract</a></small>
-        &nbsp;&nbsp;
-        <small><a href=lafi25-poster.pdf>Poster</a></small>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Towards a Categorical Model of the Lilac Separation Logic<span class="label">LAFI @ POPL 2024</span>
-      <br/><small>John M. Li, Jon Aytac, Philip Johnson-Freyd, Amal Ahmed, and Steven Holtzen.</small>
-      <br/>
-        <small><a href="lafi24.pdf">Extended Abstract</a></small>
-        &nbsp;&nbsp;
-        <small><a href=lafi24-slides.pdf>Slides</a></small>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      New Foundations for Probabilistic Separation Logic<span class="label">LAFI @ POPL 2023</span>
-      <br/><small>John M. Li, Amal Ahmed, and Steven Holtzen.</small>
-      <br/>
-        <small><a href="lafi-extended-abstract.pdf">Extended Abstract</a></small>
-        &nbsp;&nbsp;
-        <small><a href=new-foundations-for-probabilistic-separation-logic.pdf>Slides</a></small>
-        &nbsp;&nbsp;
-        <small><a href="new-foundations-for-probabilistic-separation-logic-poster.pdf">Poster</a></small>
-    </td>
-  </tr>
-</table>
+    <section class="section" aria-labelledby="extended-abstracts">
+      <h2 id="extended-abstracts">Extended abstracts</h2>
+      <div class="entries">
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">Substructural Weakest Preconditions in Fibrations</div>
+            <span class="label">HOPE @ ICFP 2025</span>
+          </div>
+          <div class="authors">John M. Li, Ryan Doenges, Pedro H. Azevedo de Amorim.</div>
+          <div class="paper-actions">
+            <a href="substructural-wp-abstract.pdf">Extended Abstract</a>
+            <a href="substructural-weakest-preconditions-in-fibrations.pdf">Slides</a>
+          </div>
+        </article>
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">Towards Symbolic Execution for Probability and Non-determinism</div>
+            <span class="label">LAFI @ POPL 2025</span>
+          </div>
+          <div class="authors">Jack Czenszak, John M. Li, Steven Holtzen.</div>
+          <div class="paper-actions">
+            <a href="lafi25.pdf">Extended Abstract</a>
+            <a href="lafi25-poster.pdf">Poster</a>
+          </div>
+        </article>
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">Towards a Categorical Model of the Lilac Separation Logic</div>
+            <span class="label">LAFI @ POPL 2024</span>
+          </div>
+          <div class="authors">John M. Li, Jon Aytac, Philip Johnson-Freyd, Amal Ahmed, and Steven Holtzen.</div>
+          <div class="paper-actions">
+            <a href="lafi24.pdf">Extended Abstract</a>
+            <a href="lafi24-slides.pdf">Slides</a>
+          </div>
+        </article>
+        <article class="paper">
+          <div class="paper-head">
+            <div class="paper-title">New Foundations for Probabilistic Separation Logic</div>
+            <span class="label">LAFI @ POPL 2023</span>
+          </div>
+          <div class="authors">John M. Li, Amal Ahmed, and Steven Holtzen.</div>
+          <div class="paper-actions">
+            <a href="lafi-extended-abstract.pdf">Extended Abstract</a>
+            <a href="new-foundations-for-probabilistic-separation-logic.pdf">Slides</a>
+            <a href="new-foundations-for-probabilistic-separation-logic-poster.pdf">Poster</a>
+          </div>
+        </article>
+      </div>
+    </section>
 
-<h3>Service</h3>
+    <section class="section service" aria-labelledby="service">
+      <h2 id="service">Service</h2>
+      <ul>
+        <li>LICS 2026: External Review</li>
+        <li>CPP 2026: External Review</li>
+        <li>LICS 2025: External Review</li>
+        <li>POPL 2025: External Review</li>
+        <li>LICS 2024: External Review</li>
+      </ul>
+    </section>
+  </main>
 
-<table>
-<tr><td>LICS 2026: External Review</td></tr>
-<tr><td>CPP 2026: External Review</td></tr>
-<tr><td>LICS 2025: External Review</td></tr>
-<tr><td>POPL 2025: External Review</td></tr>
-<tr><td>LICS 2024: External Review</td></tr>
-</table>
-
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<a href='https://olekg.pl/' style='font-size:1px'>o</a>
-
+  <a href="https://olekg.pl/" style="position:absolute;left:-9999px;">o</a>
 </body>
-
 </html>
-
