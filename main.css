@@ -3,13 +3,14 @@ body {
   font-family: Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.58;
   color: #17212b;
-  background: #f9f7f2;
+  // background: #f9f7f2;
   font-size: 0.9375rem;
 }
 
 a {
   color: #1e648f;
   text-decoration: none;
+  border-radius: 0.15rem;
 }
 
 a:hover {
@@ -136,6 +137,7 @@ a:hover {
   cursor: pointer;
   color: #1e648f;
   text-decoration: none;
+  user-select: none;
 }
 
 .abstract-link:hover {
@@ -180,6 +182,8 @@ a:hover {
 @media (max-width: 720px) {
   .intro-section {
     flex-direction: column;
+    gap: 0.9rem;
+    margin-bottom: 1.5rem;
   }
 
   .portrait {
@@ -198,6 +202,15 @@ a:hover {
 
   .section {
     padding-top: 0.65rem;
+  }
+
+  .paper-head {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .label {
+    white-space: normal;
   }
 
   .paper-actions {
